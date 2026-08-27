@@ -1,4 +1,4 @@
-# HAVRE · 渡禾
+# HAVRE
 
 HAVRE (Human-Aware Values, Reflection & Evolution) is an owner-controlled
 research system for a long-term personal AI companion. It explores a practical
