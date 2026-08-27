@@ -1,0 +1,70 @@
+{
+  "$defs": {
+    "EvidenceRelation": {
+      "enum": [
+        "supports",
+        "contradicts"
+      ],
+      "title": "EvidenceRelation",
+      "type": "string"
+    },
+    "EvidenceSourceKind": {
+      "enum": [
+        "event",
+        "memory_revision",
+        "belief_revision"
+      ],
+      "title": "EvidenceSourceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "An exact, owner-qualified source reference.\n\nOwner identity is supplied by the containing command. PostgreSQL verifies\nthat every referenced source belongs to that owner before accepting a\nderived record.",
+  "properties": {
+    "relation": {
+      "$ref": "#/$defs/EvidenceRelation"
+    },
+    "source_id": {
+      "format": "uuid",
+      "title": "Source Id",
+      "type": "string"
+    },
+    "source_kind": {
+      "$ref": "#/$defs/EvidenceSourceKind"
+    },
+    "source_revision": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Revision"
+    },
+    "weight": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Weight"
+    }
+  },
+  "required": [
+    "source_kind",
+    "source_id",
+    "relation"
+  ],
+  "title": "EvidenceRef",
+  "type": "object"
+}

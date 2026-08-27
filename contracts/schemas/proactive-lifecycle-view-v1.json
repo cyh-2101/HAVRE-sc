@@ -1,0 +1,1384 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "DeliveryAttempt": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "const": "local-web-inbox-v1",
+          "default": "local-web-inbox-v1",
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "attempt_number": {
+          "const": 1,
+          "default": 1,
+          "title": "Attempt Number",
+          "type": "integer"
+        },
+        "channel": {
+          "const": "web_inbox",
+          "default": "web_inbox",
+          "title": "Channel",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "delivery_attempt_id": {
+          "format": "uuid",
+          "title": "Delivery Attempt Id",
+          "type": "string"
+        },
+        "external_delivery_authorized": {
+          "const": false,
+          "default": false,
+          "title": "External Delivery Authorized",
+          "type": "boolean"
+        },
+        "failure_code": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failure Code"
+        },
+        "idempotency_key": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "interruption_decision_id": {
+          "format": "uuid",
+          "title": "Interruption Decision Id",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "provider_receipt_id": {
+          "anyOf": [
+            {
+              "maxLength": 240,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Receipt Id"
+        },
+        "rendering_id": {
+          "format": "uuid",
+          "title": "Rendering Id",
+          "type": "string"
+        },
+        "retryable": {
+          "const": false,
+          "default": false,
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "delivered",
+            "failed",
+            "expired",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "visible_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Visible At"
+        }
+      },
+      "required": [
+        "owner_id",
+        "proposal_id",
+        "interruption_decision_id",
+        "rendering_id",
+        "idempotency_key",
+        "status",
+        "trace_id"
+      ],
+      "title": "DeliveryAttempt",
+      "type": "object"
+    },
+    "InterruptionDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "constitution_version_id": {
+          "title": "Constitution Version Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/InterruptionOutcome"
+        },
+        "defer_until": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Defer Until"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "external_delivery_authorized": {
+          "const": false,
+          "default": false,
+          "title": "External Delivery Authorized",
+          "type": "boolean"
+        },
+        "human_explanation": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Human Explanation",
+          "type": "string"
+        },
+        "identity_version_id": {
+          "title": "Identity Version Id",
+          "type": "string"
+        },
+        "inputs_snapshot": {
+          "$ref": "#/$defs/InterruptionInputs"
+        },
+        "interruption_decision_id": {
+          "format": "uuid",
+          "title": "Interruption Decision Id",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "interruption-policy-conservative-v1",
+          "default": "interruption-policy-conservative-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "preference_revision_id": {
+          "format": "uuid",
+          "title": "Preference Revision Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "rendering_constraints": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Rendering Constraints",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "proposal_id",
+        "decision",
+        "reason_codes",
+        "human_explanation",
+        "preference_revision_id",
+        "constitution_version_id",
+        "identity_version_id",
+        "inputs_snapshot",
+        "expires_at",
+        "rendering_constraints",
+        "trace_id"
+      ],
+      "title": "InterruptionDecision",
+      "type": "object"
+    },
+    "InterruptionInputs": {
+      "additionalProperties": false,
+      "properties": {
+        "category_budget_result": {
+          "enum": [
+            "available",
+            "exhausted",
+            "unresolved"
+          ],
+          "title": "Category Budget Result",
+          "type": "string"
+        },
+        "category_permission": {
+          "enum": [
+            "allowed",
+            "denied",
+            "confirmation_required",
+            "unresolved"
+          ],
+          "title": "Category Permission",
+          "type": "string"
+        },
+        "channel_eligibility": {
+          "enum": [
+            "eligible",
+            "ineligible",
+            "unresolved"
+          ],
+          "title": "Channel Eligibility",
+          "type": "string"
+        },
+        "cooldown_result": {
+          "enum": [
+            "clear",
+            "active",
+            "unresolved"
+          ],
+          "title": "Cooldown Result",
+          "type": "string"
+        },
+        "deduplication_result": {
+          "enum": [
+            "unique",
+            "duplicate",
+            "unresolved"
+          ],
+          "title": "Deduplication Result",
+          "type": "string"
+        },
+        "expiration_result": {
+          "enum": [
+            "eligible",
+            "not_yet",
+            "expired"
+          ],
+          "title": "Expiration Result",
+          "type": "string"
+        },
+        "global_budget_result": {
+          "enum": [
+            "available",
+            "exhausted",
+            "unresolved"
+          ],
+          "title": "Global Budget Result",
+          "type": "string"
+        },
+        "global_permission": {
+          "enum": [
+            "enabled",
+            "disabled",
+            "unresolved"
+          ],
+          "title": "Global Permission",
+          "type": "string"
+        },
+        "prior_response_result": {
+          "default": "none",
+          "enum": [
+            "none",
+            "responded",
+            "dismissed",
+            "snoozed",
+            "non_response",
+            "stopped"
+          ],
+          "title": "Prior Response Result",
+          "type": "string"
+        },
+        "privacy_eligibility": {
+          "enum": [
+            "eligible",
+            "ineligible",
+            "unresolved"
+          ],
+          "title": "Privacy Eligibility",
+          "type": "string"
+        },
+        "quiet_hours_result": {
+          "enum": [
+            "inside",
+            "outside",
+            "unresolved"
+          ],
+          "title": "Quiet Hours Result",
+          "type": "string"
+        },
+        "subject_stop_result": {
+          "enum": [
+            "clear",
+            "stopped"
+          ],
+          "title": "Subject Stop Result",
+          "type": "string"
+        }
+      },
+      "required": [
+        "global_permission",
+        "category_permission",
+        "quiet_hours_result",
+        "global_budget_result",
+        "category_budget_result",
+        "cooldown_result",
+        "deduplication_result",
+        "expiration_result",
+        "channel_eligibility",
+        "privacy_eligibility",
+        "subject_stop_result"
+      ],
+      "title": "InterruptionInputs",
+      "type": "object"
+    },
+    "InterruptionOutcome": {
+      "enum": [
+        "SEND_NOW",
+        "DEFER",
+        "DROP",
+        "REQUEST_OWNER_CONFIRMATION"
+      ],
+      "title": "InterruptionOutcome",
+      "type": "string"
+    },
+    "PreviewPolicy": {
+      "enum": [
+        "none",
+        "generic_private"
+      ],
+      "title": "PreviewPolicy",
+      "type": "string"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "ProactiveContextPack": {
+      "additionalProperties": false,
+      "properties": {
+        "builder_version": {
+          "const": "proactive-context-builder-v1",
+          "default": "proactive-context-builder-v1",
+          "title": "Builder Version",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "effective_data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "evidence_sections": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "minItems": 1,
+          "title": "Evidence Sections",
+          "type": "array"
+        },
+        "interruption_decision_id": {
+          "format": "uuid",
+          "title": "Interruption Decision Id",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "prefix_sections": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "minItems": 2,
+          "title": "Prefix Sections",
+          "type": "array"
+        },
+        "prefix_stable": {
+          "const": true,
+          "default": true,
+          "title": "Prefix Stable",
+          "type": "boolean"
+        },
+        "proactive_context_pack_id": {
+          "format": "uuid",
+          "title": "Proactive Context Pack Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "purpose": {
+          "const": "authorized_proactive_rendering",
+          "default": "authorized_proactive_rendering",
+          "title": "Purpose",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "strategy_version": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Strategy Version",
+          "type": "string"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "proposal_id",
+        "interruption_decision_id",
+        "strategy_version",
+        "prefix_sections",
+        "evidence_sections",
+        "effective_data_policy",
+        "trace_id"
+      ],
+      "title": "ProactiveContextPack",
+      "type": "object"
+    },
+    "ProactiveOwnerAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "format": "uuid",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "action_type": {
+          "enum": [
+            "responded",
+            "dismissed",
+            "snoozed",
+            "non_response",
+            "stopped"
+          ],
+          "title": "Action Type",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "deduplication_key": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Deduplication Key",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "inbox_message_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inbox Message Id"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "response_event_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Response Event Id"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "snooze_until": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Snooze Until"
+        },
+        "subject_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Subject Refs",
+          "type": "array"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "proposal_id",
+        "idempotency_key",
+        "action_type",
+        "deduplication_key",
+        "reason",
+        "observed_at",
+        "trace_id"
+      ],
+      "title": "ProactiveOwnerAction",
+      "type": "object"
+    },
+    "ProactivePreferenceRevision": {
+      "additionalProperties": false,
+      "description": "Immutable owner-scoped controls; defaults fail closed.",
+      "properties": {
+        "allowed_channels": {
+          "default": [],
+          "items": {
+            "const": "web_inbox",
+            "type": "string"
+          },
+          "title": "Allowed Channels",
+          "type": "array"
+        },
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "category_budget_per_24h": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Category Budget Per 24H",
+          "type": "object"
+        },
+        "category_permissions": {
+          "additionalProperties": {
+            "enum": [
+              "allowed",
+              "denied",
+              "confirmation_required"
+            ],
+            "type": "string"
+          },
+          "title": "Category Permissions",
+          "type": "object"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "cooldown_seconds": {
+          "anyOf": [
+            {
+              "maximum": 2592000,
+              "minimum": 60,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cooldown Seconds"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "external_delivery_authorized": {
+          "const": false,
+          "default": false,
+          "title": "External Delivery Authorized",
+          "type": "boolean"
+        },
+        "global_budget_per_24h": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 24,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Global Budget Per 24H"
+        },
+        "global_enabled": {
+          "default": false,
+          "title": "Global Enabled",
+          "type": "boolean"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "preference_revision_id": {
+          "format": "uuid",
+          "title": "Preference Revision Id",
+          "type": "string"
+        },
+        "preview_policy": {
+          "$ref": "#/$defs/PreviewPolicy",
+          "default": "none"
+        },
+        "quiet_hours": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/QuietHours"
+          },
+          "title": "Quiet Hours",
+          "type": "array"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "stopped_subject_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Stopped Subject Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "owner_id",
+        "revision"
+      ],
+      "title": "ProactivePreferenceRevision",
+      "type": "object"
+    },
+    "ProactiveProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_channels": {
+          "default": [
+            "web_inbox"
+          ],
+          "items": {
+            "const": "web_inbox",
+            "type": "string"
+          },
+          "title": "Candidate Channels",
+          "type": "array"
+        },
+        "category": {
+          "pattern": "^[a-z][a-z0-9_]{1,63}$",
+          "title": "Category",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "deduplication_key": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Deduplication Key",
+          "type": "string"
+        },
+        "earliest_eligible_at": {
+          "format": "date-time",
+          "title": "Earliest Eligible At",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "intended_benefit": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Intended Benefit",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "reason_code": {
+          "pattern": "^[a-z][a-z0-9_]{1,95}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "reason_summary": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason Summary",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "status": {
+          "const": "created",
+          "default": "created",
+          "title": "Status",
+          "type": "string"
+        },
+        "subject_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Subject Refs",
+          "type": "array"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "trigger_refs": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Trigger Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "owner_id",
+        "category",
+        "trigger_refs",
+        "reason_code",
+        "reason_summary",
+        "intended_benefit",
+        "evidence_refs",
+        "data_policy",
+        "earliest_eligible_at",
+        "expires_at",
+        "deduplication_key",
+        "trace_id"
+      ],
+      "title": "ProactiveProposal",
+      "type": "object"
+    },
+    "QuietHours": {
+      "additionalProperties": false,
+      "properties": {
+        "end_local": {
+          "format": "time",
+          "title": "End Local",
+          "type": "string"
+        },
+        "start_local": {
+          "format": "time",
+          "title": "Start Local",
+          "type": "string"
+        },
+        "timezone_name": {
+          "const": "UTC",
+          "default": "UTC",
+          "title": "Timezone Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_local",
+        "end_local"
+      ],
+      "title": "QuietHours",
+      "type": "object"
+    },
+    "RenderedProactiveMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "content_text": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Content Text",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "interruption_decision_id": {
+          "format": "uuid",
+          "title": "Interruption Decision Id",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "preview_policy": {
+          "$ref": "#/$defs/PreviewPolicy"
+        },
+        "preview_text": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preview Text"
+        },
+        "proactive_context_pack_id": {
+          "format": "uuid",
+          "title": "Proactive Context Pack Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "renderer_kind": {
+          "const": "deterministic_template",
+          "default": "deterministic_template",
+          "title": "Renderer Kind",
+          "type": "string"
+        },
+        "renderer_version": {
+          "const": "proactive-template-v1",
+          "default": "proactive-template-v1",
+          "title": "Renderer Version",
+          "type": "string"
+        },
+        "rendering_id": {
+          "format": "uuid",
+          "title": "Rendering Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "proposal_id",
+        "interruption_decision_id",
+        "proactive_context_pack_id",
+        "content_text",
+        "preview_policy",
+        "data_policy",
+        "trace_id"
+      ],
+      "title": "RenderedProactiveMessage",
+      "type": "object"
+    },
+    "TriggerRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "source_kind": {
+          "$ref": "#/$defs/TriggerSourceKind"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "source_version": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "recorded",
+          "default": "recorded",
+          "title": "Status",
+          "type": "string"
+        },
+        "subject_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Subject Refs",
+          "type": "array"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "trigger_id": {
+          "format": "uuid",
+          "title": "Trigger Id",
+          "type": "string"
+        },
+        "trigger_type": {
+          "pattern": "^[a-z][a-z0-9_]{1,63}$",
+          "title": "Trigger Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "trigger_type",
+        "source_kind",
+        "source_refs",
+        "observed_at",
+        "source_version",
+        "data_policy",
+        "trace_id"
+      ],
+      "title": "TriggerRecord",
+      "type": "object"
+    },
+    "TriggerSourceKind": {
+      "enum": [
+        "scheduled_time",
+        "goal",
+        "scene_session",
+        "owner_reminder",
+        "belief_confirmation",
+        "system_operational",
+        "synthetic_life_context"
+      ],
+      "title": "TriggerSourceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assistant_event_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Assistant Event Id"
+    },
+    "context_pack": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProactiveContextPack"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "decision": {
+      "$ref": "#/$defs/InterruptionDecision"
+    },
+    "delivery_attempt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DeliveryAttempt"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "idempotent_replay": {
+      "default": false,
+      "title": "Idempotent Replay",
+      "type": "boolean"
+    },
+    "lifecycle_events": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Lifecycle Events",
+      "type": "array"
+    },
+    "owner_actions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ProactiveOwnerAction"
+      },
+      "title": "Owner Actions",
+      "type": "array"
+    },
+    "preference": {
+      "$ref": "#/$defs/ProactivePreferenceRevision"
+    },
+    "proposal": {
+      "$ref": "#/$defs/ProactiveProposal"
+    },
+    "rendering": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RenderedProactiveMessage"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "trace_id": {
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "trigger": {
+      "$ref": "#/$defs/TriggerRecord"
+    }
+  },
+  "required": [
+    "request_id",
+    "trace_id",
+    "trigger",
+    "proposal",
+    "preference",
+    "decision",
+    "lifecycle_events"
+  ],
+  "title": "ProactiveLifecycleView",
+  "type": "object"
+}

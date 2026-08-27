@@ -1,0 +1,77 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifact Content Hash",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "const": "canonical_dataset_snapshot",
+      "default": "canonical_dataset_snapshot",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "artifact_manifest_id": {
+      "format": "uuid",
+      "title": "Artifact Manifest Id",
+      "type": "string"
+    },
+    "artifact_ref": {
+      "title": "Artifact Ref",
+      "type": "string"
+    },
+    "builder_version": {
+      "const": "canonical-dataset-builder-v1",
+      "default": "canonical-dataset-builder-v1",
+      "title": "Builder Version",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "reproducible": {
+      "const": true,
+      "default": true,
+      "title": "Reproducible",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_snapshot_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Source Snapshot Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "artifact_ref",
+    "artifact_content_hash",
+    "source_snapshot_hash"
+  ],
+  "title": "ArtifactManifest",
+  "type": "object"
+}

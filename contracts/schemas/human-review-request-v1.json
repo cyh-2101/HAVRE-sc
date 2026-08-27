@@ -1,0 +1,74 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "release_promotion_in_scope": {
+      "const": false,
+      "default": false,
+      "title": "Release Promotion In Scope",
+      "type": "boolean"
+    },
+    "required_role": {
+      "enum": [
+        "technical_reviewer",
+        "human_reviewer"
+      ],
+      "title": "Required Role",
+      "type": "string"
+    },
+    "review_request_id": {
+      "format": "uuid",
+      "title": "Review Request Id",
+      "type": "string"
+    },
+    "review_scope": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Review Scope",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_kind": {
+      "enum": [
+        "evidence_bundle",
+        "release_comparison",
+        "judge_calibration"
+      ],
+      "title": "Target Kind",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "target_kind",
+    "target_id",
+    "required_role",
+    "review_scope"
+  ],
+  "title": "HumanReviewRequest",
+  "type": "object"
+}

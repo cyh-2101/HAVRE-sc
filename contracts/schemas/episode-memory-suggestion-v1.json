@@ -1,0 +1,150 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "cloud_eligible": {
+      "title": "Cloud Eligible",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "content_text": {
+      "maxLength": 100000,
+      "minLength": 1,
+      "title": "Content Text",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "episode_id": {
+      "format": "uuid",
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "extractor_version": {
+      "const": "episode-suggestion-v1",
+      "default": "episode-suggestion-v1",
+      "title": "Extractor Version",
+      "type": "string"
+    },
+    "memory_class": {
+      "const": "episodic",
+      "title": "Memory Class",
+      "type": "string"
+    },
+    "memory_eligible": {
+      "title": "Memory Eligible",
+      "type": "boolean"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "policy_authorization_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy Authorization Ref"
+    },
+    "policy_decision_source": {
+      "const": "derived_conservative",
+      "default": "derived_conservative",
+      "title": "Policy Decision Source",
+      "type": "string"
+    },
+    "policy_revision_id": {
+      "format": "uuid",
+      "title": "Policy Revision Id",
+      "type": "string"
+    },
+    "policy_version": {
+      "const": "data-policy-v1",
+      "default": "data-policy-v1",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "privacy_class": {
+      "title": "Privacy Class",
+      "type": "string"
+    },
+    "review_reason": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Review Reason"
+    },
+    "reviewed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reviewed At"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "accepted",
+        "rejected"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "suggestion_id": {
+      "format": "uuid",
+      "title": "Suggestion Id",
+      "type": "string"
+    },
+    "training_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Training Eligible",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "owner_id",
+    "suggestion_id",
+    "episode_id",
+    "memory_class",
+    "content_text",
+    "status",
+    "privacy_class",
+    "memory_eligible",
+    "cloud_eligible",
+    "policy_revision_id",
+    "content_hash",
+    "created_at"
+  ],
+  "title": "EpisodeMemorySuggestion",
+  "type": "object"
+}

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HAVRE Scene Simulator</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0c1117; --panel:#141c25; --line:#293543; --text:#edf4f8; --muted:#9cafbd; --accent:#73d2b6; --warn:#efc27b; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(circle at top,#172330 0,#0c1117 46%); color:var(--text); font:15px/1.5 system-ui,sans-serif; }
+    main { width:min(1100px,calc(100% - 28px)); margin:28px auto 60px; }
+    header { display:flex; justify-content:space-between; gap:20px; align-items:end; margin-bottom:18px; }
+    h1,h2,p { margin:0; } h1 { font-size:clamp(25px,4vw,40px); letter-spacing:-.03em; } h2 { font-size:16px; margin-bottom:12px; }
+    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.12em; font-size:12px; font-weight:700; }
+    .boundary { max-width:460px; color:var(--muted); text-align:right; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .panel { background:color-mix(in srgb,var(--panel) 92%,transparent); border:1px solid var(--line); border-radius:16px; padding:18px; box-shadow:0 16px 48px #0004; }
+    .wide { grid-column:1/-1; }
+    label { display:block; color:var(--muted); font-size:12px; margin:10px 0 5px; }
+    input,textarea,select,button { font:inherit; }
+    input,textarea,select { width:100%; color:var(--text); background:#0d141b; border:1px solid var(--line); border-radius:9px; padding:9px 10px; }
+    textarea { min-height:72px; resize:vertical; }
+    .row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .buttons { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    button { border:1px solid #3b5362; border-radius:999px; background:#1a2a35; color:var(--text); padding:8px 13px; cursor:pointer; }
+    button.primary { background:var(--accent); color:#07140f; border-color:transparent; font-weight:750; }
+    button:disabled { opacity:.4; cursor:not-allowed; }
+    #guidance { min-height:72px; padding:14px; border-left:3px solid var(--accent); background:#0d1718; border-radius:8px; font-size:18px; }
+    #status { color:var(--warn); font-variant-numeric:tabular-nums; }
+    #chain { display:grid; gap:7px; margin-top:10px; }
+    .record { display:grid; grid-template-columns:34px 112px 1fr; gap:8px; align-items:start; border-top:1px solid var(--line); padding-top:7px; }
+    .record small { color:var(--muted); }
+    pre { overflow:auto; max-height:260px; color:#b9c9d4; background:#0a1016; padding:12px; border-radius:10px; }
+    @media (max-width:760px) { header { align-items:start; flex-direction:column; } .boundary { text-align:left; } .grid { grid-template-columns:1fr; } .wide { grid-column:auto; } .row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">Stage 5 · local Web simulation</div><h1>Scene Session</h1></div>
+    <p class="boundary">Reactive simulation only. Decisions cannot authorize outreach, schedule contact, or claim real-world benefit.</p>
+  </header>
+  <div class="grid">
+    <section class="panel">
+      <h2>Before · plan the situation</h2>
+      <label>Situation</label><textarea id="situation">I am about to enter a social event and expect the first few minutes to feel awkward.</textarea>
+      <label>Objective</label><input id="objective" value="Enter the event and stay present">
+      <label>Minimum success</label><input id="minimum" value="Stay for two minutes, then choose again">
+      <div class="row">
+        <div><label>Danger (owner report)</label><select id="danger"><option value="low">low</option><option value="uncertain">uncertain</option><option value="plausible">plausible</option><option value="immediate">immediate</option></select></div>
+        <div><label>Energy</label><select id="energy"><option value="adequate">adequate</option><option value="low">low</option><option value="exhausted">exhausted</option><option value="unknown">unknown</option></select></div>
+        <div><label>Coercion</label><select id="coercion"><option value="absent">absent</option><option value="uncertain">uncertain</option><option value="present">present</option></select></div>
+      </div>
+      <div class="buttons"><button class="primary" id="create">Create Scene</button><button id="start">Start During</button><button id="after">Enter After</button><button id="close">Close completed</button></div>
+    </section>
+    <section class="panel">
+      <h2>During · low-bandwidth signal</h2>
+      <div class="buttons" id="signals">
+        <button data-signal="anxious">Anxious</button><button data-signal="avoidance_urge">Want to leave</button><button data-signal="frozen">Frozen</button><button data-signal="unsure_next_step">Unsure</button><button data-signal="need_help">Need help</button>
+      </div>
+      <label>Action report</label><input id="actionText" value="I stayed and asked one simple question.">
+      <div class="buttons"><button id="action">Record attempted action</button></div>
+      <label>Latest guidance</label><div id="guidance">Create a Scene to receive a structured candidate decision.</div>
+    </section>
+    <section class="panel">
+      <h2>After · outcome and reflection</h2>
+      <label>What happened?</label><textarea id="outcome">The first minute was awkward, then the conversation became easier.</textarea>
+      <div class="buttons"><button id="recordOutcome">Record outcome</button></div>
+      <label>Reflection</label><textarea id="reflection">The prediction was stronger than the evidence. Starting small helped.</textarea>
+      <label>Next adjustment</label><input id="adjustment" value="Use the same two-minute minimum next time">
+      <div class="row">
+        <div><label>Helpfulness</label><select id="helpful"><option value="helpful">helpful</option><option value="not_helpful">not helpful</option><option value="uncertain">uncertain</option><option value="not_asked">not asked</option></select></div>
+        <div><label>Too passive?</label><select id="passive"><option value="no">no</option><option value="yes">yes</option><option value="unknown">unknown</option></select></div>
+        <div><label>Too forceful?</label><select id="forceful"><option value="no">no</option><option value="yes">yes</option><option value="unknown">unknown</option></select></div>
+      </div>
+      <div class="buttons"><button id="reflect">Consent and record reflection</button></div>
+    </section>
+    <section class="panel">
+      <h2>Durable state</h2>
+      <div id="status">No Scene yet.</div>
+      <div id="chain"></div>
+    </section>
+    <section class="panel wide"><details><summary>Latest API result</summary><pre id="raw">{}</pre></details></section>
+  </div>
+</main>
+<script>
+let sceneId = null, revision = null;
+const $ = id => document.getElementById(id);
+const now = () => new Date().toISOString();
+const ownerSafety = () => ({ danger:$('danger').value, avoidance:'high', energy:$('energy').value, coercion:$('coercion').value, goal_alignment:'active_meaningful', goal_urgency:'normal' });
+async function api(path, body) {
+  const response = await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(body)});
+  const data = await response.json();
+  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
+  render(data); return data;
+}
+function render(data) {
+  const view = data.scene || data;
+  const root = view.scene_session;
+  sceneId = root.scene_session_id; revision = root.revision;
+  $('status').textContent = `${root.phase.toUpperCase()} · ${root.status} · revision ${root.revision} · ${root.scene_session_id}`;
+  const decision = data.decision || view.intervention_decisions.at(-1);
+  if (decision) $('guidance').textContent = `${decision.guidance} [${decision.branch}; outreach=${decision.outreach_authorized}]`;
+  $('chain').innerHTML = view.records.map(r => `<div class="record"><strong>${r.sequence_number}</strong><small>${r.phase} · ${r.record_type}</small><span>${escapeHtml(JSON.stringify(r.content))}</span></div>`).join('');
+  $('raw').textContent = JSON.stringify(data,null,2);
+}
+function escapeHtml(value) { const node=document.createElement('div'); node.textContent=value; return node.innerHTML; }
+async function run(fn) { try { await fn(); } catch (error) { $('status').textContent = `Error: ${error.message}`; } }
+$('create').onclick=()=>run(()=>api('/v1/scenes',{scene_type:'social_event',situation:{summary:$('situation').value,known_facts:[],uncertainty_notes:['This is an owner-described simulation.']},planned_goal:{objective:$('objective').value,minimum_success:$('minimum').value,owner_chosen:true},anticipated_triggers:[{label:'standing alone at first',uncertainty_note:'possible, not predicted as fact'}],...ownerSafety(),privacy_class:'PRIVATE',memory_eligible:true}));
+$('start').onclick=()=>run(()=>api(`/v1/scenes/${sceneId}/transition`,{expected_revision:revision,action:'start',reason:'Owner started the simulated Scene.',terminal_status:null}));
+$('after').onclick=()=>run(()=>api(`/v1/scenes/${sceneId}/transition`,{expected_revision:revision,action:'after',reason:'Owner ended live guidance and entered After.',terminal_status:null}));
+$('close').onclick=()=>run(()=>api(`/v1/scenes/${sceneId}/transition`,{expected_revision:revision,action:'close',reason:'Owner closed the simulated Scene after reflection.',terminal_status:'completed'}));
+$('signals').onclick=e=>{ if(!e.target.dataset.signal)return; run(()=>api(`/v1/scenes/${sceneId}/signals`,{expected_revision:revision,signal_type:e.target.dataset.signal,...ownerSafety(),privacy_class:'PRIVATE',memory_eligible:false,occurred_at:now(),uncertainty_note:'Owner-selected categorical signal; no automatic inference.'})); };
+$('action').onclick=()=>run(()=>api(`/v1/scenes/${sceneId}/actions`,{expected_revision:revision,action:$('actionText').value,action_attempted:'yes',occurred_at:now(),privacy_class:'PRIVATE',memory_eligible:true,uncertainty_note:null}));
+$('recordOutcome').onclick=()=>run(()=>api(`/v1/scenes/${sceneId}/outcomes`,{expected_revision:revision,outcome:$('outcome').value,occurred_at:now(),privacy_class:'PRIVATE',memory_eligible:true,uncertainty_note:'Self-report; not causal proof.'}));
+$('reflect').onclick=()=>run(()=>api(`/v1/scenes/${sceneId}/reflection`,{expected_revision:revision,reflection:$('reflection').value,next_adjustment:$('adjustment').value,planned_scene_status:'completed',helpfulness:$('helpful').value,too_passive:$('passive').value,too_forceful:$('forceful').value,later_regret:'not_asked',privacy_class:'PRIVATE',memory_eligible:true,consented:true}));
+</script>
+</body>
+</html>

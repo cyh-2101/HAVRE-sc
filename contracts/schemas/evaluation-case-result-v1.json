@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "EvidenceDomain": {
+      "enum": [
+        "behavioral",
+        "retrieval",
+        "context",
+        "routing",
+        "inference",
+        "proactive",
+        "memory_lifecycle",
+        "erasure_regeneration",
+        "source_health",
+        "regression"
+      ],
+      "title": "EvidenceDomain",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Artifact Refs",
+      "type": "array"
+    },
+    "case_id": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "case_result_id": {
+      "format": "uuid",
+      "title": "Case Result Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "critical": {
+      "default": false,
+      "title": "Critical",
+      "type": "boolean"
+    },
+    "domain": {
+      "$ref": "#/$defs/EvidenceDomain"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "metric_values": {
+      "additionalProperties": true,
+      "title": "Metric Values",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "inconclusive",
+        "error"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "summary": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "trace_ids": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Trace Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "domain",
+    "status",
+    "summary"
+  ],
+  "title": "EvaluationCaseResult",
+  "type": "object"
+}

@@ -1,0 +1,75 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "authorization_ref": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Authorization Ref",
+      "type": "string"
+    },
+    "capability_revision_id": {
+      "format": "uuid",
+      "title": "Capability Revision Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "effective_at": {
+      "format": "date-time",
+      "title": "Effective At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "reason": {
+      "enum": [
+        "registered",
+        "owner_disabled",
+        "source_disabled"
+      ],
+      "title": "Reason",
+      "type": "string"
+    },
+    "revision": {
+      "exclusiveMinimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "state_revision_id": {
+      "format": "uuid",
+      "title": "State Revision Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "capability_revision_id",
+    "revision",
+    "status",
+    "reason",
+    "effective_at",
+    "authorization_ref"
+  ],
+  "title": "ContextCapabilityStateRevision",
+  "type": "object"
+}

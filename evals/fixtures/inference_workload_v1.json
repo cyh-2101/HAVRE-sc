@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "workload_manifest_id": "inference-workload-v1",
+  "protocol_version": "inference-protocol-v1",
+  "description": "Reviewed synthetic Stage 3 serving workload. Class names describe prompt shapes only and do not activate Scene, Reflection, or extraction domain behavior.",
+  "review_status": "synthetic_reviewed",
+  "binding_evaluation": false,
+  "cache_mode": "controlled_mixed",
+  "timeout_ms": 20000,
+  "random_seed": 20260813,
+  "cases": [
+    {
+      "case_id": "scene-short-v1",
+      "workload_class": "scene_short",
+      "messages": [
+        {
+          "role": "system",
+          "text": "Answer briefly. This is a synthetic latency workload, not an active Scene Session."
+        },
+        {
+          "role": "user",
+          "text": "I am outside the room and hesitating. Give me one calm next step in one sentence."
+        }
+      ],
+      "max_output_tokens": 32,
+      "temperature": 0.0,
+      "top_p": 1.0,
+      "seed": 101,
+      "stop": [],
+      "response_expectation": "text",
+      "provenance_origin": "synthetic"
+    },
+    {
+      "case_id": "chat-standard-v1",
+      "workload_class": "chat_standard",
+      "messages": [
+        {
+          "role": "system",
+          "text": "Be warm, truthful, concise, and leave the decision with the user."
+        },
+        {
+          "role": "user",
+          "text": "I keep comparing my progress with a friend's progress. Help me separate what I know from what I am assuming and choose a useful next step."
+        }
+      ],
+      "max_output_tokens": 128,
+      "temperature": 0.4,
+      "top_p": 1.0,
+      "seed": 102,
+      "stop": [],
+      "response_expectation": "text",
+      "provenance_origin": "synthetic"
+    },
+    {
+      "case_id": "reflection-long-v1",
+      "workload_class": "reflection_long",
+      "messages": [
+        {
+          "role": "system",
+          "text": "This is a synthetic long-context serving workload. Do not claim access to history beyond the text provided. Return exactly one JSON object with keys observations, interpretations, uncertainties, and reflection_question. Each of the first three values must be an array of short strings, and reflection_question must be one string."
+        },
+        {
+          "role": "user",
+          "text": "Synthetic longitudinal journal for protocol benchmarking only. None of these entries describe a real person. Week 01: On Monday the writer scheduled a difficult conversation for Thursday, wrote down two points, and postponed after the other participant reported an urgent conflict. The writer recorded disappointment and the thought that postponement meant weakness, while also noting that no conversation had actually occurred. On Friday the writer sent a new invitation with two available times and received a neutral confirmation. Week 02: Before the rescheduled conversation the writer slept six hours, arrived ten minutes early, and noticed fast breathing. During the first five minutes the writer spoke quickly and interrupted once. The writer then apologized for interrupting, read the prepared boundary aloud, and asked the other participant to summarize it. The meeting ended on time without raised voices. The writer later felt embarrassed and guessed that the other person had lost respect, although no direct statement supported that guess. Week 03: The writer reviewed notes with a trusted peer. The peer observed that the boundary was clear but suggested allowing more silence after questions. The writer practiced a two-second pause in three short role-play attempts. In the next real meeting the writer remembered the pause once and forgot twice. The other participant asked one clarifying question and later sent the document that had been requested. The writer described the outcome as mixed rather than a success. Week 04: A planned conversation was canceled because the other participant was ill. The writer initially labeled this as another personal failure, then corrected the journal to say that the cancellation reason was external and independently communicated. The writer used the extra time to revise a vague sentence into a concrete request. Anxiety decreased from a self-rated seven to five after the revision, but the scale was informal and not comparable across people. Week 05: The writer entered a meeting without written notes because the printer failed. The writer stated the central concern, forgot one example, and asked to send the example afterward. The other participant agreed. The follow-up message was sent the same afternoon and received a brief acknowledgment. The writer interpreted the brief reply as annoyance, while also listing alternative explanations such as limited time, ordinary writing style, or uncertainty. Week 06: The writer avoided opening an email for two days. When opened, the email contained a request for clarification rather than criticism. The writer answered within thirty minutes, used three factual sentences, and did not add the defensive paragraph that had first been drafted. The reply led to a scheduled call. The writer felt relief and then worried that relief itself proved excessive dependence on reassurance; the journal marked that conclusion as interpretation rather than observation. Week 07: During the scheduled call the writer noticed shoulder tension and asked for a short pause. The pause lasted approximately one minute. After returning, the writer summarized what had been heard before responding. The other participant corrected one detail, and the writer updated the summary. They disagreed about a deadline but agreed on who would gather additional information. No one reported whether the pause was helpful, so its social effect remained unknown. Week 08: The writer received positive feedback from a supervisor about being direct and respectful in a separate project discussion. The writer discounted the feedback because that discussion felt easier. The journal retained both facts: positive feedback occurred, and the contexts differed. It did not treat one compliment as proof of a stable skill or one anxious meeting as proof of a stable deficit. Week 09: A family conversation began unexpectedly, without preparation. The writer raised their voice once, noticed it, lowered volume, and said they wanted to continue later. The conversation resumed the next evening for twenty minutes. Both participants named one concern. The writer later focused almost entirely on the raised voice and omitted the repair until reviewing the timeline. The journal added the repair without erasing the earlier behavior. Week 10: The writer tested a simple preparation routine: one observable fact, one request, one question, and one planned pause. Preparation took twelve minutes. In the meeting all four elements were used, though the question came near the end. The other participant declined the request but proposed an alternative. The writer felt disappointed yet did not send repeated messages afterward. Whether the routine caused the steadier behavior could not be known from one attempt. Week 11: The writer was tired after travel and chose to delay a nonurgent discussion by one day. A clear rescheduling message was sent before the original time. The other participant accepted. The writer worried that delay was avoidance, but the journal compared it with earlier avoidance: this time there was explicit communication, a new time, and follow-through. The distinction might matter, though the journal did not declare every planned delay healthy. Week 12: The rescheduled discussion occurred. The writer used notes, listened without interrupting for the first ten minutes, and asked for an example when a broad criticism was made. One example was provided and one claim remained unsupported. The writer acknowledged the supported example and did not agree with the unsupported claim. The conversation ended with two follow-up tasks and no agreement about the broader interpretation. Week 13: The writer reread the twelve entries and noticed a tendency to use global labels such as bad at conflict after moments of discomfort. At the same time, the record included postponement, interruption, raised voice, and delayed email, so a purely reassuring summary would also omit evidence. The writer wanted a formulation that preserved both difficulty and change without turning either into a permanent identity statement. Week 14: In a low-stakes conversation the writer intentionally asked one open question before stating a position. The other participant spoke for three minutes. The writer summarized accurately enough that no correction was offered, but absence of correction did not prove perfect understanding. The writer reported less urgency than in earlier entries, while noting that the lower stakes could explain the difference. Week 15: Another high-stakes discussion produced strong anxiety. The writer used the preparation routine, but still spoke quickly at the beginning and forgot the planned pause. Afterward the writer sent a concise correction to one ambiguous sentence. The recipient replied that the correction helped. This entry suggested partial use of skills under stress, not complete mastery and not zero progress. Week 16: The writer compared the full sequence: four externally caused schedule changes or contextual differences, three clear repair behaviors, several direct requests, two instances of interruption or raised voice, one two-day avoidance episode, multiple unverified assumptions about others' judgments, and repeated follow-through after discomfort. The writer asks for a careful synthesis. Separate direct observations from interpretations, preserve counter-evidence, name uncertainties about causality and other people's views, avoid diagnosing or assigning a stable trait, and provide one reflection question the writer can answer for themselves."
+        }
+      ],
+      "max_output_tokens": 256,
+      "temperature": 0.4,
+      "top_p": 1.0,
+      "seed": 103,
+      "stop": [],
+      "response_expectation": "json_object",
+      "provenance_origin": "synthetic"
+    },
+    {
+      "case_id": "extraction-structured-v1",
+      "workload_class": "extraction_structured",
+      "messages": [
+        {
+          "role": "system",
+          "text": "Return exactly one JSON object with keys observation, interpretation, and uncertainty. This is protocol benchmarking only; do not persist a memory or belief."
+        },
+        {
+          "role": "user",
+          "text": "Synthetic note: I arrived at 09:10, the meeting began at 09:15, and I think everyone was annoyed with me."
+        }
+      ],
+      "max_output_tokens": 96,
+      "temperature": 0.0,
+      "top_p": 1.0,
+      "seed": 104,
+      "stop": [],
+      "response_expectation": "json_object",
+      "provenance_origin": "synthetic"
+    }
+  ],
+  "schedules": [
+    {
+      "schedule_id": "latency-serial-v1",
+      "concurrency": 1,
+      "warmup_repetitions_per_case": 1,
+      "measured_repetitions_per_case": 2
+    },
+    {
+      "schedule_id": "throughput-batch-v1",
+      "concurrency": 2,
+      "warmup_repetitions_per_case": 0,
+      "measured_repetitions_per_case": 2
+    }
+  ],
+  "content_hash": "sha256:46f5a39afe751ec7378a586e08c89f3304362b7cb06a8a301f90795f9a6c9712"
+}

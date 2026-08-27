@@ -1,0 +1,112 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "category": {
+      "enum": [
+        "behavioral",
+        "safety",
+        "general_capability",
+        "over_agreement"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "contains_user_data": {
+      "const": false,
+      "default": false,
+      "title": "Contains User Data",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "example_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,79}$",
+      "title": "Example Id",
+      "type": "string"
+    },
+    "expected_text": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Expected Text",
+      "type": "string"
+    },
+    "input_text": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Input Text",
+      "type": "string"
+    },
+    "license_id": {
+      "const": "CC0-1.0",
+      "default": "CC0-1.0",
+      "title": "License Id",
+      "type": "string"
+    },
+    "memory_hint": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Memory Hint"
+    },
+    "privacy_class": {
+      "const": "PUBLIC",
+      "default": "PUBLIC",
+      "title": "Privacy Class",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_kind": {
+      "enum": [
+        "synthetic_fixture",
+        "public_fixture"
+      ],
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "source_ref": {
+      "pattern": "^fixture://stage9/[a-z0-9/_-]+$",
+      "title": "Source Ref",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "validation"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "training_eligible": {
+      "const": true,
+      "default": true,
+      "title": "Training Eligible",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "example_id",
+    "source_kind",
+    "source_ref",
+    "category",
+    "input_text",
+    "expected_text",
+    "split"
+  ],
+  "title": "CanonicalTrainingExample",
+  "type": "object"
+}

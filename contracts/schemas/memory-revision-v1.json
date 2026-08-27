@@ -1,0 +1,275 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "MemoryStatus": {
+      "enum": [
+        "active",
+        "retracted"
+      ],
+      "title": "MemoryStatus",
+      "type": "string"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidate_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Id"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "confidence_method": {
+      "title": "Confidence Method",
+      "type": "string"
+    },
+    "content": {
+      "additionalProperties": true,
+      "title": "Content",
+      "type": "object"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "content_text": {
+      "maxLength": 100000,
+      "minLength": 1,
+      "title": "Content Text",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "created_by": {
+      "title": "Created By",
+      "type": "string"
+    },
+    "created_event_id": {
+      "format": "uuid",
+      "title": "Created Event Id",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "importance": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Importance",
+      "type": "number"
+    },
+    "importance_policy_version": {
+      "title": "Importance Policy Version",
+      "type": "string"
+    },
+    "memory_class": {
+      "default": "episodic",
+      "enum": [
+        "episodic",
+        "semantic",
+        "pattern",
+        "progress"
+      ],
+      "title": "Memory Class",
+      "type": "string"
+    },
+    "memory_id": {
+      "format": "uuid",
+      "title": "Memory Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "revision": {
+      "exclusiveMinimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_occurred_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Occurred At"
+    },
+    "status": {
+      "$ref": "#/$defs/MemoryStatus"
+    },
+    "supersedes_revision": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes Revision"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "transform_version": {
+      "title": "Transform Version",
+      "type": "string"
+    },
+    "valid_from": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Valid From"
+    },
+    "valid_to": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Valid To"
+    }
+  },
+  "required": [
+    "owner_id",
+    "memory_id",
+    "revision",
+    "content",
+    "content_text",
+    "confidence",
+    "confidence_method",
+    "importance",
+    "importance_policy_version",
+    "status",
+    "created_by",
+    "transform_version",
+    "created_event_id",
+    "trace_id",
+    "data_policy"
+  ],
+  "title": "MemoryRevision",
+  "type": "object"
+}

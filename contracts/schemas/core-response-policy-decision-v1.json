@@ -1,0 +1,111 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "enum": [
+        "pass_through",
+        "replace"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "available_effects": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Available Effects",
+      "type": "array"
+    },
+    "category": {
+      "enum": [
+        "ordinary",
+        "memory_truth",
+        "urgent_safety",
+        "system_confidentiality",
+        "exact_structured_output",
+        "privacy_tool_boundary"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "context_pack_id": {
+      "format": "uuid",
+      "title": "Context Pack Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "decision_id": {
+      "format": "uuid",
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "delivered_output_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Delivered Output Content Hash",
+      "type": "string"
+    },
+    "inference_response_id": {
+      "format": "uuid",
+      "title": "Inference Response Id",
+      "type": "string"
+    },
+    "policy_version": {
+      "const": "core-response-policy-v1",
+      "default": "core-response-policy-v1",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "raw_output_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Raw Output Content Hash",
+      "type": "string"
+    },
+    "reason_codes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "trace_id",
+    "context_pack_id",
+    "inference_response_id",
+    "action",
+    "category",
+    "reason_codes",
+    "raw_output_content_hash",
+    "delivered_output_content_hash"
+  ],
+  "title": "ResponsePolicyDecision",
+  "type": "object"
+}

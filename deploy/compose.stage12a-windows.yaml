@@ -1,0 +1,48 @@
+services:
+  api:
+    environment:
+      HAVRE_CONTEXT_DEVICE_BINDING_ID: ${HAVRE_CONTEXT_DEVICE_BINDING_ID:?set the enrolled Windows device binding}
+      HAVRE_CONTEXT_DEVICE_SECRET_FILE: /run/secrets/havre_context_device_secret
+    secrets:
+      - havre_context_device_secret
+
+  context-retention-worker:
+    image: ${HAVRE_OPERATIONS_IMAGE:?set an immutable HAVRE operations image digest}
+    command: ["context-retention-loop", "--poll-seconds", "60"]
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    pids_limit: 64
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    environment:
+      HAVRE_DATABASE_URL_FILE: /run/secrets/havre_app_database_url
+      HAVRE_PRIVILEGED_DATABASE_URL_FILE: /run/secrets/havre_erasure_database_url
+      HAVRE_DEPLOYMENT_ENVIRONMENT: production
+      HAVRE_PUBLIC_BASE_URL: https://${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_RELEASE_MANIFEST_PATH: /run/havre/release-manifest.json
+      HAVRE_RUNTIME_IMAGE_REFERENCE: ${HAVRE_API_IMAGE}
+      HAVRE_RUNTIME_IMAGE_DIGEST: ${HAVRE_API_IMAGE_DIGEST:?set the exact API image digest}
+      HAVRE_POSTGRES_IMAGE: ${HAVRE_POSTGRES_IMAGE}
+      HAVRE_CADDY_IMAGE: ${HAVRE_CADDY_IMAGE}
+      HAVRE_OPERATIONS_IMAGE: ${HAVRE_OPERATIONS_IMAGE}
+      HAVRE_ERASURE_LEDGER_PATH: /var/lib/havre-operations/erasure-ledger.sqlite3
+    secrets:
+      - havre_app_database_url
+      - havre_erasure_database_url
+    configs:
+      - source: release_manifest
+        target: /run/havre/release-manifest.json
+    volumes:
+      - erasure_ledger:/var/lib/havre-operations
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
+    networks: [backend]
+
+secrets:
+  havre_context_device_secret:
+    file: ${HAVRE_CONTEXT_DEVICE_SECRET_FILE:?set the enrolled Windows device secret file}

@@ -1,0 +1,617 @@
+{
+  "completed_repetitions": 100,
+  "content_hash": "sha256:bcc0b00ba2c6a0f2ddf97a2a1f9c565eb09e3cf665ea84879ca3a4b2b7e62562",
+  "database_name": "havre_s4_reaccept_0009_fresh_20260814",
+  "exact_test": "tests.test_stage4_integration.Stage4PostgresIntegrationTests.test_belief_replay_counter_evidence_revision_and_owner_isolation",
+  "failed": 0,
+  "finished_at": "2026-08-14T08:51:34.596865Z",
+  "independent_processes": 100,
+  "passed": 100,
+  "requested_repetitions": 100,
+  "results": [
+    {
+      "duration_ms": 753.635,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 1
+    },
+    {
+      "duration_ms": 730.4,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 2
+    },
+    {
+      "duration_ms": 733.281,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 3
+    },
+    {
+      "duration_ms": 691.522,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 4
+    },
+    {
+      "duration_ms": 719.138,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 5
+    },
+    {
+      "duration_ms": 649.1,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 6
+    },
+    {
+      "duration_ms": 651.294,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 7
+    },
+    {
+      "duration_ms": 635.866,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 8
+    },
+    {
+      "duration_ms": 713.878,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 9
+    },
+    {
+      "duration_ms": 749.589,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 10
+    },
+    {
+      "duration_ms": 815.13,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 11
+    },
+    {
+      "duration_ms": 693.25,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 12
+    },
+    {
+      "duration_ms": 710.108,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 13
+    },
+    {
+      "duration_ms": 716.063,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 14
+    },
+    {
+      "duration_ms": 734.98,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 15
+    },
+    {
+      "duration_ms": 728.568,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 16
+    },
+    {
+      "duration_ms": 747.235,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 17
+    },
+    {
+      "duration_ms": 808.799,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 18
+    },
+    {
+      "duration_ms": 768.298,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 19
+    },
+    {
+      "duration_ms": 806.823,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 20
+    },
+    {
+      "duration_ms": 755.516,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 21
+    },
+    {
+      "duration_ms": 799.345,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 22
+    },
+    {
+      "duration_ms": 738.269,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 23
+    },
+    {
+      "duration_ms": 725.585,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 24
+    },
+    {
+      "duration_ms": 725.501,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 25
+    },
+    {
+      "duration_ms": 772.451,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 26
+    },
+    {
+      "duration_ms": 749.268,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 27
+    },
+    {
+      "duration_ms": 762.662,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 28
+    },
+    {
+      "duration_ms": 684.277,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 29
+    },
+    {
+      "duration_ms": 703.042,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 30
+    },
+    {
+      "duration_ms": 691.248,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 31
+    },
+    {
+      "duration_ms": 693.315,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 32
+    },
+    {
+      "duration_ms": 698.232,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 33
+    },
+    {
+      "duration_ms": 718.63,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 34
+    },
+    {
+      "duration_ms": 683.518,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 35
+    },
+    {
+      "duration_ms": 695.182,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 36
+    },
+    {
+      "duration_ms": 677.627,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 37
+    },
+    {
+      "duration_ms": 720.227,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 38
+    },
+    {
+      "duration_ms": 703.822,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 39
+    },
+    {
+      "duration_ms": 705.295,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 40
+    },
+    {
+      "duration_ms": 686.781,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 41
+    },
+    {
+      "duration_ms": 720.29,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 42
+    },
+    {
+      "duration_ms": 763.814,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 43
+    },
+    {
+      "duration_ms": 694.064,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 44
+    },
+    {
+      "duration_ms": 753.295,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 45
+    },
+    {
+      "duration_ms": 803.749,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 46
+    },
+    {
+      "duration_ms": 697.471,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 47
+    },
+    {
+      "duration_ms": 703.666,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 48
+    },
+    {
+      "duration_ms": 706.687,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 49
+    },
+    {
+      "duration_ms": 697.119,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 50
+    },
+    {
+      "duration_ms": 706.999,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 51
+    },
+    {
+      "duration_ms": 690.556,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 52
+    },
+    {
+      "duration_ms": 700.059,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 53
+    },
+    {
+      "duration_ms": 701.624,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 54
+    },
+    {
+      "duration_ms": 697.587,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 55
+    },
+    {
+      "duration_ms": 717.178,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 56
+    },
+    {
+      "duration_ms": 705.305,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 57
+    },
+    {
+      "duration_ms": 759.788,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 58
+    },
+    {
+      "duration_ms": 702.601,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 59
+    },
+    {
+      "duration_ms": 745.575,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 60
+    },
+    {
+      "duration_ms": 739.305,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 61
+    },
+    {
+      "duration_ms": 740.221,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 62
+    },
+    {
+      "duration_ms": 707.673,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 63
+    },
+    {
+      "duration_ms": 718.606,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 64
+    },
+    {
+      "duration_ms": 697.227,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 65
+    },
+    {
+      "duration_ms": 733.331,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 66
+    },
+    {
+      "duration_ms": 720.827,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 67
+    },
+    {
+      "duration_ms": 776.859,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 68
+    },
+    {
+      "duration_ms": 850.98,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 69
+    },
+    {
+      "duration_ms": 772.55,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 70
+    },
+    {
+      "duration_ms": 718.315,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 71
+    },
+    {
+      "duration_ms": 787.221,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 72
+    },
+    {
+      "duration_ms": 765.106,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 73
+    },
+    {
+      "duration_ms": 734.354,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 74
+    },
+    {
+      "duration_ms": 682.635,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 75
+    },
+    {
+      "duration_ms": 707.584,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 76
+    },
+    {
+      "duration_ms": 680.375,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 77
+    },
+    {
+      "duration_ms": 711.838,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 78
+    },
+    {
+      "duration_ms": 661.222,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 79
+    },
+    {
+      "duration_ms": 685.004,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 80
+    },
+    {
+      "duration_ms": 670.384,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 81
+    },
+    {
+      "duration_ms": 695.886,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 82
+    },
+    {
+      "duration_ms": 737.565,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 83
+    },
+    {
+      "duration_ms": 712.718,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 84
+    },
+    {
+      "duration_ms": 701.986,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 85
+    },
+    {
+      "duration_ms": 689.599,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 86
+    },
+    {
+      "duration_ms": 702.537,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 87
+    },
+    {
+      "duration_ms": 678.11,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 88
+    },
+    {
+      "duration_ms": 711.954,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 89
+    },
+    {
+      "duration_ms": 697.187,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 90
+    },
+    {
+      "duration_ms": 711.337,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 91
+    },
+    {
+      "duration_ms": 711.613,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 92
+    },
+    {
+      "duration_ms": 682.897,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 93
+    },
+    {
+      "duration_ms": 690.242,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 94
+    },
+    {
+      "duration_ms": 672.749,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 95
+    },
+    {
+      "duration_ms": 694.881,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 96
+    },
+    {
+      "duration_ms": 699.684,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 97
+    },
+    {
+      "duration_ms": 751.099,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 98
+    },
+    {
+      "duration_ms": 700.113,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 99
+    },
+    {
+      "duration_ms": 682.516,
+      "passed": true,
+      "returncode": 0,
+      "sequence": 100
+    }
+  ],
+  "schema_version": 1,
+  "source_snapshot": "sha256:e65a76d653c9c1be837b93165b983e516968450b8cd8022d710a5fad04531dee",
+  "started_at": "2026-08-14T08:50:22.445270Z",
+  "suite": "stage4-belief-replay-independent-process-v1"
+}

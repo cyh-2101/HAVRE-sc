@@ -1,0 +1,106 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,127}$",
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "capability_revision_id": {
+      "format": "uuid",
+      "title": "Capability Revision Id",
+      "type": "string"
+    },
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    },
+    "device_binding_id": {
+      "pattern": "^[a-z][a-z0-9_.:-]{2,127}$",
+      "title": "Device Binding Id",
+      "type": "string"
+    },
+    "draft_id": {
+      "format": "uuid",
+      "title": "Draft Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "safe_error_category": {
+      "enum": [
+        "foreground_unavailable",
+        "idle_state_unavailable",
+        "network_unavailable",
+        "permission_revoked",
+        "unsupported_platform"
+      ],
+      "title": "Safe Error Category",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "signature": {
+      "default": "",
+      "pattern": "^(|hmac-sha256:[0-9a-f]{64})$",
+      "title": "Signature",
+      "type": "string"
+    },
+    "source_instance_id": {
+      "format": "uuid",
+      "title": "Source Instance Id",
+      "type": "string"
+    },
+    "source_version": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Source Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "degraded",
+        "stale",
+        "offline",
+        "permission_revoked",
+        "unsupported"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_instance_id",
+    "device_binding_id",
+    "capability_revision_id",
+    "status",
+    "checked_at",
+    "safe_error_category",
+    "adapter_version",
+    "source_version",
+    "idempotency_key",
+    "trace_id"
+  ],
+  "title": "ContextSourceHealthDraft",
+  "type": "object"
+}

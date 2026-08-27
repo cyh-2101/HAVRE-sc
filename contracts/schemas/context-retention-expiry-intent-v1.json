@@ -1,0 +1,61 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "expiry_intent_id": {
+      "format": "uuid",
+      "title": "Expiry Intent Id",
+      "type": "string"
+    },
+    "observation_id": {
+      "format": "uuid",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "planned_at": {
+      "format": "date-time",
+      "title": "Planned At",
+      "type": "string"
+    },
+    "retention_expires_at": {
+      "format": "date-time",
+      "title": "Retention Expires At",
+      "type": "string"
+    },
+    "retention_policy_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+      "title": "Retention Policy Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_event_id": {
+      "format": "uuid",
+      "title": "Source Event Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_event_id",
+    "observation_id",
+    "retention_policy_version",
+    "retention_expires_at",
+    "planned_at"
+  ],
+  "title": "ContextRetentionExpiryIntent",
+  "type": "object"
+}

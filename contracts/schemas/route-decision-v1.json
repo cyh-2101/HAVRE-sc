@@ -1,0 +1,104 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "effective_data_policy_revision_id": {
+      "format": "uuid",
+      "title": "Effective Data Policy Revision Id",
+      "type": "string"
+    },
+    "eligible_candidates": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Eligible Candidates",
+      "type": "array"
+    },
+    "excluded_candidates": {
+      "default": [],
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Excluded Candidates",
+      "type": "array"
+    },
+    "execution_environment": {
+      "enum": [
+        "local",
+        "cloud"
+      ],
+      "title": "Execution Environment",
+      "type": "string"
+    },
+    "reason": {
+      "default": "only_eligible_configured_provider",
+      "enum": [
+        "only_eligible_stage1_provider",
+        "only_eligible_configured_provider"
+      ],
+      "title": "Reason",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "route_decision_id": {
+      "format": "uuid",
+      "title": "Route Decision Id",
+      "type": "string"
+    },
+    "router_version": {
+      "default": "single-provider-router-v2",
+      "enum": [
+        "stage1-single-provider-router-v1",
+        "single-provider-router-v2"
+      ],
+      "title": "Router Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "selected_model_version_id": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Selected Model Version Id",
+      "type": "string"
+    },
+    "selected_provider_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Selected Provider Id",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "trace_id",
+    "selected_provider_id",
+    "selected_model_version_id",
+    "execution_environment",
+    "effective_data_policy_revision_id",
+    "eligible_candidates"
+  ],
+  "title": "RouteDecision",
+  "type": "object"
+}

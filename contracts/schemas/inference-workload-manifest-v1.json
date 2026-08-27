@@ -1,0 +1,241 @@
+{
+  "$defs": {
+    "InferenceBenchmarkSchedule": {
+      "additionalProperties": false,
+      "properties": {
+        "concurrency": {
+          "minimum": 1,
+          "title": "Concurrency",
+          "type": "integer"
+        },
+        "measured_repetitions_per_case": {
+          "minimum": 1,
+          "title": "Measured Repetitions Per Case",
+          "type": "integer"
+        },
+        "schedule_id": {
+          "minLength": 1,
+          "title": "Schedule Id",
+          "type": "string"
+        },
+        "warmup_repetitions_per_case": {
+          "minimum": 0,
+          "title": "Warmup Repetitions Per Case",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schedule_id",
+        "concurrency",
+        "warmup_repetitions_per_case",
+        "measured_repetitions_per_case"
+      ],
+      "title": "InferenceBenchmarkSchedule",
+      "type": "object"
+    },
+    "InferenceWorkloadCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "minLength": 1,
+          "title": "Case Id",
+          "type": "string"
+        },
+        "max_output_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/$defs/InferenceWorkloadMessage"
+          },
+          "minItems": 1,
+          "title": "Messages",
+          "type": "array"
+        },
+        "provenance_origin": {
+          "const": "synthetic",
+          "default": "synthetic",
+          "title": "Provenance Origin",
+          "type": "string"
+        },
+        "response_expectation": {
+          "default": "text",
+          "enum": [
+            "text",
+            "json_object"
+          ],
+          "title": "Response Expectation",
+          "type": "string"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "stop": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Stop",
+          "type": "array"
+        },
+        "temperature": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Temperature",
+          "type": "number"
+        },
+        "top_p": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Top P",
+          "type": "number"
+        },
+        "workload_class": {
+          "enum": [
+            "scene_short",
+            "chat_standard",
+            "reflection_long",
+            "extraction_structured"
+          ],
+          "title": "Workload Class",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "workload_class",
+        "messages",
+        "max_output_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "title": "InferenceWorkloadCase",
+      "type": "object"
+    },
+    "InferenceWorkloadMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "system",
+            "user",
+            "assistant"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "text"
+      ],
+      "title": "InferenceWorkloadMessage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Frozen workload and execution schedule; never a production quality gate.",
+  "properties": {
+    "binding_evaluation": {
+      "const": false,
+      "default": false,
+      "title": "Binding Evaluation",
+      "type": "boolean"
+    },
+    "cache_mode": {
+      "enum": [
+        "cold",
+        "warm",
+        "controlled_mixed"
+      ],
+      "title": "Cache Mode",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/InferenceWorkloadCase"
+      },
+      "minItems": 4,
+      "title": "Cases",
+      "type": "array"
+    },
+    "content_hash": {
+      "default": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "protocol_version": {
+      "const": "inference-protocol-v1",
+      "default": "inference-protocol-v1",
+      "title": "Protocol Version",
+      "type": "string"
+    },
+    "random_seed": {
+      "title": "Random Seed",
+      "type": "integer"
+    },
+    "review_status": {
+      "const": "synthetic_reviewed",
+      "default": "synthetic_reviewed",
+      "title": "Review Status",
+      "type": "string"
+    },
+    "schedules": {
+      "items": {
+        "$ref": "#/$defs/InferenceBenchmarkSchedule"
+      },
+      "minItems": 1,
+      "title": "Schedules",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "timeout_ms": {
+      "exclusiveMinimum": 0,
+      "title": "Timeout Ms",
+      "type": "integer"
+    },
+    "workload_manifest_id": {
+      "minLength": 1,
+      "title": "Workload Manifest Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "workload_manifest_id",
+    "description",
+    "cache_mode",
+    "timeout_ms",
+    "random_seed",
+    "cases",
+    "schedules"
+  ],
+  "title": "InferenceWorkloadManifest",
+  "type": "object"
+}

@@ -1,0 +1,196 @@
+{
+  "$defs": {
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "RetrievalFilters": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_privacy_classes": {
+          "items": {
+            "$ref": "#/$defs/PrivacyClass"
+          },
+          "title": "Allowed Privacy Classes",
+          "type": "array"
+        },
+        "memory_classes": {
+          "default": [
+            "episodic",
+            "semantic",
+            "pattern",
+            "progress"
+          ],
+          "items": {
+            "enum": [
+              "episodic",
+              "semantic",
+              "pattern",
+              "progress"
+            ],
+            "type": "string"
+          },
+          "title": "Memory Classes",
+          "type": "array"
+        },
+        "occurred_after": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurred After"
+        },
+        "occurred_before": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurred Before"
+        },
+        "status": {
+          "default": [
+            "active"
+          ],
+          "items": {
+            "const": "active",
+            "type": "string"
+          },
+          "title": "Status",
+          "type": "array"
+        }
+      },
+      "required": [
+        "allowed_privacy_classes"
+      ],
+      "title": "RetrievalFilters",
+      "type": "object"
+    },
+    "RetrievalQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "format": "uuid",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "maxLength": 35,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "text": {
+          "maxLength": 100000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "event_id"
+      ],
+      "title": "RetrievalQuery",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "algorithm_version": {
+      "default": "retrieval-r1-vector-gated-v2",
+      "enum": [
+        "retrieval-r0-recency-v1",
+        "retrieval-r1-vector-v1",
+        "retrieval-r1-vector-gated-v2"
+      ],
+      "title": "Algorithm Version",
+      "type": "string"
+    },
+    "as_of": {
+      "format": "date-time",
+      "title": "As Of",
+      "type": "string"
+    },
+    "candidate_k": {
+      "default": 100,
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Candidate K",
+      "type": "integer"
+    },
+    "filters": {
+      "$ref": "#/$defs/RetrievalFilters"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "query": {
+      "$ref": "#/$defs/RetrievalQuery"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "retrieval_request_id": {
+      "format": "uuid",
+      "title": "Retrieval Request Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "top_k": {
+      "default": 5,
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Top K",
+      "type": "integer"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "trace_id",
+    "owner_id",
+    "request_id",
+    "query",
+    "filters"
+  ],
+  "title": "RetrievalRequest",
+  "type": "object"
+}

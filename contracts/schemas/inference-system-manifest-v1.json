@@ -1,0 +1,270 @@
+{
+  "$defs": {
+    "ArtifactDigest": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_kind": {
+          "minLength": 1,
+          "title": "Artifact Kind",
+          "type": "string"
+        },
+        "artifact_uri": {
+          "minLength": 1,
+          "title": "Artifact Uri",
+          "type": "string"
+        },
+        "content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_kind",
+        "artifact_uri",
+        "content_hash"
+      ],
+      "title": "ArtifactDigest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Exact, immutable identity of the provider/model/config being measured.",
+  "properties": {
+    "adapter_version_id": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adapter Version Id"
+    },
+    "architecture_family": {
+      "minLength": 1,
+      "title": "Architecture Family",
+      "type": "string"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactDigest"
+      },
+      "minItems": 1,
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "code_revision": {
+      "pattern": "^(?:[0-9a-f]{40}|sha256:[0-9a-f]{64})$",
+      "title": "Code Revision",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "context_limit": {
+      "exclusiveMinimum": 0,
+      "title": "Context Limit",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "execution_environment": {
+      "enum": [
+        "local",
+        "cloud"
+      ],
+      "title": "Execution Environment",
+      "type": "string"
+    },
+    "license_identifier": {
+      "minLength": 1,
+      "title": "License Identifier",
+      "type": "string"
+    },
+    "license_notes": {
+      "minLength": 1,
+      "title": "License Notes",
+      "type": "string"
+    },
+    "manifest_id": {
+      "minLength": 1,
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "max_output_tokens": {
+      "exclusiveMinimum": 0,
+      "title": "Max Output Tokens",
+      "type": "integer"
+    },
+    "model_artifact_hash": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Artifact Hash"
+    },
+    "model_artifact_hash_unavailable_reason": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Artifact Hash Unavailable Reason"
+    },
+    "model_version_id": {
+      "minLength": 1,
+      "title": "Model Version Id",
+      "type": "string"
+    },
+    "parameter_count": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parameter Count"
+    },
+    "parameter_count_unavailable_reason": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parameter Count Unavailable Reason"
+    },
+    "precision": {
+      "minLength": 1,
+      "title": "Precision",
+      "type": "string"
+    },
+    "provider_adapter_version_id": {
+      "minLength": 1,
+      "title": "Provider Adapter Version Id",
+      "type": "string"
+    },
+    "provider_class": {
+      "enum": [
+        "local_test",
+        "self_hosted",
+        "cloud"
+      ],
+      "title": "Provider Class",
+      "type": "string"
+    },
+    "provider_id": {
+      "minLength": 1,
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "quantization": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quantization"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "serving_config_version": {
+      "minLength": 1,
+      "title": "Serving Config Version",
+      "type": "string"
+    },
+    "serving_engine": {
+      "minLength": 1,
+      "title": "Serving Engine",
+      "type": "string"
+    },
+    "serving_engine_version": {
+      "minLength": 1,
+      "title": "Serving Engine Version",
+      "type": "string"
+    },
+    "tokenizer_version_id": {
+      "minLength": 1,
+      "title": "Tokenizer Version Id",
+      "type": "string"
+    },
+    "upstream_model_id": {
+      "minLength": 1,
+      "title": "Upstream Model Id",
+      "type": "string"
+    },
+    "upstream_revision": {
+      "minLength": 1,
+      "title": "Upstream Revision",
+      "type": "string"
+    },
+    "weights_format": {
+      "minLength": 1,
+      "title": "Weights Format",
+      "type": "string"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "provider_id",
+    "provider_class",
+    "execution_environment",
+    "model_version_id",
+    "provider_adapter_version_id",
+    "tokenizer_version_id",
+    "serving_config_version",
+    "serving_engine",
+    "serving_engine_version",
+    "upstream_model_id",
+    "upstream_revision",
+    "architecture_family",
+    "weights_format",
+    "precision",
+    "context_limit",
+    "max_output_tokens",
+    "license_identifier",
+    "license_notes",
+    "code_revision",
+    "artifacts"
+  ],
+  "title": "InferenceSystemUnderTestManifest",
+  "type": "object"
+}

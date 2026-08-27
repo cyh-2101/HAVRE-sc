@@ -1,0 +1,89 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "blocking_findings": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocking Findings",
+      "type": "array"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "accepted_for_candidate_evidence",
+        "rejected",
+        "changes_requested"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "rationale": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "release_promotion_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Release Promotion Authorized",
+      "type": "boolean"
+    },
+    "review_decision_id": {
+      "format": "uuid",
+      "title": "Review Decision Id",
+      "type": "string"
+    },
+    "review_request_id": {
+      "format": "uuid",
+      "title": "Review Request Id",
+      "type": "string"
+    },
+    "reviewer_ref": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Reviewer Ref",
+      "type": "string"
+    },
+    "reviewer_role": {
+      "enum": [
+        "technical_reviewer",
+        "human_reviewer"
+      ],
+      "title": "Reviewer Role",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "review_request_id",
+    "reviewer_role",
+    "reviewer_ref",
+    "decision",
+    "rationale"
+  ],
+  "title": "HumanReviewDecision",
+  "type": "object"
+}

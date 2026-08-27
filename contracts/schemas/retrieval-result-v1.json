@@ -1,0 +1,521 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "RetrievalCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "content_text": {
+          "title": "Content Text",
+          "type": "string"
+        },
+        "context_eligible": {
+          "default": false,
+          "title": "Context Eligible",
+          "type": "boolean"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "memory_class": {
+          "default": "episodic",
+          "enum": [
+            "episodic",
+            "semantic",
+            "pattern",
+            "progress"
+          ],
+          "title": "Memory Class",
+          "type": "string"
+        },
+        "memory_id": {
+          "format": "uuid",
+          "title": "Memory Id",
+          "type": "string"
+        },
+        "memory_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Memory Revision",
+          "type": "integer"
+        },
+        "rank": {
+          "exclusiveMinimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "score_components": {
+          "$ref": "#/$defs/RetrievalScoreComponents"
+        },
+        "selection_reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selection Reason Codes",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rank",
+        "memory_id",
+        "memory_revision",
+        "content_text",
+        "score",
+        "score_components",
+        "selection_reason_codes",
+        "source_refs",
+        "data_policy",
+        "content_hash",
+        "created_at"
+      ],
+      "title": "RetrievalCandidate",
+      "type": "object"
+    },
+    "RetrievalExclusion": {
+      "additionalProperties": false,
+      "properties": {
+        "duplicate_of_memory_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duplicate Of Memory Id"
+        },
+        "memory_id": {
+          "format": "uuid",
+          "title": "Memory Id",
+          "type": "string"
+        },
+        "memory_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Memory Revision",
+          "type": "integer"
+        },
+        "reason_code": {
+          "enum": [
+            "below_minimum_semantic_similarity",
+            "duplicate_suppressed"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "semantic_similarity": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Semantic Similarity"
+        }
+      },
+      "required": [
+        "memory_id",
+        "memory_revision",
+        "reason_code"
+      ],
+      "title": "RetrievalExclusion",
+      "type": "object"
+    },
+    "RetrievalScoreComponents": {
+      "additionalProperties": false,
+      "properties": {
+        "goal_relevance": {
+          "default": null,
+          "title": "Goal Relevance",
+          "type": "null"
+        },
+        "importance": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Importance",
+          "type": "number"
+        },
+        "lexical": {
+          "default": null,
+          "title": "Lexical",
+          "type": "null"
+        },
+        "recency": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Recency",
+          "type": "number"
+        },
+        "reranker": {
+          "default": null,
+          "title": "Reranker",
+          "type": "null"
+        },
+        "scene_relevance": {
+          "default": null,
+          "title": "Scene Relevance",
+          "type": "null"
+        },
+        "semantic": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Semantic"
+        }
+      },
+      "required": [
+        "recency",
+        "importance"
+      ],
+      "title": "RetrievalScoreComponents",
+      "type": "object"
+    },
+    "RetrievalSelectionPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "duplicate_similarity_threshold": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duplicate Similarity Threshold"
+        },
+        "duplicate_token_overlap_threshold": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duplicate Token Overlap Threshold"
+        },
+        "minimum_semantic_similarity": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Semantic Similarity"
+        },
+        "policy_version": {
+          "enum": [
+            "retrieval-selection-legacy-ungated-v1",
+            "retrieval-selection-context-safe-v1"
+          ],
+          "title": "Policy Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_version"
+      ],
+      "title": "RetrievalSelectionPolicy",
+      "type": "object"
+    },
+    "RetrievalTiming": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_search": {
+          "minimum": 0,
+          "title": "Candidate Search",
+          "type": "number"
+        },
+        "filtering": {
+          "minimum": 0,
+          "title": "Filtering",
+          "type": "number"
+        },
+        "query_embedding": {
+          "minimum": 0,
+          "title": "Query Embedding",
+          "type": "number"
+        },
+        "reranking": {
+          "minimum": 0,
+          "title": "Reranking",
+          "type": "number"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "number"
+        }
+      },
+      "required": [
+        "query_embedding",
+        "candidate_search",
+        "filtering",
+        "reranking",
+        "total"
+      ],
+      "title": "RetrievalTiming",
+      "type": "object"
+    },
+    "RetrievalVersions": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm_version": {
+          "title": "Algorithm Version",
+          "type": "string"
+        },
+        "embedding_version_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Embedding Version Id"
+        },
+        "index_version": {
+          "title": "Index Version",
+          "type": "string"
+        },
+        "reranker_version_id": {
+          "default": null,
+          "title": "Reranker Version Id",
+          "type": "null"
+        }
+      },
+      "required": [
+        "algorithm_version",
+        "embedding_version_id",
+        "index_version"
+      ],
+      "title": "RetrievalVersions",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "as_of": {
+      "format": "date-time",
+      "title": "As Of",
+      "type": "string"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/RetrievalCandidate"
+      },
+      "title": "Candidates",
+      "type": "array"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "degraded_components": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Degraded Components",
+      "type": "array"
+    },
+    "exclusions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RetrievalExclusion"
+      },
+      "title": "Exclusions",
+      "type": "array"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "query_event_id": {
+      "format": "uuid",
+      "title": "Query Event Id",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "retrieval_request_id": {
+      "format": "uuid",
+      "title": "Retrieval Request Id",
+      "type": "string"
+    },
+    "retrieval_result_id": {
+      "format": "uuid",
+      "title": "Retrieval Result Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "selection_policy": {
+      "$ref": "#/$defs/RetrievalSelectionPolicy"
+    },
+    "timing_ms": {
+      "$ref": "#/$defs/RetrievalTiming"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "versions": {
+      "$ref": "#/$defs/RetrievalVersions"
+    }
+  },
+  "required": [
+    "retrieval_request_id",
+    "request_id",
+    "query_event_id",
+    "trace_id",
+    "owner_id",
+    "as_of",
+    "versions",
+    "selection_policy",
+    "candidates",
+    "timing_ms"
+  ],
+  "title": "RetrievalResult",
+  "type": "object"
+}

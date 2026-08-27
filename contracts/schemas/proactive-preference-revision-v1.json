@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "PreviewPolicy": {
+      "enum": [
+        "none",
+        "generic_private"
+      ],
+      "title": "PreviewPolicy",
+      "type": "string"
+    },
+    "QuietHours": {
+      "additionalProperties": false,
+      "properties": {
+        "end_local": {
+          "format": "time",
+          "title": "End Local",
+          "type": "string"
+        },
+        "start_local": {
+          "format": "time",
+          "title": "Start Local",
+          "type": "string"
+        },
+        "timezone_name": {
+          "const": "UTC",
+          "default": "UTC",
+          "title": "Timezone Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_local",
+        "end_local"
+      ],
+      "title": "QuietHours",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable owner-scoped controls; defaults fail closed.",
+  "properties": {
+    "allowed_channels": {
+      "default": [],
+      "items": {
+        "const": "web_inbox",
+        "type": "string"
+      },
+      "title": "Allowed Channels",
+      "type": "array"
+    },
+    "authorization_ref": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authorization Ref"
+    },
+    "category_budget_per_24h": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Category Budget Per 24H",
+      "type": "object"
+    },
+    "category_permissions": {
+      "additionalProperties": {
+        "enum": [
+          "allowed",
+          "denied",
+          "confirmation_required"
+        ],
+        "type": "string"
+      },
+      "title": "Category Permissions",
+      "type": "object"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "cooldown_seconds": {
+      "anyOf": [
+        {
+          "maximum": 2592000,
+          "minimum": 60,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cooldown Seconds"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "external_delivery_authorized": {
+      "const": false,
+      "default": false,
+      "title": "External Delivery Authorized",
+      "type": "boolean"
+    },
+    "global_budget_per_24h": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 24,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Global Budget Per 24H"
+    },
+    "global_enabled": {
+      "default": false,
+      "title": "Global Enabled",
+      "type": "boolean"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "preference_revision_id": {
+      "format": "uuid",
+      "title": "Preference Revision Id",
+      "type": "string"
+    },
+    "preview_policy": {
+      "$ref": "#/$defs/PreviewPolicy",
+      "default": "none"
+    },
+    "quiet_hours": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/QuietHours"
+      },
+      "title": "Quiet Hours",
+      "type": "array"
+    },
+    "revision": {
+      "exclusiveMinimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "simulation_only": {
+      "const": true,
+      "default": true,
+      "title": "Simulation Only",
+      "type": "boolean"
+    },
+    "stopped_subject_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Stopped Subject Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "owner_id",
+    "revision"
+  ],
+  "title": "ProactivePreferenceRevision",
+  "type": "object"
+}

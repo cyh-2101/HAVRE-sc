@@ -1,0 +1,19 @@
+{
+  "artifact_content_hash": "sha256:cc8382f446fb5e12a0bbe28a1b70a78460b155ddb7a9cfbd29820ef71e196132",
+  "artifact_path": "stage9a_validation_v2.json",
+  "artifact_sha256": "sha256:0dc92fbec122bf30b40d92afba077095c0c6549a88f87f2f3704b006756ac2ad",
+  "artifact_size_bytes": 63400,
+  "contains_user_data": false,
+  "content_hash": "sha256:6fba5267062381eb152b4d8fa4224b2b2674358a81000fe50a520c43dbc34074",
+  "dataset_version": "stage9a-synthetic-public-v2",
+  "evaluation_only": false,
+  "immutable": true,
+  "member_count": 48,
+  "member_manifest_hash": "sha256:b867d54af9d261a57bfb4db033474b0a0cb1dd4b41fd0db9b12dd06e9265e119",
+  "po_freeze_authorized": false,
+  "po_review_status": "pending",
+  "schema_version": 1,
+  "split": "validation",
+  "training_authorized": false,
+  "training_eligible": true
+}

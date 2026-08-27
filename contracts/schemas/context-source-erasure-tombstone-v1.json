@@ -1,0 +1,68 @@
+{
+  "additionalProperties": false,
+  "description": "Minimum content-free receipt preventing erased-source resurrection.",
+  "properties": {
+    "absence_verified": {
+      "const": true,
+      "default": true,
+      "title": "Absence Verified",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "directive_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Directive Hash",
+      "type": "string"
+    },
+    "directive_sequence": {
+      "exclusiveMinimum": 0,
+      "title": "Directive Sequence",
+      "type": "integer"
+    },
+    "erased_at": {
+      "format": "date-time",
+      "title": "Erased At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "registration_event_id": {
+      "format": "uuid",
+      "title": "Registration Event Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_instance_id": {
+      "format": "uuid",
+      "title": "Source Instance Id",
+      "type": "string"
+    },
+    "tombstone_id": {
+      "format": "uuid",
+      "title": "Tombstone Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_instance_id",
+    "registration_event_id",
+    "erased_at",
+    "directive_sequence",
+    "directive_hash"
+  ],
+  "title": "ContextSourceErasureTombstone",
+  "type": "object"
+}

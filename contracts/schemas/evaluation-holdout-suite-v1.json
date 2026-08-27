@@ -1,0 +1,210 @@
+{
+  "$defs": {
+    "EvaluationHoldoutCase": {
+      "additionalProperties": false,
+      "properties": {
+        "access_limited": {
+          "const": true,
+          "default": true,
+          "title": "Access Limited",
+          "type": "boolean"
+        },
+        "category": {
+          "enum": [
+            "behavioral",
+            "safety",
+            "general_capability",
+            "over_agreement"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "contains_user_data": {
+          "const": false,
+          "default": false,
+          "title": "Contains User Data",
+          "type": "boolean"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "evaluation_only": {
+          "const": true,
+          "default": true,
+          "title": "Evaluation Only",
+          "type": "boolean"
+        },
+        "example_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{2,79}$",
+          "title": "Example Id",
+          "type": "string"
+        },
+        "expected_text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Expected Text",
+          "type": "string"
+        },
+        "input_text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Input Text",
+          "type": "string"
+        },
+        "license_id": {
+          "const": "CC0-1.0",
+          "default": "CC0-1.0",
+          "title": "License Id",
+          "type": "string"
+        },
+        "memory_hint": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory Hint"
+        },
+        "privacy_class": {
+          "const": "PUBLIC",
+          "default": "PUBLIC",
+          "title": "Privacy Class",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_kind": {
+          "enum": [
+            "synthetic_fixture",
+            "public_fixture"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "source_ref": {
+          "pattern": "^fixture://stage9/[a-z0-9/_-]+$",
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "split": {
+          "const": "holdout",
+          "default": "holdout",
+          "title": "Split",
+          "type": "string"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "example_id",
+        "source_kind",
+        "source_ref",
+        "category",
+        "input_text",
+        "expected_text"
+      ],
+      "title": "EvaluationHoldoutCase",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "access_limited": {
+      "const": true,
+      "default": true,
+      "title": "Access Limited",
+      "type": "boolean"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/EvaluationHoldoutCase"
+      },
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "dataset_snapshot_id": {
+      "format": "uuid",
+      "title": "Dataset Snapshot Id",
+      "type": "string"
+    },
+    "fixture_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Fixture Content Hash",
+      "type": "string"
+    },
+    "holdout_suite_id": {
+      "format": "uuid",
+      "title": "Holdout Suite Id",
+      "type": "string"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "local_only": {
+      "const": true,
+      "default": true,
+      "title": "Local Only",
+      "type": "boolean"
+    },
+    "member_manifest_hash": {
+      "default": "",
+      "title": "Member Manifest Hash",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "purpose": {
+      "const": "evaluation_holdout",
+      "default": "evaluation_holdout",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "training_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Training Eligible",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "owner_id",
+    "dataset_snapshot_id",
+    "fixture_content_hash",
+    "cases"
+  ],
+  "title": "EvaluationHoldoutSuite",
+  "type": "object"
+}

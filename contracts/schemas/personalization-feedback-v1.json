@@ -1,0 +1,209 @@
+{
+  "$defs": {
+    "FeedbackRating": {
+      "enum": [
+        "helpful",
+        "unhelpful",
+        "mixed"
+      ],
+      "title": "FeedbackRating",
+      "type": "string"
+    },
+    "FeedbackReasonCode": {
+      "enum": [
+        "too_ai",
+        "too_long",
+        "not_warm_enough",
+        "not_firm_enough",
+        "fabricated_memory",
+        "wrong_user_fact",
+        "misunderstood_intent",
+        "wrong_mode",
+        "unhelpful_advice",
+        "not_havre",
+        "other"
+      ],
+      "title": "FeedbackReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adapter Version Id"
+    },
+    "assistant_event_id": {
+      "format": "uuid",
+      "title": "Assistant Event Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "context_pack_id": {
+      "format": "uuid",
+      "title": "Context Pack Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "feedback_id": {
+      "format": "uuid",
+      "title": "Feedback Id",
+      "type": "string"
+    },
+    "inference_response_id": {
+      "format": "uuid",
+      "title": "Inference Response Id",
+      "type": "string"
+    },
+    "model_version_id": {
+      "title": "Model Version Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "owner_revision_text": {
+      "anyOf": [
+        {
+          "maxLength": 100000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Owner Revision Text"
+    },
+    "privacy_class": {
+      "title": "Privacy Class",
+      "type": "string"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "rating": {
+      "$ref": "#/$defs/FeedbackRating"
+    },
+    "reason_codes": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FeedbackReasonCode"
+      },
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "reason_text": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Text"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "revision": {
+      "exclusiveMinimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "route_decision_id": {
+      "format": "uuid",
+      "title": "Route Decision Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "serving_config_version": {
+      "title": "Serving Config Version",
+      "type": "string"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "status": {
+      "default": "saved",
+      "enum": [
+        "saved",
+        "reviewed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "tokenizer_version_id": {
+      "title": "Tokenizer Version Id",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "training_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Training Eligible",
+      "type": "boolean"
+    },
+    "user_event_id": {
+      "format": "uuid",
+      "title": "User Event Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "feedback_id",
+    "revision",
+    "owner_id",
+    "request_id",
+    "session_id",
+    "trace_id",
+    "user_event_id",
+    "assistant_event_id",
+    "context_pack_id",
+    "route_decision_id",
+    "inference_response_id",
+    "provider_id",
+    "model_version_id",
+    "tokenizer_version_id",
+    "serving_config_version",
+    "rating",
+    "privacy_class"
+  ],
+  "title": "PersonalizationFeedback",
+  "type": "object"
+}

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>$(DEVELOPMENT_LANGUAGE)</string>
+  <key>CFBundleDisplayName</key>
+  <string>HAVRE</string>
+  <key>CFBundleExecutable</key>
+  <string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleIdentifier</key>
+  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>$(PRODUCT_NAME)</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.11.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>HAVRE uses the microphone only after you tap Voice, and stops when you tap Stop.</string>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>HAVRE connects to the owner-controlled HAVRE Core you explicitly enroll on your local network.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>HAVRE transcribes only voice sessions you explicitly start and requires on-device recognition.</string>
+</dict>
+</plist>

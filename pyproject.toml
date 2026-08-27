@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "havre"
+version = "0.10.0"
+description = "HAVRE personal AI companion foundation"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.141.1",
+  "httpx==0.28.1",
+  "psycopg[binary,pool]==3.3.4",
+  "psutil==7.2.2",
+  "pydantic==2.13.4",
+  "uvicorn==0.52.1",
+]
+
+[project.optional-dependencies]
+test = [
+  "jsonschema==4.25.1",
+]
+
+[project.scripts]
+havre = "services.api.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["companion*", "mlsys*", "services*"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]

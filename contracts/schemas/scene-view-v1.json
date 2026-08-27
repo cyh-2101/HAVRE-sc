@@ -1,0 +1,976 @@
+{
+  "$defs": {
+    "AnticipatedTrigger": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "uncertainty_note": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty Note"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "AnticipatedTrigger",
+      "type": "object"
+    },
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "GuidanceOutcomeObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "action_attempted": {
+          "$ref": "#/$defs/OutcomeTriState"
+        },
+        "action_record_id": {
+          "format": "uuid",
+          "title": "Action Record Id",
+          "type": "string"
+        },
+        "consented": {
+          "const": true,
+          "default": true,
+          "title": "Consented",
+          "type": "boolean"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "created_event_id": {
+          "format": "uuid",
+          "title": "Created Event Id",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "evidence_snapshot": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "minItems": 1,
+          "title": "Evidence Snapshot",
+          "type": "array"
+        },
+        "guidance_event_id": {
+          "format": "uuid",
+          "title": "Guidance Event Id",
+          "type": "string"
+        },
+        "helpfulness": {
+          "$ref": "#/$defs/OutcomeHelpfulness",
+          "default": "not_asked"
+        },
+        "intervention_decision_id": {
+          "format": "uuid",
+          "title": "Intervention Decision Id",
+          "type": "string"
+        },
+        "later_regret": {
+          "default": "not_asked",
+          "enum": [
+            "yes",
+            "no",
+            "unsure",
+            "not_asked"
+          ],
+          "title": "Later Regret",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "observation_window_ended_at": {
+          "format": "date-time",
+          "title": "Observation Window Ended At",
+          "type": "string"
+        },
+        "observation_window_started_at": {
+          "format": "date-time",
+          "title": "Observation Window Started At",
+          "type": "string"
+        },
+        "outcome_observation_id": {
+          "format": "uuid",
+          "title": "Outcome Observation Id",
+          "type": "string"
+        },
+        "outcome_record_id": {
+          "format": "uuid",
+          "title": "Outcome Record Id",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "planned_scene_status": {
+          "enum": [
+            "completed",
+            "partial",
+            "abandoned",
+            "cancelled",
+            "unknown"
+          ],
+          "title": "Planned Scene Status",
+          "type": "string"
+        },
+        "reflection_record_id": {
+          "format": "uuid",
+          "title": "Reflection Record Id",
+          "type": "string"
+        },
+        "reporter": {
+          "const": "user_self_report",
+          "default": "user_self_report",
+          "title": "Reporter",
+          "type": "string"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "too_forceful": {
+          "$ref": "#/$defs/OutcomeTriState",
+          "default": "unknown"
+        },
+        "too_passive": {
+          "$ref": "#/$defs/OutcomeTriState",
+          "default": "unknown"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "scene_session_id",
+        "intervention_decision_id",
+        "guidance_event_id",
+        "action_record_id",
+        "outcome_record_id",
+        "reflection_record_id",
+        "observation_window_started_at",
+        "observation_window_ended_at",
+        "action_attempted",
+        "planned_scene_status",
+        "limitations",
+        "evidence_snapshot",
+        "created_event_id",
+        "trace_id",
+        "data_policy"
+      ],
+      "title": "GuidanceOutcomeObservation",
+      "type": "object"
+    },
+    "InterventionBranch": {
+      "enum": [
+        "safety_first",
+        "clarification",
+        "recovery",
+        "minimum_action",
+        "preparation",
+        "reflection"
+      ],
+      "title": "InterventionBranch",
+      "type": "string"
+    },
+    "InterventionDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "branch": {
+          "$ref": "#/$defs/InterventionBranch"
+        },
+        "clarification_question": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clarification Question"
+        },
+        "constitution_version_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Constitution Version Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "guidance": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Guidance",
+          "type": "string"
+        },
+        "identity_version_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Identity Version Id",
+          "type": "string"
+        },
+        "input_event_id": {
+          "format": "uuid",
+          "title": "Input Event Id",
+          "type": "string"
+        },
+        "input_record_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Record Id"
+        },
+        "intervention_decision_id": {
+          "format": "uuid",
+          "title": "Intervention Decision Id",
+          "type": "string"
+        },
+        "minimum_action": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Action"
+        },
+        "outreach_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Outreach Authorized",
+          "type": "boolean"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "before",
+            "during",
+            "after"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "policy_release_status": {
+          "const": "candidate_owner_acceptance",
+          "default": "candidate_owner_acceptance",
+          "title": "Policy Release Status",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "intervention-policy-sim-v1",
+          "default": "intervention-policy-sim-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "recommended_intervention": {
+          "enum": [
+            "prioritize_safety_and_help",
+            "clarify_before_pressure",
+            "support_recovery_with_restart",
+            "smallest_viable_action",
+            "prepare_with_user_owned_plan",
+            "reflect_without_self_judgment"
+          ],
+          "title": "Recommended Intervention",
+          "type": "string"
+        },
+        "required_constraints": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Required Constraints",
+          "type": "array"
+        },
+        "response_style": {
+          "enum": [
+            "calm_direct",
+            "warm_firm",
+            "supportive_recovery",
+            "curious_reflective"
+          ],
+          "title": "Response Style",
+          "type": "string"
+        },
+        "scene_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Scene Revision",
+          "type": "integer"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "values_version_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Values Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "scene_session_id",
+        "scene_revision",
+        "input_event_id",
+        "phase",
+        "constitution_version_id",
+        "identity_version_id",
+        "values_version_id",
+        "branch",
+        "recommended_intervention",
+        "response_style",
+        "guidance",
+        "reason_codes",
+        "required_constraints",
+        "trace_id",
+        "data_policy"
+      ],
+      "title": "InterventionDecision",
+      "type": "object"
+    },
+    "OutcomeHelpfulness": {
+      "enum": [
+        "helpful",
+        "not_helpful",
+        "uncertain",
+        "not_asked"
+      ],
+      "title": "OutcomeHelpfulness",
+      "type": "string"
+    },
+    "OutcomeTriState": {
+      "enum": [
+        "yes",
+        "no",
+        "unknown"
+      ],
+      "title": "OutcomeTriState",
+      "type": "string"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "SceneGoal": {
+      "additionalProperties": false,
+      "properties": {
+        "minimum_success": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Minimum Success",
+          "type": "string"
+        },
+        "objective": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Objective",
+          "type": "string"
+        },
+        "owner_chosen": {
+          "const": true,
+          "default": true,
+          "title": "Owner Chosen",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "objective",
+        "minimum_success"
+      ],
+      "title": "SceneGoal",
+      "type": "object"
+    },
+    "ScenePhase": {
+      "enum": [
+        "before",
+        "during",
+        "after",
+        "closed"
+      ],
+      "title": "ScenePhase",
+      "type": "string"
+    },
+    "SceneRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Id"
+        },
+        "artifact_kind": {
+          "anyOf": [
+            {
+              "const": "intervention_decision",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Kind"
+        },
+        "artifact_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Revision"
+        },
+        "assistant_event_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assistant Event Id"
+        },
+        "causal_predecessor_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Causal Predecessor Id"
+        },
+        "content": {
+          "additionalProperties": true,
+          "title": "Content",
+          "type": "object"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "event_id": {
+          "format": "uuid",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "before",
+            "during",
+            "after"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "record_type": {
+          "$ref": "#/$defs/SceneRecordType"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "scene_record_id": {
+          "format": "uuid",
+          "title": "Scene Record Id",
+          "type": "string"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "sequence_number": {
+          "exclusiveMinimum": 0,
+          "title": "Sequence Number",
+          "type": "integer"
+        },
+        "source": {
+          "enum": [
+            "owner_self_report",
+            "web_simulation",
+            "intervention_policy"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "uncertainty_note": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty Note"
+        }
+      },
+      "required": [
+        "owner_id",
+        "scene_session_id",
+        "record_type",
+        "phase",
+        "sequence_number",
+        "occurred_at",
+        "event_id",
+        "source",
+        "content",
+        "trace_id",
+        "data_policy"
+      ],
+      "title": "SceneRecord",
+      "type": "object"
+    },
+    "SceneRecordType": {
+      "enum": [
+        "signal",
+        "intervention",
+        "action",
+        "outcome",
+        "reflection"
+      ],
+      "title": "SceneRecordType",
+      "type": "string"
+    },
+    "SceneSession": {
+      "additionalProperties": false,
+      "properties": {
+        "anticipated_triggers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AnticipatedTrigger"
+          },
+          "title": "Anticipated Triggers",
+          "type": "array"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "created_event_id": {
+          "format": "uuid",
+          "title": "Created Event Id",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "ended_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ended At"
+        },
+        "last_event_id": {
+          "format": "uuid",
+          "title": "Last Event Id",
+          "type": "string"
+        },
+        "opened_session_id": {
+          "format": "uuid",
+          "title": "Opened Session Id",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "phase": {
+          "$ref": "#/$defs/ScenePhase"
+        },
+        "planned_goal": {
+          "$ref": "#/$defs/SceneGoal"
+        },
+        "planned_start_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Planned Start At"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        },
+        "scene_type": {
+          "pattern": "^[a-z][a-z0-9_]{1,63}$",
+          "title": "Scene Type",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "situation": {
+          "$ref": "#/$defs/SceneSituation"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "status": {
+          "$ref": "#/$defs/SceneStatus"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "opened_session_id",
+        "scene_type",
+        "situation",
+        "planned_goal",
+        "phase",
+        "status",
+        "revision",
+        "created_event_id",
+        "last_event_id",
+        "trace_id",
+        "data_policy"
+      ],
+      "title": "SceneSession",
+      "type": "object"
+    },
+    "SceneSituation": {
+      "additionalProperties": false,
+      "properties": {
+        "known_facts": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Known Facts",
+          "type": "array"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "uncertainty_notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Uncertainty Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "title": "SceneSituation",
+      "type": "object"
+    },
+    "SceneStatus": {
+      "enum": [
+        "planned",
+        "active",
+        "paused",
+        "completed",
+        "abandoned",
+        "cancelled"
+      ],
+      "title": "SceneStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "intervention_decisions": {
+      "items": {
+        "$ref": "#/$defs/InterventionDecision"
+      },
+      "title": "Intervention Decisions",
+      "type": "array"
+    },
+    "outcome_observations": {
+      "items": {
+        "$ref": "#/$defs/GuidanceOutcomeObservation"
+      },
+      "title": "Outcome Observations",
+      "type": "array"
+    },
+    "records": {
+      "items": {
+        "$ref": "#/$defs/SceneRecord"
+      },
+      "title": "Records",
+      "type": "array"
+    },
+    "scene_session": {
+      "$ref": "#/$defs/SceneSession"
+    }
+  },
+  "required": [
+    "scene_session",
+    "records",
+    "intervention_decisions",
+    "outcome_observations"
+  ],
+  "title": "SceneView",
+  "type": "object"
+}

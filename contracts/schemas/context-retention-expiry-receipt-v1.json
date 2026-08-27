@@ -1,0 +1,85 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "absence_verified": {
+      "const": true,
+      "default": true,
+      "title": "Absence Verified",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "directive_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Directive Hash",
+      "type": "string"
+    },
+    "directive_sequence": {
+      "exclusiveMinimum": 0,
+      "title": "Directive Sequence",
+      "type": "integer"
+    },
+    "erased_at": {
+      "format": "date-time",
+      "title": "Erased At",
+      "type": "string"
+    },
+    "expiry_intent_id": {
+      "format": "uuid",
+      "title": "Expiry Intent Id",
+      "type": "string"
+    },
+    "expiry_receipt_id": {
+      "format": "uuid",
+      "title": "Expiry Receipt Id",
+      "type": "string"
+    },
+    "observation_id": {
+      "format": "uuid",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "retention_expires_at": {
+      "format": "date-time",
+      "title": "Retention Expires At",
+      "type": "string"
+    },
+    "retention_policy_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+      "title": "Retention Policy Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_event_id": {
+      "format": "uuid",
+      "title": "Source Event Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "expiry_intent_id",
+    "owner_id",
+    "source_event_id",
+    "observation_id",
+    "retention_policy_version",
+    "retention_expires_at",
+    "erased_at",
+    "directive_sequence",
+    "directive_hash"
+  ],
+  "title": "ContextRetentionExpiryReceipt",
+  "type": "object"
+}

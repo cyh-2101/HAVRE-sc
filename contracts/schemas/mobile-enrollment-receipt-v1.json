@@ -1,0 +1,55 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "constitution_version_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Constitution Version Id",
+      "type": "string"
+    },
+    "core_binding_id": {
+      "pattern": "^owner:[0-9a-f-]{36}$",
+      "title": "Core Binding Id",
+      "type": "string"
+    },
+    "governance_version": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Governance Version",
+      "type": "string"
+    },
+    "identity_version_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Identity Version Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "values_version_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Values Version Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "core_binding_id",
+    "constitution_version_id",
+    "identity_version_id",
+    "values_version_id",
+    "governance_version"
+  ],
+  "title": "MobileEnrollmentReceipt",
+  "type": "object"
+}

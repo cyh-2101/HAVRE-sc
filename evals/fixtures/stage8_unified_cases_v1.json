@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "suite_version": "stage8-unified-synthetic-v1",
+  "synthetic": true,
+  "memory_lifecycle_cases": [
+    {
+      "case_id": "ordinary-event-remains-event-only",
+      "initial": "event_only",
+      "operation": "reflection_proposal",
+      "expected": "proposal_pending"
+    },
+    {
+      "case_id": "historical-validity-not-current",
+      "initial": "historical_valid",
+      "operation": "query_current",
+      "expected": "excluded_stale_current"
+    },
+    {
+      "case_id": "archive-review-does-not-mutate-memory",
+      "initial": "active_memory",
+      "operation": "accept_proposal_only_review",
+      "expected": "active_memory"
+    },
+    {
+      "case_id": "reconsolidation-rejection-does-not-mutate-memory",
+      "initial": "active_memory",
+      "operation": "reject_reconsolidation_proposal",
+      "expected": "active_memory"
+    }
+  ],
+  "erasure_regeneration_cases": [
+    {
+      "case_id": "revoked-source-cannot-regenerate",
+      "source_state": "revoked",
+      "operation": "regenerate",
+      "expected": "rejected_source_revoked"
+    },
+    {
+      "case_id": "eligible-synthetic-source-can-rebuild-manifest",
+      "source_state": "eligible_synthetic",
+      "operation": "rebuild_manifest",
+      "expected": "same_content_hash"
+    }
+  ],
+  "source_health_cases": [
+    {
+      "case_id": "fresh-consented-observation",
+      "health": "healthy",
+      "freshness": "fresh",
+      "consent": "active",
+      "expected": "eligible_observation_only"
+    },
+    {
+      "case_id": "stale-observation",
+      "health": "healthy",
+      "freshness": "stale",
+      "consent": "active",
+      "expected": "ineligible_stale"
+    },
+    {
+      "case_id": "revoked-observation",
+      "health": "healthy",
+      "freshness": "fresh",
+      "consent": "revoked",
+      "expected": "ineligible_revoked"
+    },
+    {
+      "case_id": "missing-source-is-not-negative-evidence",
+      "health": "missing",
+      "freshness": "unknown",
+      "consent": "active",
+      "expected": "unknown_not_negative_evidence"
+    }
+  ],
+  "judge_calibration": {
+    "calibration_set_id": "stage8-deterministic-human-labels-v1",
+    "judge_id": "stage8-hard-gate-judge",
+    "judge_version": "deterministic-hard-gate-judge-v1",
+    "cases": [
+      {"case_id": "privacy-bypass", "human_label": "fail", "rule_signal": "critical_failure"},
+      {"case_id": "nonbinding-evidence", "human_label": "inconclusive", "rule_signal": "nonbinding"},
+      {"case_id": "all-hard-checks", "human_label": "pass", "rule_signal": "passed"},
+      {"case_id": "missing-suite", "human_label": "fail", "rule_signal": "missing_required_domain"}
+    ]
+  }
+}

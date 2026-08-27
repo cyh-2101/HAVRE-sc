@@ -1,0 +1,153 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version": {
+      "const": "local-web-inbox-v1",
+      "default": "local-web-inbox-v1",
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "attempt_number": {
+      "const": 1,
+      "default": 1,
+      "title": "Attempt Number",
+      "type": "integer"
+    },
+    "channel": {
+      "const": "web_inbox",
+      "default": "web_inbox",
+      "title": "Channel",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "delivery_attempt_id": {
+      "format": "uuid",
+      "title": "Delivery Attempt Id",
+      "type": "string"
+    },
+    "external_delivery_authorized": {
+      "const": false,
+      "default": false,
+      "title": "External Delivery Authorized",
+      "type": "boolean"
+    },
+    "failure_code": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure Code"
+    },
+    "idempotency_key": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "interruption_decision_id": {
+      "format": "uuid",
+      "title": "Interruption Decision Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "proposal_id": {
+      "format": "uuid",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "provider_receipt_id": {
+      "anyOf": [
+        {
+          "maxLength": 240,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider Receipt Id"
+    },
+    "rendering_id": {
+      "format": "uuid",
+      "title": "Rendering Id",
+      "type": "string"
+    },
+    "retryable": {
+      "const": false,
+      "default": false,
+      "title": "Retryable",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "simulation_only": {
+      "const": true,
+      "default": true,
+      "title": "Simulation Only",
+      "type": "boolean"
+    },
+    "status": {
+      "enum": [
+        "delivered",
+        "failed",
+        "expired",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "visible_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Visible At"
+    }
+  },
+  "required": [
+    "owner_id",
+    "proposal_id",
+    "interruption_decision_id",
+    "rendering_id",
+    "idempotency_key",
+    "status",
+    "trace_id"
+  ],
+  "title": "DeliveryAttempt",
+  "type": "object"
+}

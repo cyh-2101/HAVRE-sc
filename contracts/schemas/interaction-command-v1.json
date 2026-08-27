@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "channel": {
+      "default": "api",
+      "enum": [
+        "api",
+        "cli",
+        "web"
+      ],
+      "title": "Channel",
+      "type": "string"
+    },
+    "client_created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Client Created At"
+    },
+    "idempotency_key": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "language": {
+      "anyOf": [
+        {
+          "maxLength": 35,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Language"
+    },
+    "memory_eligible": {
+      "default": true,
+      "title": "Memory Eligible",
+      "type": "boolean"
+    },
+    "message": {
+      "maxLength": 100000,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "privacy_class": {
+      "$ref": "#/$defs/PrivacyClass",
+      "default": "NORMAL"
+    },
+    "session_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Session Id"
+    },
+    "traceparent": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Traceparent"
+    }
+  },
+  "required": [
+    "message",
+    "idempotency_key"
+  ],
+  "title": "InteractionCommand",
+  "type": "object"
+}

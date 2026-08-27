@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "description": "Fail-closed source quarantine created after every database restore.",
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "quarantine_id": {
+      "format": "uuid",
+      "title": "Quarantine Id",
+      "type": "string"
+    },
+    "quarantined_at": {
+      "format": "date-time",
+      "title": "Quarantined At",
+      "type": "string"
+    },
+    "reason": {
+      "const": "backup_restore_requires_new_source_enrollment",
+      "default": "backup_restore_requires_new_source_enrollment",
+      "title": "Reason",
+      "type": "string"
+    },
+    "restore_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Restore Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_instance_id": {
+      "format": "uuid",
+      "title": "Source Instance Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_instance_id",
+    "restore_id",
+    "quarantined_at"
+  ],
+  "title": "ContextRestoreQuarantine",
+  "type": "object"
+}

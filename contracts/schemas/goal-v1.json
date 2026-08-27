@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "GoalPriority": {
+      "enum": [
+        "low",
+        "normal",
+        "high"
+      ],
+      "title": "GoalPriority",
+      "type": "string"
+    },
+    "GoalStatus": {
+      "enum": [
+        "active",
+        "paused",
+        "completed",
+        "abandoned"
+      ],
+      "title": "GoalStatus",
+      "type": "string"
+    },
+    "GoalTrack": {
+      "enum": [
+        "reality",
+        "inner_life"
+      ],
+      "title": "GoalTrack",
+      "type": "string"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "goal_id": {
+      "format": "uuid",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "last_event_id": {
+      "format": "uuid",
+      "title": "Last Event Id",
+      "type": "string"
+    },
+    "next_action": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Action"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "priority": {
+      "$ref": "#/$defs/GoalPriority",
+      "default": "normal"
+    },
+    "review_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Review At"
+    },
+    "revision": {
+      "exclusiveMinimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "$ref": "#/$defs/GoalStatus",
+      "default": "active"
+    },
+    "title": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "track": {
+      "$ref": "#/$defs/GoalTrack"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "why": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Why",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "track",
+    "title",
+    "why",
+    "revision",
+    "last_event_id",
+    "data_policy"
+  ],
+  "title": "Goal",
+  "type": "object"
+}

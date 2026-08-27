@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "evaluation_run_id": "019fff9a-c59f-71ab-b067-aca1af3f85ca",
+  "suite_version": "user-model-evidence-sequences-v1",
+  "fixture_hash": "sha256:247e636364351907e6c8dae3e2608d83590d16d97a585b2cc7f6cc4fc7d70a49",
+  "code_revision": "sha256:0584255c42e797f75116a1da01675c9c1989dc7074c8129d3913698371cc2ebd",
+  "binding_evaluation": false,
+  "gate_status": "not_evaluated",
+  "environment": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "clock": "perf_counter_ns"
+  },
+  "metrics": {
+    "cases": 8,
+    "passed": 8,
+    "failed": 0,
+    "unsupported_belief_count": 0,
+    "false_stability_count": 0,
+    "counter_evidence_retention_rate": 1.0,
+    "confidence_cases": 0,
+    "calibration_status": "not_evaluated_owner_reviewed_only",
+    "component_latency_ms": {
+      "mean": 0.008388,
+      "p50": 0.005,
+      "p95": 0.0335,
+      "samples": 8
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "one-bad-day-is-not-a-pattern",
+      "case_type": "pattern_proposal",
+      "passed": true,
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "counter_evidence_count": 0,
+      "requires_owner_review": true,
+      "reason_codes": [
+        "insufficient_distinct_support_sources",
+        "insufficient_distinct_support_days"
+      ]
+    },
+    {
+      "case_id": "same-day-repetition-is-not-stable",
+      "case_type": "pattern_proposal",
+      "passed": true,
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "counter_evidence_count": 0,
+      "requires_owner_review": true,
+      "reason_codes": [
+        "insufficient_distinct_support_days"
+      ]
+    },
+    {
+      "case_id": "distinct-days-open-proposal-only",
+      "case_type": "pattern_proposal",
+      "passed": true,
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "counter_evidence_count": 0,
+      "requires_owner_review": true,
+      "reason_codes": [
+        "proposal_only_owner_review_required"
+      ]
+    },
+    {
+      "case_id": "counter-evidence-is-retained",
+      "case_type": "pattern_proposal",
+      "passed": true,
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "counter_evidence_count": 1,
+      "requires_owner_review": true,
+      "reason_codes": [
+        "counter_evidence_present",
+        "proposal_only_owner_review_required"
+      ]
+    },
+    {
+      "case_id": "late-learned-old-valid-time-query-1",
+      "case_type": "bitemporal_replay",
+      "passed": true,
+      "expected_revision": null,
+      "actual_revision": null,
+      "expected_status": null,
+      "actual_status": null
+    },
+    {
+      "case_id": "late-learned-old-valid-time-query-2",
+      "case_type": "bitemporal_replay",
+      "passed": true,
+      "expected_revision": 1,
+      "actual_revision": 1,
+      "expected_status": "active",
+      "actual_status": "active"
+    },
+    {
+      "case_id": "correction-preserves-prior-known-state-query-1",
+      "case_type": "bitemporal_replay",
+      "passed": true,
+      "expected_revision": 1,
+      "actual_revision": 1,
+      "expected_status": "active",
+      "actual_status": "active"
+    },
+    {
+      "case_id": "correction-preserves-prior-known-state-query-2",
+      "case_type": "bitemporal_replay",
+      "passed": true,
+      "expected_revision": 2,
+      "actual_revision": 2,
+      "expected_status": "active",
+      "actual_status": "active"
+    }
+  ],
+  "limitations": [
+    "All cases are small, synthetic, and deterministic; they are not evidence of real-world understanding quality.",
+    "No automatic numeric belief-confidence algorithm is activated; durable confidence remains owner-reviewed.",
+    "Latency describes in-process fixture logic only and is not an end-to-end service benchmark."
+  ],
+  "content_hash": "sha256:c80bbfa07e2498a85de7313d08890fcb8973574b6ee70c3374c64c500e33c831",
+  "created_at": "2026-08-14T09:29:21.055958Z"
+}

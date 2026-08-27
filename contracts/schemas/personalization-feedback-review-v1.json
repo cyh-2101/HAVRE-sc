@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "FeedbackIssueAttribution": {
+      "enum": [
+        "personality_communication",
+        "memory_grounding_truthfulness",
+        "memory_retrieval",
+        "core_policy",
+        "mode_selection",
+        "reasoning_understanding",
+        "other_system",
+        "mixed",
+        "unclassified"
+      ],
+      "title": "FeedbackIssueAttribution",
+      "type": "string"
+    },
+    "FeedbackReviewDecision": {
+      "enum": [
+        "runtime_fix",
+        "approved_for_personalization_training",
+        "evaluation_only",
+        "deferred",
+        "rejected"
+      ],
+      "title": "FeedbackReviewDecision",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "authorization_ref": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authorization Ref"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/FeedbackReviewDecision"
+    },
+    "feedback_id": {
+      "format": "uuid",
+      "title": "Feedback Id",
+      "type": "string"
+    },
+    "feedback_revision": {
+      "exclusiveMinimum": 0,
+      "title": "Feedback Revision",
+      "type": "integer"
+    },
+    "issue_attributions": {
+      "items": {
+        "$ref": "#/$defs/FeedbackIssueAttribution"
+      },
+      "minItems": 1,
+      "title": "Issue Attributions",
+      "type": "array"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "review_id": {
+      "format": "uuid",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "review_notes": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Review Notes"
+    },
+    "reviewed_at": {
+      "format": "date-time",
+      "title": "Reviewed At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "training_eligible": {
+      "default": false,
+      "title": "Training Eligible",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "review_id",
+    "owner_id",
+    "feedback_id",
+    "feedback_revision",
+    "decision",
+    "issue_attributions"
+  ],
+  "title": "PersonalizationFeedbackReview",
+  "type": "object"
+}

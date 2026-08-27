@@ -1,0 +1,44 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+*.whl
+
+# JavaScript / web
+node_modules/
+.next/
+coverage/
+
+# Private runtime data and generated artifacts
+var/
+data/private/
+artifacts/
+models/
+exports/
+*.log
+
+# Local database/runtime installations
+.runtime/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini

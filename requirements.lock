@@ -1,0 +1,29 @@
+# Application and acceptance-test lock for HAVRE Stage 4 on CPython 3.12 / Windows x64.
+# Install with: python -m pip install -r requirements.lock
+annotated-doc==0.0.5
+annotated-types==0.8.0
+attrs==26.1.0
+anyio==4.14.2
+certifi==2026.7.22
+click==8.4.2
+colorama==0.4.6; platform_system == "Windows"
+fastapi==0.141.1
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.18
+jsonschema==4.25.1
+jsonschema-specifications==2025.9.1
+psycopg==3.3.4
+psycopg-binary==3.3.4; platform_system == "Windows" and platform_machine == "AMD64"
+psycopg-pool==3.3.1
+psutil==7.2.2
+pydantic==2.13.4
+pydantic-core==2.46.4
+referencing==0.37.0
+rpds-py==2026.6.3
+starlette==1.6.0
+typing-extensions==4.16.0
+typing-inspection==0.4.2
+tzdata==2026.3; platform_system == "Windows"
+uvicorn==0.52.1

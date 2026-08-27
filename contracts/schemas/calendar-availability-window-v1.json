@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "CalendarBusyInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "availability": {
+          "enum": [
+            "busy",
+            "tentative",
+            "out_of_office",
+            "working_elsewhere"
+          ],
+          "title": "Availability",
+          "type": "string"
+        },
+        "ends_at": {
+          "format": "date-time",
+          "title": "Ends At",
+          "type": "string"
+        },
+        "is_all_day": {
+          "title": "Is All Day",
+          "type": "boolean"
+        },
+        "starts_at": {
+          "format": "date-time",
+          "title": "Starts At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "starts_at",
+        "ends_at",
+        "availability",
+        "is_all_day"
+      ],
+      "title": "CalendarBusyInterval",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "busy_intervals": {
+      "items": {
+        "$ref": "#/$defs/CalendarBusyInterval"
+      },
+      "maxItems": 512,
+      "title": "Busy Intervals",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "busy_intervals"
+  ],
+  "title": "CalendarAvailabilityWindow",
+  "type": "object"
+}

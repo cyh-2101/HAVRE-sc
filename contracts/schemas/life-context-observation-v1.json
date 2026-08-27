@@ -1,0 +1,213 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "SignalFreshness": {
+      "additionalProperties": false,
+      "properties": {
+        "clock_uncertainty_seconds": {
+          "maximum": 86400,
+          "minimum": 0,
+          "title": "Clock Uncertainty Seconds",
+          "type": "integer"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "valid_until": {
+          "format": "date-time",
+          "title": "Valid Until",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observed_at",
+        "valid_until",
+        "clock_uncertainty_seconds"
+      ],
+      "title": "SignalFreshness",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version": {
+      "const": "synthetic-manual-adapter-v1",
+      "default": "synthetic-manual-adapter-v1",
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "capability": {
+      "const": "manual_coarse_context_fixture",
+      "default": "manual_coarse_context_fixture",
+      "title": "Capability",
+      "type": "string"
+    },
+    "consent_scope_ref": {
+      "const": "stage6-synthetic-fixture-only",
+      "default": "stage6-synthetic-fixture-only",
+      "title": "Consent Scope Ref",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "coverage": {
+      "const": "point_observation",
+      "default": "point_observation",
+      "title": "Coverage",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "external_source_activated": {
+      "const": false,
+      "default": false,
+      "title": "External Source Activated",
+      "type": "boolean"
+    },
+    "freshness": {
+      "$ref": "#/$defs/SignalFreshness"
+    },
+    "observation_id": {
+      "format": "uuid",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "observation_type": {
+      "const": "coarse_availability",
+      "default": "coarse_availability",
+      "title": "Observation Type",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "simulation_only": {
+      "const": true,
+      "default": true,
+      "title": "Simulation Only",
+      "type": "boolean"
+    },
+    "source_id": {
+      "const": "stage6-synthetic-manual",
+      "default": "stage6-synthetic-manual",
+      "title": "Source Id",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "value": {
+      "enum": [
+        "available",
+        "busy",
+        "unknown"
+      ],
+      "title": "Value",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "value",
+    "freshness",
+    "data_policy",
+    "trace_id"
+  ],
+  "title": "LifeContextObservation",
+  "type": "object"
+}

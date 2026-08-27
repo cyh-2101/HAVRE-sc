@@ -1,0 +1,366 @@
+{
+  "$defs": {
+    "InferenceTiming": {
+      "additionalProperties": false,
+      "description": "Client-observed total is required; unavailable provider timings remain null.",
+      "properties": {
+        "generation": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generation"
+        },
+        "queue": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queue"
+        },
+        "time_to_first_token": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time To First Token"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "number"
+        }
+      },
+      "required": [
+        "total"
+      ],
+      "title": "InferenceTiming",
+      "type": "object"
+    },
+    "ProviderReference": {
+      "additionalProperties": false,
+      "properties": {
+        "provider_class": {
+          "enum": [
+            "local_test",
+            "self_hosted",
+            "cloud"
+          ],
+          "title": "Provider Class",
+          "type": "string"
+        },
+        "provider_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "provider_request_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Provider Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider_id",
+        "provider_request_id",
+        "provider_class"
+      ],
+      "title": "ProviderReference",
+      "type": "object"
+    },
+    "TextContentPart": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 100000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "type": {
+          "const": "text",
+          "default": "text",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "TextContentPart",
+      "type": "object"
+    },
+    "TokenUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "output_tokens": {
+          "minimum": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "prompt_tokens": {
+          "minimum": 0,
+          "title": "Prompt Tokens",
+          "type": "integer"
+        },
+        "token_count_source": {
+          "enum": [
+            "provider",
+            "estimator"
+          ],
+          "title": "Token Count Source",
+          "type": "string"
+        },
+        "total_tokens": {
+          "minimum": 0,
+          "title": "Total Tokens",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "prompt_tokens",
+        "output_tokens",
+        "total_tokens",
+        "token_count_source"
+      ],
+      "title": "TokenUsage",
+      "type": "object"
+    },
+    "VersionReferences": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version Id"
+        },
+        "model_artifact_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Artifact Hash"
+        },
+        "model_version_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Model Version Id",
+          "type": "string"
+        },
+        "provider_adapter_version_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Adapter Version Id"
+        },
+        "runtime_attestation_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runtime Attestation Hash"
+        },
+        "runtime_attestation_id": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runtime Attestation Id"
+        },
+        "serving_config_version": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Serving Config Version",
+          "type": "string"
+        },
+        "serving_engine": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serving Engine"
+        },
+        "serving_engine_version": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serving Engine Version"
+        },
+        "tokenizer_version_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Tokenizer Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model_version_id",
+        "tokenizer_version_id",
+        "serving_config_version"
+      ],
+      "title": "VersionReferences",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "finish_reason": {
+      "enum": [
+        "stop",
+        "length"
+      ],
+      "title": "Finish Reason",
+      "type": "string"
+    },
+    "inference_request_id": {
+      "format": "uuid",
+      "title": "Inference Request Id",
+      "type": "string"
+    },
+    "inference_response_id": {
+      "format": "uuid",
+      "title": "Inference Response Id",
+      "type": "string"
+    },
+    "output_parts": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "text": "#/$defs/TextContentPart"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/TextContentPart"
+          }
+        ]
+      },
+      "minItems": 1,
+      "title": "Output Parts",
+      "type": "array"
+    },
+    "provider": {
+      "$ref": "#/$defs/ProviderReference"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "const": "completed",
+      "default": "completed",
+      "title": "Status",
+      "type": "string"
+    },
+    "timing_ms": {
+      "$ref": "#/$defs/InferenceTiming"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "usage": {
+      "$ref": "#/$defs/TokenUsage"
+    },
+    "versions": {
+      "$ref": "#/$defs/VersionReferences"
+    }
+  },
+  "required": [
+    "inference_request_id",
+    "request_id",
+    "trace_id",
+    "output_parts",
+    "finish_reason",
+    "provider",
+    "versions",
+    "usage",
+    "timing_ms"
+  ],
+  "title": "InferenceResponse",
+  "type": "object"
+}

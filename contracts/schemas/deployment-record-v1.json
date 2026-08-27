@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "DeploymentHealthEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "environment": {
+          "enum": [
+            "development",
+            "staging",
+            "production"
+          ],
+          "title": "Environment",
+          "type": "string"
+        },
+        "ready": {
+          "const": true,
+          "title": "Ready",
+          "type": "boolean"
+        },
+        "release_manifest_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Release Manifest Hash",
+          "type": "string"
+        },
+        "runtime_image_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runtime Image Digest"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_revision": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "release_manifest_hash",
+        "environment",
+        "source_revision",
+        "ready",
+        "checks"
+      ],
+      "title": "DeploymentHealthEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "enum": [
+        "deploy",
+        "rollback"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "deployment_id": {
+      "format": "uuid",
+      "title": "Deployment Id",
+      "type": "string"
+    },
+    "environment": {
+      "enum": [
+        "development",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "failure_code": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure Code"
+    },
+    "health_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DeploymentHealthEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "previous_deployment_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Deployment Id"
+    },
+    "release_manifest_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Release Manifest Hash",
+      "type": "string"
+    },
+    "release_manifest_id": {
+      "format": "uuid",
+      "title": "Release Manifest Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "applied",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "release_manifest_id",
+    "release_manifest_hash",
+    "environment",
+    "action",
+    "status"
+  ],
+  "title": "DeploymentRecord",
+  "type": "object"
+}

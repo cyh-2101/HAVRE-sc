@@ -1,0 +1,114 @@
+{
+  "additionalProperties": false,
+  "description": "Safe terminal failure metadata; never contains prompts or raw provider bodies.",
+  "properties": {
+    "code": {
+      "enum": [
+        "invalid_request",
+        "unsupported_capability",
+        "privacy_constraint_unsatisfied",
+        "model_unavailable",
+        "provider_rate_limited",
+        "provider_timeout",
+        "context_limit_exceeded",
+        "content_blocked",
+        "stream_interrupted",
+        "provider_protocol_error",
+        "internal_error"
+      ],
+      "title": "Code",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "inference_request_id": {
+      "format": "uuid",
+      "title": "Inference Request Id",
+      "type": "string"
+    },
+    "provider_class": {
+      "enum": [
+        "local_test",
+        "self_hosted",
+        "cloud"
+      ],
+      "title": "Provider Class",
+      "type": "string"
+    },
+    "provider_error_code": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider Error Code"
+    },
+    "provider_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "provider_status_code": {
+      "anyOf": [
+        {
+          "maximum": 599,
+          "minimum": 100,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider Status Code"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "retryable": {
+      "title": "Retryable",
+      "type": "boolean"
+    },
+    "safe_message": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Safe Message",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "inference_request_id",
+    "request_id",
+    "trace_id",
+    "provider_id",
+    "provider_class",
+    "code",
+    "retryable",
+    "safe_message"
+  ],
+  "title": "InferenceFailure",
+  "type": "object"
+}

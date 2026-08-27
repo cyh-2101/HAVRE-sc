@@ -1,0 +1,73 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "allowed_roles": {
+      "items": {
+        "enum": [
+          "owner",
+          "technical_reviewer",
+          "human_reviewer"
+        ],
+        "type": "string"
+      },
+      "title": "Allowed Roles",
+      "type": "array"
+    },
+    "automatic_deletion": {
+      "const": false,
+      "default": false,
+      "title": "Automatic Deletion",
+      "type": "boolean"
+    },
+    "deletion_requires_owner_authorization": {
+      "const": true,
+      "default": true,
+      "title": "Deletion Requires Owner Authorization",
+      "type": "boolean"
+    },
+    "external_transfer_allowed": {
+      "const": false,
+      "default": false,
+      "title": "External Transfer Allowed",
+      "type": "boolean"
+    },
+    "hold_reason": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hold Reason"
+    },
+    "policy_version": {
+      "const": "protected-local-review-v1",
+      "default": "protected-local-review-v1",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "review_after_days": {
+      "default": 30,
+      "maximum": 3650,
+      "minimum": 1,
+      "title": "Review After Days",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "allowed_roles"
+  ],
+  "title": "EvaluationArtifactPolicy",
+  "type": "object"
+}

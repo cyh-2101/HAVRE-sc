@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "reason_code": {
+      "enum": [
+        "training_not_eligible",
+        "source_erased",
+        "duplicate",
+        "quality_rejected",
+        "holdout_conflict"
+      ],
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "source_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Source Content Hash",
+      "type": "string"
+    },
+    "source_ref": {
+      "title": "Source Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_ref",
+    "source_content_hash",
+    "reason_code"
+  ],
+  "title": "DatasetRejection",
+  "type": "object"
+}

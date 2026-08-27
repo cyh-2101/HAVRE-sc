@@ -1,0 +1,95 @@
+{
+  "$defs": {
+    "ApprovedTextArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_at": {
+          "format": "date-time",
+          "title": "Approved At",
+          "type": "string"
+        },
+        "approved_by": {
+          "const": "owner",
+          "title": "Approved By",
+          "type": "string"
+        },
+        "artifact_kind": {
+          "enum": [
+            "constitution",
+            "identity",
+            "values"
+          ],
+          "title": "Artifact Kind",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "content_hash": {
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Files",
+          "type": "array"
+        },
+        "version_id": {
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_kind",
+        "version_id",
+        "content",
+        "content_hash",
+        "approved_by",
+        "approved_at",
+        "source_files"
+      ],
+      "title": "ApprovedTextArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "constitution": {
+      "$ref": "#/$defs/ApprovedTextArtifact"
+    },
+    "governance_version": {
+      "const": "governance-v1",
+      "default": "governance-v1",
+      "title": "Governance Version",
+      "type": "string"
+    },
+    "identity": {
+      "$ref": "#/$defs/ApprovedTextArtifact"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "values": {
+      "$ref": "#/$defs/ApprovedTextArtifact"
+    }
+  },
+  "required": [
+    "constitution",
+    "identity",
+    "values"
+  ],
+  "title": "IdentityBundle",
+  "type": "object"
+}

@@ -1,0 +1,21 @@
+{
+  "artifact_content_hash": "sha256:8b72b5e792802b740416e7ac2fa03410d8190824f0d960c2696b87edf73561b2",
+  "artifact_path": "stage9a_holdout_v4.json",
+  "artifact_sha256": "sha256:2bbc633977c706ac345ac549565a006901dd047ce2ec4dec4f4884a9b4cc5190",
+  "artifact_size_bytes": 311477,
+  "contains_user_data": false,
+  "content_hash": "sha256:28f02fb0822bb716eaa7a7c6d1aaba270bb9f5dcb13d43b91333d42117911352",
+  "dataset_version": "stage9a-havre-companion-v4-candidate-1",
+  "evaluation_only": true,
+  "immutable": true,
+  "member_count": 120,
+  "member_manifest_hash": "sha256:1753629bff3c262d15bee09f37d5eb51819c2df6f90c9ae83e3b8e2a03ef52b2",
+  "memory_injection_schema": true,
+  "multi_turn_schema": true,
+  "po_freeze_authorized": false,
+  "po_review_status": "pending",
+  "schema_version": 2,
+  "split": "holdout",
+  "training_authorized": false,
+  "training_eligible": false
+}

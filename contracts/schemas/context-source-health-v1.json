@@ -1,0 +1,72 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "coverage": {
+      "const": "synthetic_fixture_only",
+      "default": "synthetic_fixture_only",
+      "title": "Coverage",
+      "type": "string"
+    },
+    "external_source_activated": {
+      "const": false,
+      "default": false,
+      "title": "External Source Activated",
+      "type": "boolean"
+    },
+    "health_id": {
+      "format": "uuid",
+      "title": "Health Id",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "simulation_only": {
+      "const": true,
+      "default": true,
+      "title": "Simulation Only",
+      "type": "boolean"
+    },
+    "source_id": {
+      "const": "stage6-synthetic-manual",
+      "default": "stage6-synthetic-manual",
+      "title": "Source Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "available",
+        "unavailable",
+        "revoked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "status",
+    "observed_at",
+    "trace_id"
+  ],
+  "title": "ContextSourceHealth",
+  "type": "object"
+}

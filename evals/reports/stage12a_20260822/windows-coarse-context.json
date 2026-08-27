@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "benchmark": "stage12a-windows-coarse-context-v1",
+  "measured_at": "2026-08-21T21:13:23.587717+00:00",
+  "source_revision": "sha256:bb3c8c12ba11375fed7ad4a7e3279a3f09ddef7ce46ce004db62137ef9f5ac47",
+  "environment": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD"
+  },
+  "workload": {
+    "fixture_kind": "synthetic-minimized-activity-windows",
+    "iterations": 10000,
+    "real_owner_activity_collected": false,
+    "network_used": false,
+    "oa70_accessed": false
+  },
+  "conformance": {
+    "fixture_passes": 3,
+    "fixture_total": 3,
+    "fixtures": [
+      {
+        "fixture": "development_active",
+        "expected": [
+          "development",
+          "active",
+          60,
+          0
+        ],
+        "observed": [
+          "development",
+          "active",
+          60,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "fixture": "idle_hides_category",
+        "expected": [
+          "unknown",
+          "idle",
+          0,
+          60
+        ],
+        "observed": [
+          "unknown",
+          "idle",
+          0,
+          60
+        ],
+        "passed": true
+      },
+      {
+        "fixture": "deterministic_category_tie",
+        "expected": [
+          "browser",
+          "active",
+          60,
+          0
+        ],
+        "observed": [
+          "browser",
+          "active",
+          60,
+          0
+        ],
+        "passed": true
+      }
+    ],
+    "unavailable_probe_rejected": true,
+    "minimum_sufficient_fields_only": true,
+    "serialized_field_names": [
+      "active_seconds",
+      "activity_state",
+      "dominant_category",
+      "idle_seconds",
+      "sample_count",
+      "schema_version",
+      "window_seconds"
+    ]
+  },
+  "native_content_free_evidence": {
+    "schema_version": 1,
+    "adapter_version": "windows-coarse-context-v1",
+    "platform": "Windows",
+    "platform_release": "11",
+    "foreground_api_bound": true,
+    "idle_api_bound": true,
+    "activity_sample_collected": false,
+    "exact_process_identity_retained": false,
+    "window_title_collected": false,
+    "content_collected": false,
+    "screenshot_collected": false,
+    "keyboard_or_clipboard_collected": false,
+    "microphone_collected": false
+  },
+  "protected_state": {
+    "provider": "Windows DPAPI current-user scope",
+    "synthetic_roundtrip_passed": true,
+    "plaintext_bytes": 43,
+    "protected_bytes": 262
+  },
+  "diagnostic_latency": {
+    "elapsed_ms": 51.627,
+    "median_per_summary_ms": 0.005,
+    "max_per_summary_ms": 0.0361
+  },
+  "interpretation": "Synthetic conformance, content-free Windows API binding, and DPAPI roundtrip evidence only. It does not measure owner benefit, production capacity, battery/energy impact, or authorize ambient collection.",
+  "passed": true
+}

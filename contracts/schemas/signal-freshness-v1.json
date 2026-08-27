@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "clock_uncertainty_seconds": {
+      "maximum": 86400,
+      "minimum": 0,
+      "title": "Clock Uncertainty Seconds",
+      "type": "integer"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "valid_until": {
+      "format": "date-time",
+      "title": "Valid Until",
+      "type": "string"
+    }
+  },
+  "required": [
+    "observed_at",
+    "valid_until",
+    "clock_uncertainty_seconds"
+  ],
+  "title": "SignalFreshness",
+  "type": "object"
+}

@@ -1,0 +1,19 @@
+{
+  "artifact_content_hash": "sha256:4b0060b95aa8812aa6a032b8ca44e327a1d5eae5edb13534cca33d4e7cc0ca75",
+  "artifact_path": "stage9a_holdout_v2.json",
+  "artifact_sha256": "sha256:0ea279e1b028fcb8a269ddf49b17d4f8a5cf0cdd76edb3fba900da0a4779c3a0",
+  "artifact_size_bytes": 124707,
+  "contains_user_data": false,
+  "content_hash": "sha256:fcba349a78cab05bb51456fb96d6d2084663aa17a1f6752c35e09c04b3aa7f17",
+  "dataset_version": "stage9a-synthetic-public-v2",
+  "evaluation_only": true,
+  "immutable": true,
+  "member_count": 96,
+  "member_manifest_hash": "sha256:b025125371da20dd3cb50aa56e687b5f3611189926a1e51ee73c85e9a16bb19a",
+  "po_freeze_authorized": false,
+  "po_review_status": "pending",
+  "schema_version": 1,
+  "split": "holdout",
+  "training_authorized": false,
+  "training_eligible": false
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "suite_version": "proactive-policy-simulation-v1",
+  "synthetic": true,
+  "cases": [
+    {"case_id": "send", "global_enabled": true, "category_permission": "allowed", "budgets": true, "cooldown": true, "expected": "SEND_NOW"},
+    {"case_id": "global-disabled", "global_enabled": false, "category_permission": "allowed", "budgets": true, "cooldown": true, "expected": "DROP"},
+    {"case_id": "category-denied", "global_enabled": true, "category_permission": "denied", "budgets": true, "cooldown": true, "expected": "DROP"},
+    {"case_id": "confirmation", "global_enabled": true, "category_permission": "confirmation_required", "budgets": true, "cooldown": true, "expected": "REQUEST_OWNER_CONFIRMATION"},
+    {"case_id": "unresolved-limits", "global_enabled": true, "category_permission": "allowed", "budgets": false, "cooldown": false, "expected": "REQUEST_OWNER_CONFIRMATION"},
+    {"case_id": "budget-exhausted", "global_enabled": true, "category_permission": "allowed", "budgets": true, "cooldown": true, "delivered": 1, "expected": "DEFER"},
+    {"case_id": "duplicate", "global_enabled": true, "category_permission": "allowed", "budgets": true, "cooldown": true, "duplicate": true, "expected": "DROP"},
+    {"case_id": "not-yet", "global_enabled": true, "category_permission": "allowed", "budgets": true, "cooldown": true, "not_yet": true, "expected": "DEFER"}
+  ]
+}

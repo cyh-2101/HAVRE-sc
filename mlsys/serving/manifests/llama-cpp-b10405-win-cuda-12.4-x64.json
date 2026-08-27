@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "manifest_id": "serving-engine-llama-cpp-b10405-win-cuda-12.4-x64",
+  "artifact_kind": "serving_engine",
+  "immutable": true,
+  "lifecycle_status": "pinned_stage3_baseline",
+  "display_name": "llama.cpp b10405 Windows CUDA 12.4 x64",
+  "upstream": {
+    "repository": "ggml-org/llama.cpp",
+    "release_tag": "b10405",
+    "commit": "e79e4bf660e19f2ad851e06c6913f7a8c5852621",
+    "published_at": "2026-08-13T07:32:37Z"
+  },
+  "platform": {
+    "operating_system": "windows",
+    "architecture": "x86_64",
+    "cuda_runtime": "12.4"
+  },
+  "artifacts": [
+    {
+      "role": "server_bundle",
+      "filename": "llama-b10405-bin-win-cuda-12.4-x64.zip",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10405/llama-b10405-bin-win-cuda-12.4-x64.zip",
+      "size_bytes": 250767461,
+      "sha256": "sha256:7da18847181aa668a77b02fa8bd47bb9588b82ca077cf184bccc3bf016b46e79",
+      "archive_format": "zip"
+    },
+    {
+      "role": "cuda_runtime_bundle",
+      "filename": "cudart-llama-bin-win-cuda-12.4-x64.zip",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10405/cudart-llama-bin-win-cuda-12.4-x64.zip",
+      "size_bytes": 391443627,
+      "sha256": "sha256:8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+      "archive_format": "zip"
+    }
+  ],
+  "expected_executable_name": "llama-server.exe",
+  "api": {
+    "compatibility": "openai-compatible",
+    "base_url": "http://127.0.0.1:8080",
+    "health_path": "/health",
+    "chat_completions_path": "/v1/chat/completions",
+    "metrics_path": "/metrics",
+    "streaming": {
+      "enabled": true,
+      "transport": "sse",
+      "content_type": "text/event-stream"
+    }
+  },
+  "security_defaults": {
+    "bind_host": "127.0.0.1",
+    "request_logging": false,
+    "web_ui": false
+  }
+}

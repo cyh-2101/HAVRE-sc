@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "benchmark": "stage10-controlled-reliability-v1",
+  "measured_at": "2026-08-21T18:36:58.833280+00:00",
+  "source_revision": "22700334eb375e1ee21283ca9d40efe5650cd8ec",
+  "migration_head": "0034_stage10_backup_fk_index.sql",
+  "environment": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD"
+  },
+  "workload": {
+    "schema_version": 1,
+    "request_count": 64,
+    "concurrency": 8,
+    "privacy_class": "LOCAL_ONLY",
+    "memory_eligible": false,
+    "provider": "deterministic-local",
+    "message_shape": "synthetic fixed-prefix plus sequence"
+  },
+  "workload_hash": "sha256:d215e4a9314658846fcbd165a829e87cf5e61da5a4906a00b95d738bc31b6a5d",
+  "load": {
+    "successful_requests": 64,
+    "failed_requests": 0,
+    "elapsed_seconds": 0.81,
+    "throughput_requests_per_second": 79.022,
+    "latency_ms": {
+      "min": 64.096,
+      "median": 88.703,
+      "p95": 112.29,
+      "max": 120.274
+    },
+    "process_user_cpu_seconds": 0.578,
+    "process_system_cpu_seconds": 0.328,
+    "rss_delta_bytes": 6422528
+  },
+  "failure_probes": {
+    "wrong_bearer_rejected": true,
+    "provider_unavailable_ready_status": 503,
+    "provider_unavailable_liveness_status": 200,
+    "provider_recovery_ready_status": 200,
+    "database_unavailable_ready_status": 503,
+    "database_unavailable_liveness_status": 200,
+    "metrics_content_free": true
+  },
+  "passed": true
+}

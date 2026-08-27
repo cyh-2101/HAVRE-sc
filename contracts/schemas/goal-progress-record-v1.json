@@ -1,0 +1,247 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "description": "An exact, owner-qualified source reference.\n\nOwner identity is supplied by the containing command. PostgreSQL verifies\nthat every referenced source belongs to that owner before accepting a\nderived record.",
+      "properties": {
+        "relation": {
+          "$ref": "#/$defs/EvidenceRelation"
+        },
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_kind": {
+          "$ref": "#/$defs/EvidenceSourceKind"
+        },
+        "source_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Revision"
+        },
+        "weight": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weight"
+        }
+      },
+      "required": [
+        "source_kind",
+        "source_id",
+        "relation"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "EvidenceRelation": {
+      "enum": [
+        "supports",
+        "contradicts"
+      ],
+      "title": "EvidenceRelation",
+      "type": "string"
+    },
+    "EvidenceSourceKind": {
+      "enum": [
+        "event",
+        "memory_revision",
+        "belief_revision"
+      ],
+      "title": "EvidenceSourceKind",
+      "type": "string"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "created_event_id": {
+      "format": "uuid",
+      "title": "Created Event Id",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "direction": {
+      "enum": [
+        "toward",
+        "steady",
+        "away",
+        "unknown"
+      ],
+      "title": "Direction",
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "minItems": 1,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "goal_id": {
+      "format": "uuid",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "goal_revision": {
+      "exclusiveMinimum": 0,
+      "title": "Goal Revision",
+      "type": "integer"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "progress_record_id": {
+      "format": "uuid",
+      "title": "Progress Record Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "summary": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "goal_id",
+    "goal_revision",
+    "direction",
+    "summary",
+    "observed_at",
+    "evidence",
+    "created_event_id",
+    "trace_id",
+    "data_policy"
+  ],
+  "title": "GoalProgressRecord",
+  "type": "object"
+}

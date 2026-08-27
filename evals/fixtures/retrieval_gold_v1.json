@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "gold_set_version": "retrieval-gold-v1",
+  "review_status": "manually_reviewed",
+  "review_note": "Stage 2 synthetic corpus with relevance and should-not-surface judgments.",
+  "duplicate_groups": [["piano_method", "duplicate_piano"]],
+  "corpus": [
+    {"key": "piano_method", "text": "For piano practice I use a slow metronome and repeat the difficult measure.", "privacy_class": "NORMAL", "importance": 0.7},
+    {"key": "running_route", "text": "My Sunday running route follows the river park and ends near the library.", "privacy_class": "NORMAL", "importance": 0.6},
+    {"key": "bread_recipe", "text": "For sourdough bread I feed the starter at night and bake in the morning.", "privacy_class": "NORMAL", "importance": 0.5},
+    {"key": "project_focus", "text": "When project work feels difficult I start with a ten minute written outline.", "privacy_class": "NORMAL", "importance": 0.8},
+    {"key": "private_audition", "text": "My private piano audition is next month and I have not told anyone.", "privacy_class": "PRIVATE", "importance": 0.9},
+    {"key": "old_lesson", "text": "The piano lesson is on Thursday afternoon.", "privacy_class": "NORMAL", "importance": 0.4, "lifecycle": "correct_to_tuesday"},
+    {"key": "duplicate_piano", "text": "I repeat difficult piano measures while using a slow metronome.", "privacy_class": "NORMAL", "importance": 0.3}
+  ],
+  "queries": [
+    {"key": "piano", "text": "What method helps my difficult piano practice with a metronome?", "privacy_class": "NORMAL", "essential": ["piano_method"], "helpful": ["duplicate_piano"], "should_not_surface": ["private_audition"]},
+    {"key": "running", "text": "Where does my Sunday river running route finish?", "privacy_class": "NORMAL", "essential": ["running_route"], "helpful": [], "should_not_surface": []},
+    {"key": "bread", "text": "When do I feed my sourdough starter and bake bread?", "privacy_class": "NORMAL", "essential": ["bread_recipe"], "helpful": [], "should_not_surface": []},
+    {"key": "project", "text": "How do I begin difficult project work when I feel stuck?", "privacy_class": "NORMAL", "essential": ["project_focus"], "helpful": [], "should_not_surface": []},
+    {"key": "lesson", "text": "Which afternoon is my current piano lesson?", "privacy_class": "NORMAL", "essential": ["old_lesson"], "helpful": [], "should_not_surface": []}
+  ]
+}

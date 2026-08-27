@@ -1,0 +1,513 @@
+{
+  "$defs": {
+    "BeliefInitialStatus": {
+      "enum": [
+        "candidate",
+        "active"
+      ],
+      "title": "BeliefInitialStatus",
+      "type": "string"
+    },
+    "BeliefRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "belief_id": {
+          "format": "uuid",
+          "title": "Belief Id",
+          "type": "string"
+        },
+        "belief_key": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Belief Key",
+          "type": "string"
+        },
+        "belief_type": {
+          "$ref": "#/$defs/BeliefType"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "confidence_method": {
+          "const": "owner-reviewed-v1",
+          "default": "owner-reviewed-v1",
+          "title": "Confidence Method",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "created_event_id": {
+          "format": "uuid",
+          "title": "Created Event Id",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "evidence_occurred_from": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Occurred From"
+        },
+        "evidence_occurred_to": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Occurred To"
+        },
+        "initial_status": {
+          "$ref": "#/$defs/BeliefInitialStatus"
+        },
+        "learned_at": {
+          "format": "date-time",
+          "title": "Learned At",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "statement": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "supersedes_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Revision"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "valid_from": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Valid From"
+        },
+        "valid_to": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Valid To"
+        }
+      },
+      "required": [
+        "owner_id",
+        "revision",
+        "belief_key",
+        "statement",
+        "belief_type",
+        "confidence",
+        "initial_status",
+        "learned_at",
+        "created_event_id",
+        "trace_id",
+        "data_policy"
+      ],
+      "title": "BeliefRevision",
+      "type": "object"
+    },
+    "BeliefTransition": {
+      "additionalProperties": false,
+      "properties": {
+        "belief_id": {
+          "format": "uuid",
+          "title": "Belief Id",
+          "type": "string"
+        },
+        "belief_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Belief Revision",
+          "type": "integer"
+        },
+        "belief_transition_id": {
+          "format": "uuid",
+          "title": "Belief Transition Id",
+          "type": "string"
+        },
+        "causing_event_id": {
+          "format": "uuid",
+          "title": "Causing Event Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "replacement_belief_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replacement Belief Id"
+        },
+        "replacement_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replacement Revision"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "transition_type": {
+          "$ref": "#/$defs/BeliefTransitionType"
+        }
+      },
+      "required": [
+        "owner_id",
+        "belief_id",
+        "belief_revision",
+        "transition_type",
+        "occurred_at",
+        "reason",
+        "causing_event_id"
+      ],
+      "title": "BeliefTransition",
+      "type": "object"
+    },
+    "BeliefTransitionType": {
+      "enum": [
+        "activated",
+        "counter_evidence_recorded",
+        "contradicted",
+        "superseded",
+        "retracted",
+        "invalidated"
+      ],
+      "title": "BeliefTransitionType",
+      "type": "string"
+    },
+    "BeliefType": {
+      "enum": [
+        "fact",
+        "preference",
+        "value",
+        "strength",
+        "vulnerability",
+        "pattern",
+        "uncertainty"
+      ],
+      "title": "BeliefType",
+      "type": "string"
+    },
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "description": "An exact, owner-qualified source reference.\n\nOwner identity is supplied by the containing command. PostgreSQL verifies\nthat every referenced source belongs to that owner before accepting a\nderived record.",
+      "properties": {
+        "relation": {
+          "$ref": "#/$defs/EvidenceRelation"
+        },
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_kind": {
+          "$ref": "#/$defs/EvidenceSourceKind"
+        },
+        "source_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Revision"
+        },
+        "weight": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weight"
+        }
+      },
+      "required": [
+        "source_kind",
+        "source_id",
+        "relation"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "EvidenceRelation": {
+      "enum": [
+        "supports",
+        "contradicts"
+      ],
+      "title": "EvidenceRelation",
+      "type": "string"
+    },
+    "EvidenceSourceKind": {
+      "enum": [
+        "event",
+        "memory_revision",
+        "belief_revision"
+      ],
+      "title": "EvidenceSourceKind",
+      "type": "string"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "counter_evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Counter Evidence",
+      "type": "array"
+    },
+    "effective_status": {
+      "enum": [
+        "candidate",
+        "active",
+        "contradicted",
+        "superseded",
+        "retracted",
+        "invalidated"
+      ],
+      "title": "Effective Status",
+      "type": "string"
+    },
+    "known_as_of": {
+      "format": "date-time",
+      "title": "Known As Of",
+      "type": "string"
+    },
+    "revision": {
+      "$ref": "#/$defs/BeliefRevision"
+    },
+    "supporting_evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Supporting Evidence",
+      "type": "array"
+    },
+    "transitions": {
+      "items": {
+        "$ref": "#/$defs/BeliefTransition"
+      },
+      "title": "Transitions",
+      "type": "array"
+    },
+    "valid_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Valid At"
+    }
+  },
+  "required": [
+    "revision",
+    "effective_status",
+    "supporting_evidence",
+    "counter_evidence",
+    "transitions",
+    "known_as_of"
+  ],
+  "title": "BeliefSnapshot",
+  "type": "object"
+}

@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "builder_version": {
+      "const": "proactive-context-builder-v1",
+      "default": "proactive-context-builder-v1",
+      "title": "Builder Version",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "effective_data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "evidence_sections": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "minItems": 1,
+      "title": "Evidence Sections",
+      "type": "array"
+    },
+    "interruption_decision_id": {
+      "format": "uuid",
+      "title": "Interruption Decision Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "prefix_sections": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "minItems": 2,
+      "title": "Prefix Sections",
+      "type": "array"
+    },
+    "prefix_stable": {
+      "const": true,
+      "default": true,
+      "title": "Prefix Stable",
+      "type": "boolean"
+    },
+    "proactive_context_pack_id": {
+      "format": "uuid",
+      "title": "Proactive Context Pack Id",
+      "type": "string"
+    },
+    "proposal_id": {
+      "format": "uuid",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "purpose": {
+      "const": "authorized_proactive_rendering",
+      "default": "authorized_proactive_rendering",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "strategy_version": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Strategy Version",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "proposal_id",
+    "interruption_decision_id",
+    "strategy_version",
+    "prefix_sections",
+    "evidence_sections",
+    "effective_data_policy",
+    "trace_id"
+  ],
+  "title": "ProactiveContextPack",
+  "type": "object"
+}

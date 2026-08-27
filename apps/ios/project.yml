@@ -1,0 +1,47 @@
+name: HAVREiPhone
+options:
+  minimumXcodeGenVersion: 2.42.0
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  HAVRELocalPackage:
+    path: .
+targets:
+  HAVREiPhone:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/HAVREiPhone
+    dependencies:
+      - package: HAVRELocalPackage
+        product: HAVREMobileCore
+    info:
+      path: Configuration/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.havre.iphone
+        PRODUCT_NAME: HAVRE
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        CODE_SIGN_STYLE: Automatic
+  HAVREiPhoneTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/HAVREMobileCoreTests
+    dependencies:
+      - package: HAVRELocalPackage
+        product: HAVREMobileCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+schemes:
+  HAVREiPhone:
+    build:
+      targets:
+        HAVREiPhone: all
+        HAVREiPhoneTests: [test]
+    test:
+      targets:
+        - HAVREiPhoneTests

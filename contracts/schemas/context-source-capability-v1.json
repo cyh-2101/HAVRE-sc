@@ -1,0 +1,113 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "allowed_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Fields",
+      "type": "array"
+    },
+    "capability_id": {
+      "enum": [
+        "windows.device_activity_summary.v1",
+        "calendar.read_availability.v1"
+      ],
+      "title": "Capability Id",
+      "type": "string"
+    },
+    "capability_revision_id": {
+      "format": "uuid",
+      "title": "Capability Revision Id",
+      "type": "string"
+    },
+    "conformance_version": {
+      "default": "windows-coarse-adapter-conformance-v1",
+      "enum": [
+        "windows-coarse-adapter-conformance-v1",
+        "calendar-availability-adapter-conformance-v1"
+      ],
+      "title": "Conformance Version",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "observation_kind": {
+      "enum": [
+        "device_activity_summary",
+        "calendar_availability_window"
+      ],
+      "title": "Observation Kind",
+      "type": "string"
+    },
+    "observation_schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Observation Schema Version",
+      "type": "integer"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "precision": {
+      "default": "coarse_category_window",
+      "enum": [
+        "coarse_category_window",
+        "availability_only_no_content"
+      ],
+      "title": "Precision",
+      "type": "string"
+    },
+    "revision": {
+      "const": 1,
+      "default": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "sampling_modes": {
+      "default": [
+        "bounded_interval"
+      ],
+      "items": {
+        "enum": [
+          "bounded_interval",
+          "owner_initiated_import"
+        ],
+        "type": "string"
+      },
+      "title": "Sampling Modes",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_instance_id": {
+      "format": "uuid",
+      "title": "Source Instance Id",
+      "type": "string"
+    },
+    "status": {
+      "const": "enabled",
+      "default": "enabled",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_instance_id",
+    "capability_id",
+    "observation_kind",
+    "allowed_fields"
+  ],
+  "title": "ContextSourceCapability",
+  "type": "object"
+}

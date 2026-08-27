@@ -1,0 +1,109 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "architecture_family": {
+      "const": "synthetic-linear-dry-run",
+      "default": "synthetic-linear-dry-run",
+      "title": "Architecture Family",
+      "type": "string"
+    },
+    "artifact_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifact Hash",
+      "type": "string"
+    },
+    "artifact_uri": {
+      "pattern": "^local-artifact://stage9/[a-z0-9/_-]+$",
+      "title": "Artifact Uri",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "context_limit": {
+      "const": 128,
+      "default": 128,
+      "title": "Context Limit",
+      "type": "integer"
+    },
+    "license_id": {
+      "const": "CC0-1.0",
+      "default": "CC0-1.0",
+      "title": "License Id",
+      "type": "string"
+    },
+    "lifecycle_status": {
+      "const": "candidate",
+      "default": "candidate",
+      "title": "Lifecycle Status",
+      "type": "string"
+    },
+    "local_only": {
+      "const": true,
+      "default": true,
+      "title": "Local Only",
+      "type": "boolean"
+    },
+    "logical_name": {
+      "const": "havre-stage9-toy-base",
+      "default": "havre-stage9-toy-base",
+      "title": "Logical Name",
+      "type": "string"
+    },
+    "model_version_id": {
+      "format": "uuid",
+      "title": "Model Version Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "precision": {
+      "const": "fp32",
+      "default": "fp32",
+      "title": "Precision",
+      "type": "string"
+    },
+    "production_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Production Eligible",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "tokenizer_version": {
+      "const": "hashed-tokenizer-v1",
+      "default": "hashed-tokenizer-v1",
+      "title": "Tokenizer Version",
+      "type": "string"
+    },
+    "upstream_model_id": {
+      "const": "local://havre/stage9-toy-matrix",
+      "default": "local://havre/stage9-toy-matrix",
+      "title": "Upstream Model Id",
+      "type": "string"
+    },
+    "upstream_revision": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Upstream Revision",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "upstream_revision",
+    "artifact_uri",
+    "artifact_hash"
+  ],
+  "title": "ModelVersion",
+  "type": "object"
+}

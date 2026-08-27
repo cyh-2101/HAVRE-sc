@@ -1,0 +1,363 @@
+{
+  "$defs": {
+    "ContextSection": {
+      "additionalProperties": false,
+      "properties": {
+        "content_parts": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "text": "#/$defs/TextContentPart"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TextContentPart"
+              }
+            ]
+          },
+          "title": "Content Parts",
+          "type": "array"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "estimated_tokens": {
+          "minimum": 0,
+          "title": "Estimated Tokens",
+          "type": "integer"
+        },
+        "priority": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Priority",
+          "type": "integer"
+        },
+        "section_id": {
+          "title": "Section Id",
+          "type": "string"
+        },
+        "section_type": {
+          "enum": [
+            "identity",
+            "episodic_memory",
+            "semantic_memory",
+            "pattern_memory",
+            "progress_memory",
+            "user_belief",
+            "goal",
+            "current_state",
+            "communication_preference",
+            "conversation_user_message",
+            "conversation_assistant_message",
+            "current_user_input"
+          ],
+          "title": "Section Type",
+          "type": "string"
+        },
+        "selection_reason": {
+          "enum": [
+            "required_by_policy",
+            "retrieved_relevant",
+            "selected_active_personal_context",
+            "selected_conversation_history",
+            "required_current_request"
+          ],
+          "title": "Selection Reason",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "truncation": {
+          "default": null,
+          "title": "Truncation",
+          "type": "null"
+        }
+      },
+      "required": [
+        "section_id",
+        "section_type",
+        "priority",
+        "content_parts",
+        "estimated_tokens",
+        "source_refs",
+        "data_policy",
+        "selection_reason"
+      ],
+      "title": "ContextSection",
+      "type": "object"
+    },
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "TextContentPart": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 100000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "type": {
+          "const": "text",
+          "default": "text",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "TextContentPart",
+      "type": "object"
+    },
+    "TokenBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "estimator_id": {
+          "const": "utf8-bytes-div4-v1",
+          "default": "utf8-bytes-div4-v1",
+          "title": "Estimator Id",
+          "type": "string"
+        },
+        "max_input_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Input Tokens",
+          "type": "integer"
+        },
+        "reserved_output_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Reserved Output Tokens",
+          "type": "integer"
+        },
+        "target_tokenizer_version_id": {
+          "const": "provider-neutral-estimator-v1",
+          "default": "provider-neutral-estimator-v1",
+          "title": "Target Tokenizer Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "max_input_tokens",
+        "reserved_output_tokens"
+      ],
+      "title": "TokenBudget",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "builder_version": {
+      "default": "context-builder-v8",
+      "enum": [
+        "context-builder-v3",
+        "context-builder-v4",
+        "context-builder-v5",
+        "context-builder-v6",
+        "context-builder-v7",
+        "context-builder-v8"
+      ],
+      "title": "Builder Version",
+      "type": "string"
+    },
+    "constitution_version_id": {
+      "title": "Constitution Version Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "context_pack_id": {
+      "format": "uuid",
+      "title": "Context Pack Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "effective_data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "estimated_total_tokens": {
+      "minimum": 0,
+      "title": "Estimated Total Tokens",
+      "type": "integer"
+    },
+    "excluded_candidates": {
+      "default": [],
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Excluded Candidates",
+      "type": "array"
+    },
+    "identity_version_id": {
+      "title": "Identity Version Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "policy_decision_id": {
+      "default": null,
+      "title": "Policy Decision Id",
+      "type": "null"
+    },
+    "purpose": {
+      "const": "companion_response",
+      "default": "companion_response",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "retrieval_result_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retrieval Result Id"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/ContextSection"
+      },
+      "title": "Sections",
+      "type": "array"
+    },
+    "token_budget": {
+      "$ref": "#/$defs/TokenBudget"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "values_version_id": {
+      "title": "Values Version Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "trace_id",
+    "owner_id",
+    "request_id",
+    "constitution_version_id",
+    "identity_version_id",
+    "values_version_id",
+    "token_budget",
+    "sections",
+    "effective_data_policy",
+    "estimated_total_tokens"
+  ],
+  "title": "ContextPack",
+  "type": "object"
+}

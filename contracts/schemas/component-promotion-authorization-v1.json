@@ -1,0 +1,69 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "actor": {
+      "const": "product_owner",
+      "default": "product_owner",
+      "title": "Actor",
+      "type": "string"
+    },
+    "artifact_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifact Hash",
+      "type": "string"
+    },
+    "component": {
+      "enum": [
+        "provider",
+        "foundation_model",
+        "adapter",
+        "tokenizer",
+        "serving_engine"
+      ],
+      "title": "Component",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "decision": {
+      "const": "approved",
+      "default": "approved",
+      "title": "Decision",
+      "type": "string"
+    },
+    "rationale": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "version": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "component",
+    "version",
+    "artifact_hash",
+    "rationale"
+  ],
+  "title": "ComponentPromotionAuthorization",
+  "type": "object"
+}

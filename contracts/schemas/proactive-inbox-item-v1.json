@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "PreviewPolicy": {
+      "enum": [
+        "none",
+        "generic_private"
+      ],
+      "title": "PreviewPolicy",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Read projection for native clients; policy and delivery stay Core-owned.",
+  "properties": {
+    "assistant_event_id": {
+      "format": "uuid",
+      "title": "Assistant Event Id",
+      "type": "string"
+    },
+    "content_text": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Text"
+    },
+    "delivery_attempt_id": {
+      "format": "uuid",
+      "title": "Delivery Attempt Id",
+      "type": "string"
+    },
+    "external_delivery_authorized": {
+      "const": false,
+      "default": false,
+      "title": "External Delivery Authorized",
+      "type": "boolean"
+    },
+    "inbox_message_id": {
+      "format": "uuid",
+      "title": "Inbox Message Id",
+      "type": "string"
+    },
+    "preview_policy": {
+      "$ref": "#/$defs/PreviewPolicy"
+    },
+    "preview_text": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Preview Text"
+    },
+    "privacy_class": {
+      "enum": [
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "Privacy Class",
+      "type": "string"
+    },
+    "proposal_id": {
+      "format": "uuid",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "simulation_only": {
+      "const": true,
+      "default": true,
+      "title": "Simulation Only",
+      "type": "boolean"
+    },
+    "visible_at": {
+      "format": "date-time",
+      "title": "Visible At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "inbox_message_id",
+    "proposal_id",
+    "delivery_attempt_id",
+    "assistant_event_id",
+    "preview_policy",
+    "privacy_class",
+    "visible_at"
+  ],
+  "title": "ProactiveInboxItem",
+  "type": "object"
+}

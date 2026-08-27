@@ -1,0 +1,135 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "format": "uuid",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "action_type": {
+      "enum": [
+        "responded",
+        "dismissed",
+        "snoozed",
+        "non_response",
+        "stopped"
+      ],
+      "title": "Action Type",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "deduplication_key": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Deduplication Key",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "inbox_message_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Inbox Message Id"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "proposal_id": {
+      "format": "uuid",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "response_event_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Response Event Id"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "simulation_only": {
+      "const": true,
+      "default": true,
+      "title": "Simulation Only",
+      "type": "boolean"
+    },
+    "snooze_until": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Snooze Until"
+    },
+    "subject_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Subject Refs",
+      "type": "array"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "proposal_id",
+    "idempotency_key",
+    "action_type",
+    "deduplication_key",
+    "reason",
+    "observed_at",
+    "trace_id"
+  ],
+  "title": "ProactiveOwnerAction",
+  "type": "object"
+}

@@ -1,0 +1,38 @@
+{
+  "content_hash": "sha256:833df755c35b2ebaebeaac431f374a46273398661bdc5dfa4ceb0a8fca5075f4",
+  "schema_version": 1,
+  "manifest_id": "stage1-deterministic-compatibility-baseline-v1",
+  "provider_id": "deterministic-local",
+  "provider_class": "local_test",
+  "execution_environment": "local",
+  "model_version_id": "deterministic-companion-v1",
+  "adapter_version_id": "deterministic-adapter-v1",
+  "provider_adapter_version_id": "deterministic-provider-adapter-v1",
+  "model_artifact_hash": null,
+  "model_artifact_hash_unavailable_reason": "fixed-response test double has no learned weight artifact",
+  "tokenizer_version_id": "utf8-bytes-div4-v1",
+  "serving_config_version": "deterministic-serving-v1",
+  "serving_engine": "deterministic-python",
+  "serving_engine_version": "deterministic-python-v1",
+  "upstream_model_id": "havre/deterministic-local-test-double",
+  "upstream_revision": "sha256:8780e3b94ca5b740f029ecd37c475c096af1e2a5f1461359e4a2892976233187",
+  "architecture_family": "fixed-response-test-double",
+  "parameter_count": null,
+  "parameter_count_unavailable_reason": "fixed-response test double has no learned parameters",
+  "weights_format": "none",
+  "precision": "not-applicable",
+  "quantization": null,
+  "context_limit": 32768,
+  "max_output_tokens": 4096,
+  "license_identifier": "project-internal-test-fixture",
+  "license_notes": "Non-production behavioral compatibility baseline only.",
+  "code_revision": "sha256:8780e3b94ca5b740f029ecd37c475c096af1e2a5f1461359e4a2892976233187",
+  "artifacts": [
+    {
+      "artifact_kind": "provider_source",
+      "artifact_uri": "repo:mlsys/serving/deterministic.py",
+      "content_hash": "sha256:7a2d719285a46d03510286747267724b689fe9d6212a1f2fec004d996fd532db"
+    }
+  ],
+  "created_at": "2026-08-13T11:34:33.583577Z"
+}

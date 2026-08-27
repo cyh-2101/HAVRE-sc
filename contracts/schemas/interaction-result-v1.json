@@ -1,0 +1,247 @@
+{
+  "$defs": {
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Adapter Version Id"
+    },
+    "assistant_event_id": {
+      "format": "uuid",
+      "title": "Assistant Event Id",
+      "type": "string"
+    },
+    "cloud_eligible": {
+      "title": "Cloud Eligible",
+      "type": "boolean"
+    },
+    "content": {
+      "title": "Content",
+      "type": "string"
+    },
+    "context_pack_id": {
+      "format": "uuid",
+      "title": "Context Pack Id",
+      "type": "string"
+    },
+    "effective_privacy_class": {
+      "$ref": "#/$defs/PrivacyClass"
+    },
+    "estimated_context_tokens": {
+      "title": "Estimated Context Tokens",
+      "type": "integer"
+    },
+    "idempotent_replay": {
+      "title": "Idempotent Replay",
+      "type": "boolean"
+    },
+    "inference_generation_ms": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Inference Generation Ms"
+    },
+    "inference_response_id": {
+      "format": "uuid",
+      "title": "Inference Response Id",
+      "type": "string"
+    },
+    "inference_total_ms": {
+      "title": "Inference Total Ms",
+      "type": "number"
+    },
+    "inference_ttft_ms": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Inference Ttft Ms"
+    },
+    "model_artifact_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Model Artifact Hash"
+    },
+    "model_version_id": {
+      "title": "Model Version Id",
+      "type": "string"
+    },
+    "output_tokens": {
+      "title": "Output Tokens",
+      "type": "integer"
+    },
+    "prompt_tokens": {
+      "title": "Prompt Tokens",
+      "type": "integer"
+    },
+    "provider_adapter_version_id": {
+      "title": "Provider Adapter Version Id",
+      "type": "string"
+    },
+    "provider_class": {
+      "title": "Provider Class",
+      "type": "string"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "retrieval_result_id": {
+      "format": "uuid",
+      "title": "Retrieval Result Id",
+      "type": "string"
+    },
+    "route_decision_id": {
+      "format": "uuid",
+      "title": "Route Decision Id",
+      "type": "string"
+    },
+    "runtime_attestation_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Runtime Attestation Hash"
+    },
+    "runtime_attestation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Runtime Attestation Id"
+    },
+    "serving_config_version": {
+      "title": "Serving Config Version",
+      "type": "string"
+    },
+    "serving_engine": {
+      "title": "Serving Engine",
+      "type": "string"
+    },
+    "serving_engine_version": {
+      "title": "Serving Engine Version",
+      "type": "string"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "token_count_source": {
+      "title": "Token Count Source",
+      "type": "string"
+    },
+    "tokenizer_version_id": {
+      "title": "Tokenizer Version Id",
+      "type": "string"
+    },
+    "total_tokens": {
+      "title": "Total Tokens",
+      "type": "integer"
+    },
+    "trace_id": {
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "traceparent": {
+      "title": "Traceparent",
+      "type": "string"
+    },
+    "training_eligible": {
+      "const": false,
+      "title": "Training Eligible",
+      "type": "boolean"
+    },
+    "user_event_id": {
+      "format": "uuid",
+      "title": "User Event Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "trace_id",
+    "traceparent",
+    "session_id",
+    "user_event_id",
+    "assistant_event_id",
+    "context_pack_id",
+    "retrieval_result_id",
+    "inference_response_id",
+    "route_decision_id",
+    "content",
+    "provider_id",
+    "provider_class",
+    "model_version_id",
+    "adapter_version_id",
+    "provider_adapter_version_id",
+    "serving_engine",
+    "serving_engine_version",
+    "model_artifact_hash",
+    "runtime_attestation_id",
+    "runtime_attestation_hash",
+    "tokenizer_version_id",
+    "serving_config_version",
+    "prompt_tokens",
+    "output_tokens",
+    "total_tokens",
+    "token_count_source",
+    "inference_total_ms",
+    "inference_ttft_ms",
+    "inference_generation_ms",
+    "estimated_context_tokens",
+    "effective_privacy_class",
+    "cloud_eligible",
+    "training_eligible",
+    "idempotent_replay"
+  ],
+  "title": "InteractionResult",
+  "type": "object"
+}

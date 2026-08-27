@@ -1,0 +1,58 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifact Hash",
+      "type": "string"
+    },
+    "component": {
+      "enum": [
+        "companion_core",
+        "database_schema",
+        "provider",
+        "foundation_model",
+        "adapter",
+        "tokenizer",
+        "serving_engine",
+        "deployment_image",
+        "database_image",
+        "proxy_image",
+        "operations_image",
+        "web",
+        "worker"
+      ],
+      "title": "Component",
+      "type": "string"
+    },
+    "lifecycle_status": {
+      "enum": [
+        "approved",
+        "candidate_fixture",
+        "not_applicable"
+      ],
+      "title": "Lifecycle Status",
+      "type": "string"
+    },
+    "replaceable": {
+      "const": true,
+      "default": true,
+      "title": "Replaceable",
+      "type": "boolean"
+    },
+    "version": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "component",
+    "version",
+    "artifact_hash",
+    "lifecycle_status"
+  ],
+  "title": "ComponentReference",
+  "type": "object"
+}

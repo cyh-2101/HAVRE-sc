@@ -1,0 +1,114 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "agreement_count": {
+      "minimum": 0,
+      "title": "Agreement Count",
+      "type": "integer"
+    },
+    "agreement_rate": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Agreement Rate",
+      "type": "number"
+    },
+    "calibration_id": {
+      "format": "uuid",
+      "title": "Calibration Id",
+      "type": "string"
+    },
+    "calibration_set_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Calibration Set Hash",
+      "type": "string"
+    },
+    "calibration_set_id": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Calibration Set Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "critical_clearance_authority": {
+      "const": false,
+      "default": false,
+      "title": "Critical Clearance Authority",
+      "type": "boolean"
+    },
+    "disagreement_case_ids": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Disagreement Case Ids",
+      "type": "array"
+    },
+    "human_label_count": {
+      "minimum": 1,
+      "title": "Human Label Count",
+      "type": "integer"
+    },
+    "judge_id": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Judge Id",
+      "type": "string"
+    },
+    "judge_kind": {
+      "enum": [
+        "deterministic_fixture",
+        "model"
+      ],
+      "title": "Judge Kind",
+      "type": "string"
+    },
+    "judge_version": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Judge Version",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "calibration_set_id",
+    "calibration_set_hash",
+    "judge_id",
+    "judge_version",
+    "judge_kind",
+    "human_label_count",
+    "agreement_count",
+    "agreement_rate",
+    "limitations"
+  ],
+  "title": "JudgeCalibrationReport",
+  "type": "object"
+}

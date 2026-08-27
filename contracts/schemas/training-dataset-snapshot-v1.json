@@ -1,0 +1,243 @@
+{
+  "$defs": {
+    "CanonicalTrainingExample": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "behavioral",
+            "safety",
+            "general_capability",
+            "over_agreement"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "contains_user_data": {
+          "const": false,
+          "default": false,
+          "title": "Contains User Data",
+          "type": "boolean"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "example_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{2,79}$",
+          "title": "Example Id",
+          "type": "string"
+        },
+        "expected_text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Expected Text",
+          "type": "string"
+        },
+        "input_text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Input Text",
+          "type": "string"
+        },
+        "license_id": {
+          "const": "CC0-1.0",
+          "default": "CC0-1.0",
+          "title": "License Id",
+          "type": "string"
+        },
+        "memory_hint": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory Hint"
+        },
+        "privacy_class": {
+          "const": "PUBLIC",
+          "default": "PUBLIC",
+          "title": "Privacy Class",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_kind": {
+          "enum": [
+            "synthetic_fixture",
+            "public_fixture"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "source_ref": {
+          "pattern": "^fixture://stage9/[a-z0-9/_-]+$",
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "training_eligible": {
+          "const": true,
+          "default": true,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "example_id",
+        "source_kind",
+        "source_ref",
+        "category",
+        "input_text",
+        "expected_text",
+        "split"
+      ],
+      "title": "CanonicalTrainingExample",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "builder_version": {
+      "const": "stage9-canonical-fixture-builder-v2",
+      "default": "stage9-canonical-fixture-builder-v2",
+      "title": "Builder Version",
+      "type": "string"
+    },
+    "contains_user_data": {
+      "const": false,
+      "default": false,
+      "title": "Contains User Data",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dataset_snapshot_id": {
+      "format": "uuid",
+      "title": "Dataset Snapshot Id",
+      "type": "string"
+    },
+    "examples": {
+      "items": {
+        "$ref": "#/$defs/CanonicalTrainingExample"
+      },
+      "minItems": 4,
+      "title": "Examples",
+      "type": "array"
+    },
+    "excluded_evaluation_holdout_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Excluded Evaluation Holdout Ids",
+      "type": "array"
+    },
+    "excluded_evaluation_holdout_manifest_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Excluded Evaluation Holdout Manifest Hash",
+      "type": "string"
+    },
+    "fixture_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Fixture Content Hash",
+      "type": "string"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "known_limitations": {
+      "default": [
+        "Repository-authored synthetic/public fixtures do not establish personal model quality."
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Limitations",
+      "type": "array"
+    },
+    "local_only_build": {
+      "const": true,
+      "default": true,
+      "title": "Local Only Build",
+      "type": "boolean"
+    },
+    "member_manifest_hash": {
+      "default": "",
+      "title": "Member Manifest Hash",
+      "type": "string"
+    },
+    "name": {
+      "const": "stage9-synthetic-public-training-v2",
+      "default": "stage9-synthetic-public-training-v2",
+      "title": "Name",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_version": {
+      "const": "2.0.0",
+      "default": "2.0.0",
+      "title": "Semantic Version",
+      "type": "string"
+    },
+    "split_policy_version": {
+      "const": "fixed-train-validation-holdout-exclusion-v2",
+      "default": "fixed-train-validation-holdout-exclusion-v2",
+      "title": "Split Policy Version",
+      "type": "string"
+    },
+    "user_event_source_count": {
+      "const": 0,
+      "default": 0,
+      "title": "User Event Source Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "fixture_content_hash",
+    "examples",
+    "excluded_evaluation_holdout_ids",
+    "excluded_evaluation_holdout_manifest_hash"
+  ],
+  "title": "TrainingDatasetSnapshot",
+  "type": "object"
+}

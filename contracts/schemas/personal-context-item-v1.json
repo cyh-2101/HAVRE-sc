@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "content_text": {
+      "maxLength": 20000,
+      "minLength": 1,
+      "title": "Content Text",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "priority": {
+      "maximum": 99,
+      "minimum": 0,
+      "title": "Priority",
+      "type": "integer"
+    },
+    "section_id": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Section Id",
+      "type": "string"
+    },
+    "section_type": {
+      "enum": [
+        "user_belief",
+        "goal",
+        "current_state",
+        "communication_preference",
+        "episodic_memory"
+      ],
+      "title": "Section Type",
+      "type": "string"
+    },
+    "selector_version": {
+      "const": "stage4-personal-context-selector-v1",
+      "default": "stage4-personal-context-selector-v1",
+      "title": "Selector Version",
+      "type": "string"
+    },
+    "source_refs": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Source Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "owner_id",
+    "section_id",
+    "section_type",
+    "content_text",
+    "priority",
+    "source_refs",
+    "data_policy"
+  ],
+  "title": "PersonalContextItem",
+  "type": "object"
+}

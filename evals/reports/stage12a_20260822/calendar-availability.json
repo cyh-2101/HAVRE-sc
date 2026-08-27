@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "benchmark": "stage12a-calendar-availability-v1",
+  "measured_at": "2026-08-21T23:57:57.457944+00:00",
+  "source_revision": "sha256:7cdb4c14d61ed53c9712e9a3aaa21d7a5bbbaa0a0627ab6464e19f77505c1bc1",
+  "environment": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD"
+  },
+  "workload": {
+    "fixture_kind": "synthetic-owner-supplied-ics",
+    "iterations": 10000,
+    "provider_rows_per_iteration": 3,
+    "real_calendar_content_collected": false,
+    "network_used": false,
+    "oa70_accessed": false
+  },
+  "conformance": {
+    "busy_rows_retained": 1,
+    "free_or_cancelled_rows_discarded": 2,
+    "unsupported_recurrence_rejected": true,
+    "provider_replacement_equivalent": true,
+    "forbidden_content_crossings": [],
+    "canonical_payload_bytes": 150
+  },
+  "diagnostic_latency": {
+    "elapsed_ms": 265.788,
+    "median_per_projection_ms": 0.0263,
+    "max_per_projection_ms": 0.2541
+  },
+  "interpretation": "Synthetic minimization and provider-replacement conformance only. It does not establish owner benefit, real ICS compatibility, calendar density, or permission for richer Calendar persistence.",
+  "passed": true
+}

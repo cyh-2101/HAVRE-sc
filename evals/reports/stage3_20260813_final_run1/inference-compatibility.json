@@ -1,0 +1,776 @@
+{
+  "content_hash": "sha256:d44249588c6598a27a5e2b4670801a01c4ce9f5d46bddc985885f5d2aaf8090b",
+  "schema_version": 1,
+  "compatibility_run_id": "019ffae6-e0bb-7318-b7dc-97f05a58e8f7",
+  "benchmark_run_id": "019ffae6-c8ef-7f63-8a6f-a38eaafc62a3",
+  "report_type": "non_binding_behavioral_compatibility",
+  "binding_evaluation": false,
+  "gate_status": "not_evaluated",
+  "started_at": "2026-08-13T11:34:16.565868Z",
+  "completed_at": "2026-08-13T11:34:22.651602Z",
+  "candidate_manifest_id": "stage3-system-model-qwen3-8b-gguf-q4-k-m-7c41481f-b10405",
+  "candidate_manifest_content_hash": "sha256:2a9cf4365906b2835529dd88062b67e070ff572053f136610241a2236957ba5f",
+  "baseline_manifest_id": "stage1-deterministic-compatibility-baseline-v1",
+  "baseline_manifest_content_hash": "sha256:833df755c35b2ebaebeaac431f374a46273398661bdc5dfa4ceb0a8fca5075f4",
+  "workload_manifest_id": "inference-workload-v1",
+  "workload_content_hash": "sha256:26db3a3b8053d81564980406cda4c086eec4caafaa644d3b672b757dcfe5a49a",
+  "candidate_samples": [
+    {
+      "schema_version": 1,
+      "sample_id": "019ffae6-d597-7454-9860-46b2615aab58",
+      "schedule_id": "compatibility-candidate",
+      "workload_case_id": "reflection-long-v1",
+      "workload_class": "reflection_long",
+      "warmup": false,
+      "attempt_index": 1,
+      "concurrency": 1,
+      "inference_request_id": "019ffae6-c8f8-79be-a6b0-10f87542fcc8",
+      "inference_response_id": "019ffae6-c8f8-79bf-b1b8-5bfb7bd2fd9b",
+      "trace_id": "2a40262244adb299502f6d2f9e05f641",
+      "status": "completed",
+      "started_at": "2026-08-13T11:34:16.568466Z",
+      "completed_at": "2026-08-13T11:34:19.799463Z",
+      "ttft_ms": 30.2838,
+      "tpot_ms": 12.542471764705883,
+      "end_to_end_latency_ms": 3230.8535,
+      "generation_interval_ms": 3200.5697,
+      "visible_token_interval_ms": 3198.3303,
+      "attempted_requests_per_second": 0.3095157363216871,
+      "output_tokens_per_second": 79.98576003515875,
+      "prompt_tokens": 1441,
+      "output_tokens": 256,
+      "total_tokens": 1697,
+      "token_count_source": "provider",
+      "stream_event_count": 258,
+      "output_content_hash": "sha256:6d82c022074db89db4d79a1fff3447f6bba3ef60df5a6b2ad51be3595fb05de4",
+      "system_manifest_content_hash": "sha256:2a9cf4365906b2835529dd88062b67e070ff572053f136610241a2236957ba5f",
+      "provider_id": "self-hosted-openai-compatible",
+      "provider_class": "self_hosted",
+      "execution_environment": "local",
+      "provider_request_id": "chatcmpl-hERKpey28tpuU9BFLBHuefTgm2zOhkSF",
+      "model_version_id": "model-qwen3-8b-gguf-q4-k-m-7c41481f",
+      "adapter_version_id": null,
+      "provider_adapter_version_id": "openai-compatible-provider-adapter-v1",
+      "tokenizer_version_id": "Qwen/Qwen3-8B-GGUF@7c41481f57cb95916b40956ab2f0b139b296d974:embedded-gguf-tokenizer",
+      "serving_config_version": "sha256:5cf87ffb8b2f715cd00400d380739ea4a05993796e692cc6c3bf17dffd92ebce",
+      "serving_engine": "llama.cpp",
+      "serving_engine_version": "b10405@e79e4bf660e19f2ad851e06c6913f7a8c5852621",
+      "model_artifact_hash": "sha256:d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "unavailable_measurements": {},
+      "resources": {
+        "observed_at": "2026-08-13T11:34:19.799463Z",
+        "cpu_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "ram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "gpu_utilization_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_peak_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        }
+      },
+      "error": null
+    },
+    {
+      "schema_version": 1,
+      "sample_id": "019ffae6-d61c-718c-a841-1ab13bf151f7",
+      "schedule_id": "compatibility-candidate",
+      "workload_case_id": "scene-short-v1",
+      "workload_class": "scene_short",
+      "warmup": false,
+      "attempt_index": 1,
+      "concurrency": 1,
+      "inference_request_id": "019ffae6-d597-7458-bbaf-4a5d80f2bf11",
+      "inference_response_id": "019ffae6-d597-7459-bec7-3f891722fe61",
+      "trace_id": "962a0b080c21d04a6d626bc9f589453f",
+      "status": "completed",
+      "started_at": "2026-08-13T11:34:19.799463Z",
+      "completed_at": "2026-08-13T11:34:19.932822Z",
+      "ttft_ms": 28.9714,
+      "tpot_ms": 10.151311111111111,
+      "end_to_end_latency_ms": 133.5976,
+      "generation_interval_ms": 104.6262,
+      "visible_token_interval_ms": 91.3618,
+      "attempted_requests_per_second": 7.485164404150972,
+      "output_tokens_per_second": 95.57835417897238,
+      "prompt_tokens": 52,
+      "output_tokens": 10,
+      "total_tokens": 62,
+      "token_count_source": "provider",
+      "stream_event_count": 11,
+      "output_content_hash": "sha256:9c551002a49f28812b263bd0978244b7409a65fe1b1d1545c0ff9e4a979a7769",
+      "system_manifest_content_hash": "sha256:2a9cf4365906b2835529dd88062b67e070ff572053f136610241a2236957ba5f",
+      "provider_id": "self-hosted-openai-compatible",
+      "provider_class": "self_hosted",
+      "execution_environment": "local",
+      "provider_request_id": "chatcmpl-DpJGQCxHf9aBqbJIEIyB44cnsO0hkKA4",
+      "model_version_id": "model-qwen3-8b-gguf-q4-k-m-7c41481f",
+      "adapter_version_id": null,
+      "provider_adapter_version_id": "openai-compatible-provider-adapter-v1",
+      "tokenizer_version_id": "Qwen/Qwen3-8B-GGUF@7c41481f57cb95916b40956ab2f0b139b296d974:embedded-gguf-tokenizer",
+      "serving_config_version": "sha256:5cf87ffb8b2f715cd00400d380739ea4a05993796e692cc6c3bf17dffd92ebce",
+      "serving_engine": "llama.cpp",
+      "serving_engine_version": "b10405@e79e4bf660e19f2ad851e06c6913f7a8c5852621",
+      "model_artifact_hash": "sha256:d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "unavailable_measurements": {},
+      "resources": {
+        "observed_at": "2026-08-13T11:34:19.932822Z",
+        "cpu_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "ram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "gpu_utilization_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_peak_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        }
+      },
+      "error": null
+    },
+    {
+      "schema_version": 1,
+      "sample_id": "019ffae6-dc25-7f03-ae27-6ed4dea01e0a",
+      "schedule_id": "compatibility-candidate",
+      "workload_case_id": "chat-standard-v1",
+      "workload_class": "chat_standard",
+      "warmup": false,
+      "attempt_index": 1,
+      "concurrency": 1,
+      "inference_request_id": "019ffae6-d61c-7190-b85d-0cf0bb6cfe6c",
+      "inference_response_id": "019ffae6-d61c-7191-8dfe-93282fa5ae18",
+      "trace_id": "4676070a1fff851e9f2320085ad0c118",
+      "status": "completed",
+      "started_at": "2026-08-13T11:34:19.932822Z",
+      "completed_at": "2026-08-13T11:34:21.477186Z",
+      "ttft_ms": 34.4893,
+      "tpot_ms": 11.869363779527559,
+      "end_to_end_latency_ms": 1543.8594,
+      "generation_interval_ms": 1509.3701,
+      "visible_token_interval_ms": 1507.4092,
+      "attempted_requests_per_second": 0.6477273772469176,
+      "output_tokens_per_second": 84.80358793380098,
+      "prompt_tokens": 61,
+      "output_tokens": 128,
+      "total_tokens": 189,
+      "token_count_source": "provider",
+      "stream_event_count": 130,
+      "output_content_hash": "sha256:6c083443e452dcdb82618f84c46cc8ede37fe249e515d9c805cf69cfa8c9a010",
+      "system_manifest_content_hash": "sha256:2a9cf4365906b2835529dd88062b67e070ff572053f136610241a2236957ba5f",
+      "provider_id": "self-hosted-openai-compatible",
+      "provider_class": "self_hosted",
+      "execution_environment": "local",
+      "provider_request_id": "chatcmpl-8WQuFVbmgOp37PYMEpnbxnqnaIQyLhEj",
+      "model_version_id": "model-qwen3-8b-gguf-q4-k-m-7c41481f",
+      "adapter_version_id": null,
+      "provider_adapter_version_id": "openai-compatible-provider-adapter-v1",
+      "tokenizer_version_id": "Qwen/Qwen3-8B-GGUF@7c41481f57cb95916b40956ab2f0b139b296d974:embedded-gguf-tokenizer",
+      "serving_config_version": "sha256:5cf87ffb8b2f715cd00400d380739ea4a05993796e692cc6c3bf17dffd92ebce",
+      "serving_engine": "llama.cpp",
+      "serving_engine_version": "b10405@e79e4bf660e19f2ad851e06c6913f7a8c5852621",
+      "model_artifact_hash": "sha256:d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "unavailable_measurements": {},
+      "resources": {
+        "observed_at": "2026-08-13T11:34:21.477186Z",
+        "cpu_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "ram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "gpu_utilization_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_peak_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        }
+      },
+      "error": null
+    },
+    {
+      "schema_version": 1,
+      "sample_id": "019ffae6-e0ba-7b2e-b65d-e13618bb9b06",
+      "schedule_id": "compatibility-candidate",
+      "workload_case_id": "extraction-structured-v1",
+      "workload_class": "extraction_structured",
+      "warmup": false,
+      "attempt_index": 1,
+      "concurrency": 1,
+      "inference_request_id": "019ffae6-dc25-7f07-baaa-07e2282cd6f1",
+      "inference_response_id": "019ffae6-dc25-7f08-b0de-c082614cad9b",
+      "trace_id": "9be8f038e56965c980fde596cdf4b369",
+      "status": "completed",
+      "started_at": "2026-08-13T11:34:21.477186Z",
+      "completed_at": "2026-08-13T11:34:22.650603Z",
+      "ttft_ms": 42.3734,
+      "tpot_ms": 11.882633684210527,
+      "end_to_end_latency_ms": 1173.4398,
+      "generation_interval_ms": 1131.0664,
+      "visible_token_interval_ms": 1128.8502,
+      "attempted_requests_per_second": 0.8521954002241955,
+      "output_tokens_per_second": 84.87565363094511,
+      "prompt_tokens": 80,
+      "output_tokens": 96,
+      "total_tokens": 176,
+      "token_count_source": "provider",
+      "stream_event_count": 98,
+      "output_content_hash": "sha256:047a23bf43600df5340213e001ee9d76e7ec1cfc6069c8e361ef3cfcc1f7d3f6",
+      "system_manifest_content_hash": "sha256:2a9cf4365906b2835529dd88062b67e070ff572053f136610241a2236957ba5f",
+      "provider_id": "self-hosted-openai-compatible",
+      "provider_class": "self_hosted",
+      "execution_environment": "local",
+      "provider_request_id": "chatcmpl-KiIXLyPxFlZVFTTm8uFp11cUYVFlMELl",
+      "model_version_id": "model-qwen3-8b-gguf-q4-k-m-7c41481f",
+      "adapter_version_id": null,
+      "provider_adapter_version_id": "openai-compatible-provider-adapter-v1",
+      "tokenizer_version_id": "Qwen/Qwen3-8B-GGUF@7c41481f57cb95916b40956ab2f0b139b296d974:embedded-gguf-tokenizer",
+      "serving_config_version": "sha256:5cf87ffb8b2f715cd00400d380739ea4a05993796e692cc6c3bf17dffd92ebce",
+      "serving_engine": "llama.cpp",
+      "serving_engine_version": "b10405@e79e4bf660e19f2ad851e06c6913f7a8c5852621",
+      "model_artifact_hash": "sha256:d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "unavailable_measurements": {},
+      "resources": {
+        "observed_at": "2026-08-13T11:34:22.650603Z",
+        "cpu_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "ram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "gpu_utilization_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_peak_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        }
+      },
+      "error": null
+    }
+  ],
+  "baseline_samples": [
+    {
+      "schema_version": 1,
+      "sample_id": "019ffae6-c8f7-77d0-ba8e-02ec3d05b023",
+      "schedule_id": "compatibility-baseline",
+      "workload_case_id": "scene-short-v1",
+      "workload_class": "scene_short",
+      "warmup": false,
+      "attempt_index": 1,
+      "concurrency": 1,
+      "inference_request_id": "019ffae6-c8f7-77cd-8bb7-11ffd3bd1e9e",
+      "inference_response_id": "019ffae6-c8f7-77cf-b9b2-5d12c1a92f84",
+      "trace_id": "0828a913806494fe5a0d5380aea8c424",
+      "status": "completed",
+      "started_at": "2026-08-13T11:34:16.567923Z",
+      "completed_at": "2026-08-13T11:34:16.567923Z",
+      "ttft_ms": 0.0837,
+      "tpot_ms": null,
+      "end_to_end_latency_ms": 0.0985,
+      "generation_interval_ms": 0.0148,
+      "visible_token_interval_ms": 0.0,
+      "attempted_requests_per_second": 10152.284263959391,
+      "output_tokens_per_second": 2432432.432432432,
+      "prompt_tokens": 42,
+      "output_tokens": 36,
+      "total_tokens": 78,
+      "token_count_source": "estimator",
+      "stream_event_count": 3,
+      "output_content_hash": "sha256:04e898e6f4712c2aa5c6a0c2d5eafe1d9ebdce264c4226500ceb7e9162ae69e0",
+      "system_manifest_content_hash": "sha256:833df755c35b2ebaebeaac431f374a46273398661bdc5dfa4ceb0a8fca5075f4",
+      "provider_id": "deterministic-local",
+      "provider_class": "local_test",
+      "execution_environment": "local",
+      "provider_request_id": "019ffae6-c8f7-77ce-ba17-241b2eaecc90",
+      "model_version_id": "deterministic-companion-v1",
+      "adapter_version_id": "deterministic-adapter-v1",
+      "provider_adapter_version_id": "deterministic-provider-adapter-v1",
+      "tokenizer_version_id": "utf8-bytes-div4-v1",
+      "serving_config_version": "deterministic-serving-v1",
+      "serving_engine": "deterministic-python",
+      "serving_engine_version": "deterministic-python-v1",
+      "model_artifact_hash": null,
+      "unavailable_measurements": {
+        "tpot_ms": "no_positive_visible_generation_interval"
+      },
+      "resources": {
+        "observed_at": "2026-08-13T11:34:16.567923Z",
+        "cpu_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "ram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "gpu_utilization_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_peak_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        }
+      },
+      "error": null
+    },
+    {
+      "schema_version": 1,
+      "sample_id": "019ffae6-c8f7-77d7-b7c8-de7ea6cd99c7",
+      "schedule_id": "compatibility-baseline",
+      "workload_case_id": "chat-standard-v1",
+      "workload_class": "chat_standard",
+      "warmup": false,
+      "attempt_index": 1,
+      "concurrency": 1,
+      "inference_request_id": "019ffae6-c8f7-77d4-b3ce-b1a78eb13e0b",
+      "inference_response_id": "019ffae6-c8f7-77d6-bc16-86973d493580",
+      "trace_id": "f40c3bb6be32eb5ce8fff79483d86925",
+      "status": "completed",
+      "started_at": "2026-08-13T11:34:16.567923Z",
+      "completed_at": "2026-08-13T11:34:16.567923Z",
+      "ttft_ms": 0.0654,
+      "tpot_ms": null,
+      "end_to_end_latency_ms": 0.0768,
+      "generation_interval_ms": 0.0114,
+      "visible_token_interval_ms": 0.0,
+      "attempted_requests_per_second": 13020.833333333334,
+      "output_tokens_per_second": 3157894.736842105,
+      "prompt_tokens": 52,
+      "output_tokens": 36,
+      "total_tokens": 88,
+      "token_count_source": "estimator",
+      "stream_event_count": 3,
+      "output_content_hash": "sha256:04e898e6f4712c2aa5c6a0c2d5eafe1d9ebdce264c4226500ceb7e9162ae69e0",
+      "system_manifest_content_hash": "sha256:833df755c35b2ebaebeaac431f374a46273398661bdc5dfa4ceb0a8fca5075f4",
+      "provider_id": "deterministic-local",
+      "provider_class": "local_test",
+      "execution_environment": "local",
+      "provider_request_id": "019ffae6-c8f7-77d5-a0f3-e7ce4656a207",
+      "model_version_id": "deterministic-companion-v1",
+      "adapter_version_id": "deterministic-adapter-v1",
+      "provider_adapter_version_id": "deterministic-provider-adapter-v1",
+      "tokenizer_version_id": "utf8-bytes-div4-v1",
+      "serving_config_version": "deterministic-serving-v1",
+      "serving_engine": "deterministic-python",
+      "serving_engine_version": "deterministic-python-v1",
+      "model_artifact_hash": null,
+      "unavailable_measurements": {
+        "tpot_ms": "no_positive_visible_generation_interval"
+      },
+      "resources": {
+        "observed_at": "2026-08-13T11:34:16.567923Z",
+        "cpu_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "ram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "gpu_utilization_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_peak_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        }
+      },
+      "error": null
+    },
+    {
+      "schema_version": 1,
+      "sample_id": "019ffae6-c8f5-7e34-8726-c6f0f91187cc",
+      "schedule_id": "compatibility-baseline",
+      "workload_case_id": "reflection-long-v1",
+      "workload_class": "reflection_long",
+      "warmup": false,
+      "attempt_index": 1,
+      "concurrency": 1,
+      "inference_request_id": "019ffae6-c8f5-7e31-960f-debe4538186c",
+      "inference_response_id": "019ffae6-c8f5-7e33-aed3-4e1c5c0211be",
+      "trace_id": "1a587170478590e67931e45a33afeb07",
+      "status": "completed",
+      "started_at": "2026-08-13T11:34:16.565868Z",
+      "completed_at": "2026-08-13T11:34:16.565868Z",
+      "ttft_ms": 0.1518,
+      "tpot_ms": null,
+      "end_to_end_latency_ms": 0.1697,
+      "generation_interval_ms": 0.0179,
+      "visible_token_interval_ms": 0.0,
+      "attempted_requests_per_second": 5892.751915144373,
+      "output_tokens_per_second": 2011173.184357542,
+      "prompt_tokens": 1978,
+      "output_tokens": 36,
+      "total_tokens": 2014,
+      "token_count_source": "estimator",
+      "stream_event_count": 3,
+      "output_content_hash": "sha256:04e898e6f4712c2aa5c6a0c2d5eafe1d9ebdce264c4226500ceb7e9162ae69e0",
+      "system_manifest_content_hash": "sha256:833df755c35b2ebaebeaac431f374a46273398661bdc5dfa4ceb0a8fca5075f4",
+      "provider_id": "deterministic-local",
+      "provider_class": "local_test",
+      "execution_environment": "local",
+      "provider_request_id": "019ffae6-c8f5-7e32-8431-9bd871ce78e4",
+      "model_version_id": "deterministic-companion-v1",
+      "adapter_version_id": "deterministic-adapter-v1",
+      "provider_adapter_version_id": "deterministic-provider-adapter-v1",
+      "tokenizer_version_id": "utf8-bytes-div4-v1",
+      "serving_config_version": "deterministic-serving-v1",
+      "serving_engine": "deterministic-python",
+      "serving_engine_version": "deterministic-python-v1",
+      "model_artifact_hash": null,
+      "unavailable_measurements": {
+        "tpot_ms": "no_positive_visible_generation_interval"
+      },
+      "resources": {
+        "observed_at": "2026-08-13T11:34:16.565868Z",
+        "cpu_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "ram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "gpu_utilization_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_peak_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        }
+      },
+      "error": null
+    },
+    {
+      "schema_version": 1,
+      "sample_id": "019ffae6-c8f8-79ba-aec3-de4e2de69d67",
+      "schedule_id": "compatibility-baseline",
+      "workload_case_id": "extraction-structured-v1",
+      "workload_class": "extraction_structured",
+      "warmup": false,
+      "attempt_index": 1,
+      "concurrency": 1,
+      "inference_request_id": "019ffae6-c8f7-77db-a614-74886fd57894",
+      "inference_response_id": "019ffae6-c8f7-77dd-af05-9c770ad4ed2e",
+      "trace_id": "5bb215d785a5009b460a7466b4fefb99",
+      "status": "completed",
+      "started_at": "2026-08-13T11:34:16.567923Z",
+      "completed_at": "2026-08-13T11:34:16.568466Z",
+      "ttft_ms": 0.0685,
+      "tpot_ms": null,
+      "end_to_end_latency_ms": 0.0814,
+      "generation_interval_ms": 0.0129,
+      "visible_token_interval_ms": 0.0,
+      "attempted_requests_per_second": 12285.012285012284,
+      "output_tokens_per_second": 2790697.6744186045,
+      "prompt_tokens": 67,
+      "output_tokens": 36,
+      "total_tokens": 103,
+      "token_count_source": "estimator",
+      "stream_event_count": 3,
+      "output_content_hash": "sha256:04e898e6f4712c2aa5c6a0c2d5eafe1d9ebdce264c4226500ceb7e9162ae69e0",
+      "system_manifest_content_hash": "sha256:833df755c35b2ebaebeaac431f374a46273398661bdc5dfa4ceb0a8fca5075f4",
+      "provider_id": "deterministic-local",
+      "provider_class": "local_test",
+      "execution_environment": "local",
+      "provider_request_id": "019ffae6-c8f7-77dc-9534-c8ed1d1d0c40",
+      "model_version_id": "deterministic-companion-v1",
+      "adapter_version_id": "deterministic-adapter-v1",
+      "provider_adapter_version_id": "deterministic-provider-adapter-v1",
+      "tokenizer_version_id": "utf8-bytes-div4-v1",
+      "serving_config_version": "deterministic-serving-v1",
+      "serving_engine": "deterministic-python",
+      "serving_engine_version": "deterministic-python-v1",
+      "model_artifact_hash": null,
+      "unavailable_measurements": {
+        "tpot_ms": "no_positive_visible_generation_interval"
+      },
+      "resources": {
+        "observed_at": "2026-08-13T11:34:16.568466Z",
+        "cpu_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "ram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "gpu_utilization_percent": {
+          "value": null,
+          "unit": "percent",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        },
+        "vram_peak_used_bytes": {
+          "value": null,
+          "unit": "bytes",
+          "source": null,
+          "unavailable_reason": "no_reliable_resource_collector_configured"
+        }
+      },
+      "error": null
+    }
+  ],
+  "case_results": [
+    {
+      "workload_case_id": "scene-short-v1",
+      "workload_class": "scene_short",
+      "candidate_status": "completed",
+      "baseline_status": "completed",
+      "candidate_output_content_hash": "sha256:9c551002a49f28812b263bd0978244b7409a65fe1b1d1545c0ff9e4a979a7769",
+      "baseline_output_content_hash": "sha256:04e898e6f4712c2aa5c6a0c2d5eafe1d9ebdce264c4226500ceb7e9162ae69e0",
+      "observations": [
+        {
+          "observation": "nonempty_output",
+          "candidate_value": true,
+          "baseline_value": true,
+          "note": "Descriptive protocol observation; not a quality gate."
+        },
+        {
+          "observation": "output_character_count",
+          "candidate_value": 42,
+          "baseline_value": 138,
+          "note": "Length comparison has no preferred direction or threshold."
+        },
+        {
+          "observation": "output_token_count",
+          "candidate_value": 10,
+          "baseline_value": 36,
+          "note": "Provider-reported or explicitly identified estimator token count."
+        }
+      ]
+    },
+    {
+      "workload_case_id": "chat-standard-v1",
+      "workload_class": "chat_standard",
+      "candidate_status": "completed",
+      "baseline_status": "completed",
+      "candidate_output_content_hash": "sha256:6c083443e452dcdb82618f84c46cc8ede37fe249e515d9c805cf69cfa8c9a010",
+      "baseline_output_content_hash": "sha256:04e898e6f4712c2aa5c6a0c2d5eafe1d9ebdce264c4226500ceb7e9162ae69e0",
+      "observations": [
+        {
+          "observation": "nonempty_output",
+          "candidate_value": true,
+          "baseline_value": true,
+          "note": "Descriptive protocol observation; not a quality gate."
+        },
+        {
+          "observation": "output_character_count",
+          "candidate_value": 485,
+          "baseline_value": 138,
+          "note": "Length comparison has no preferred direction or threshold."
+        },
+        {
+          "observation": "output_token_count",
+          "candidate_value": 128,
+          "baseline_value": 36,
+          "note": "Provider-reported or explicitly identified estimator token count."
+        }
+      ]
+    },
+    {
+      "workload_case_id": "reflection-long-v1",
+      "workload_class": "reflection_long",
+      "candidate_status": "completed",
+      "baseline_status": "completed",
+      "candidate_output_content_hash": "sha256:6d82c022074db89db4d79a1fff3447f6bba3ef60df5a6b2ad51be3595fb05de4",
+      "baseline_output_content_hash": "sha256:04e898e6f4712c2aa5c6a0c2d5eafe1d9ebdce264c4226500ceb7e9162ae69e0",
+      "observations": [
+        {
+          "observation": "nonempty_output",
+          "candidate_value": true,
+          "baseline_value": true,
+          "note": "Descriptive protocol observation; not a quality gate."
+        },
+        {
+          "observation": "output_character_count",
+          "candidate_value": 1396,
+          "baseline_value": 138,
+          "note": "Length comparison has no preferred direction or threshold."
+        },
+        {
+          "observation": "output_token_count",
+          "candidate_value": 256,
+          "baseline_value": 36,
+          "note": "Provider-reported or explicitly identified estimator token count."
+        },
+        {
+          "observation": "json_object_parseable",
+          "candidate_value": false,
+          "baseline_value": false,
+          "note": "Schema-free compatibility observation; no extraction feature is activated."
+        }
+      ]
+    },
+    {
+      "workload_case_id": "extraction-structured-v1",
+      "workload_class": "extraction_structured",
+      "candidate_status": "completed",
+      "baseline_status": "completed",
+      "candidate_output_content_hash": "sha256:047a23bf43600df5340213e001ee9d76e7ec1cfc6069c8e361ef3cfcc1f7d3f6",
+      "baseline_output_content_hash": "sha256:04e898e6f4712c2aa5c6a0c2d5eafe1d9ebdce264c4226500ceb7e9162ae69e0",
+      "observations": [
+        {
+          "observation": "nonempty_output",
+          "candidate_value": true,
+          "baseline_value": true,
+          "note": "Descriptive protocol observation; not a quality gate."
+        },
+        {
+          "observation": "output_character_count",
+          "candidate_value": 436,
+          "baseline_value": 138,
+          "note": "Length comparison has no preferred direction or threshold."
+        },
+        {
+          "observation": "output_token_count",
+          "candidate_value": 96,
+          "baseline_value": 36,
+          "note": "Provider-reported or explicitly identified estimator token count."
+        },
+        {
+          "observation": "json_object_parseable",
+          "candidate_value": false,
+          "baseline_value": false,
+          "note": "Schema-free compatibility observation; no extraction feature is activated."
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "This report is descriptive and non-binding; it contains no release threshold.",
+    "Synthetic protocol observations are not evidence of real-world benefit.",
+    "Human-approved rubric anchors and critical safety gates remain unresolved."
+  ]
+}

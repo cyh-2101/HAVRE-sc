@@ -1,0 +1,106 @@
+{
+  "additionalProperties": false,
+  "description": "Observed local Stage 6/7 outcomes consumed by the unified runner.",
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "erasure_regeneration_outcomes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Erasure Regeneration Outcomes",
+      "type": "object"
+    },
+    "evidence_source": {
+      "const": "local_postgres_synthetic_stage67",
+      "default": "local_postgres_synthetic_stage67",
+      "title": "Evidence Source",
+      "type": "string"
+    },
+    "external_source_activated": {
+      "const": false,
+      "default": false,
+      "title": "External Source Activated",
+      "type": "boolean"
+    },
+    "memory_lifecycle_outcomes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Memory Lifecycle Outcomes",
+      "type": "object"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "privacy_class": {
+      "const": "LOCAL_ONLY",
+      "default": "LOCAL_ONLY",
+      "title": "Privacy Class",
+      "type": "string"
+    },
+    "proactive_outcomes": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "title": "Proactive Outcomes",
+      "type": "object"
+    },
+    "real_delivery_attempted": {
+      "const": false,
+      "default": false,
+      "title": "Real Delivery Attempted",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_health_outcomes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Health Outcomes",
+      "type": "object"
+    },
+    "trace_content_hashes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Trace Content Hashes",
+      "type": "object"
+    },
+    "trace_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Trace Ids",
+      "type": "array"
+    },
+    "training_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Training Eligible",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "owner_id",
+    "memory_lifecycle_outcomes",
+    "erasure_regeneration_outcomes",
+    "source_health_outcomes",
+    "proactive_outcomes",
+    "trace_ids",
+    "trace_content_hashes"
+  ],
+  "title": "Stage8OperationalEvidence",
+  "type": "object"
+}

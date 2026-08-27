@@ -1,0 +1,69 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "fresh_for_seconds": {
+      "maximum": 3600,
+      "minimum": 60,
+      "title": "Fresh For Seconds",
+      "type": "integer"
+    },
+    "idle_threshold_seconds": {
+      "maximum": 3600,
+      "minimum": 60,
+      "title": "Idle Threshold Seconds",
+      "type": "integer"
+    },
+    "max_clock_skew_seconds": {
+      "maximum": 300,
+      "minimum": 0,
+      "title": "Max Clock Skew Seconds",
+      "type": "integer"
+    },
+    "mode": {
+      "const": "bounded_interval",
+      "default": "bounded_interval",
+      "title": "Mode",
+      "type": "string"
+    },
+    "offline_buffer_seconds": {
+      "maximum": 86400,
+      "minimum": 0,
+      "title": "Offline Buffer Seconds",
+      "type": "integer"
+    },
+    "policy_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "sample_interval_seconds": {
+      "maximum": 300,
+      "minimum": 10,
+      "title": "Sample Interval Seconds",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "summary_window_seconds": {
+      "maximum": 3600,
+      "minimum": 60,
+      "title": "Summary Window Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "policy_version",
+    "sample_interval_seconds",
+    "summary_window_seconds",
+    "idle_threshold_seconds",
+    "fresh_for_seconds",
+    "max_clock_skew_seconds",
+    "offline_buffer_seconds"
+  ],
+  "title": "SamplingPolicy",
+  "type": "object"
+}

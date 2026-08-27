@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "canonical_retention_days": {
+      "maximum": 365,
+      "minimum": 1,
+      "title": "Canonical Retention Days",
+      "type": "integer"
+    },
+    "expiry_action": {
+      "const": "erase_with_provenance_closure",
+      "default": "erase_with_provenance_closure",
+      "title": "Expiry Action",
+      "type": "string"
+    },
+    "normalized_draft_retention_seconds": {
+      "maximum": 86400,
+      "minimum": 0,
+      "title": "Normalized Draft Retention Seconds",
+      "type": "integer"
+    },
+    "policy_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_native_retention_seconds": {
+      "const": 0,
+      "default": 0,
+      "title": "Source Native Retention Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "policy_version",
+    "normalized_draft_retention_seconds",
+    "canonical_retention_days"
+  ],
+  "title": "RetentionPolicy",
+  "type": "object"
+}

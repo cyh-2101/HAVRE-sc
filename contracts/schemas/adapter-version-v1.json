@@ -1,0 +1,129 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "adapter_type": {
+      "enum": [
+        "lora",
+        "qlora"
+      ],
+      "title": "Adapter Type",
+      "type": "string"
+    },
+    "adapter_version_id": {
+      "format": "uuid",
+      "title": "Adapter Version Id",
+      "type": "string"
+    },
+    "alpha": {
+      "const": 4,
+      "default": 4,
+      "title": "Alpha",
+      "type": "integer"
+    },
+    "artifact_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifact Hash",
+      "type": "string"
+    },
+    "artifact_uri": {
+      "pattern": "^local-artifact://stage9/adapters/[a-z0-9/_-]+$",
+      "title": "Artifact Uri",
+      "type": "string"
+    },
+    "base_model_version_id": {
+      "format": "uuid",
+      "title": "Base Model Version Id",
+      "type": "string"
+    },
+    "candidate_only": {
+      "const": true,
+      "default": true,
+      "title": "Candidate Only",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "dataset_snapshot_id": {
+      "format": "uuid",
+      "title": "Dataset Snapshot Id",
+      "type": "string"
+    },
+    "deployed": {
+      "const": false,
+      "default": false,
+      "title": "Deployed",
+      "type": "boolean"
+    },
+    "dropout": {
+      "const": 0.0,
+      "default": 0.0,
+      "title": "Dropout",
+      "type": "number"
+    },
+    "lifecycle_status": {
+      "const": "candidate",
+      "default": "candidate",
+      "title": "Lifecycle Status",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "promotion_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Promotion Authorized",
+      "type": "boolean"
+    },
+    "rank": {
+      "const": 2,
+      "default": 2,
+      "title": "Rank",
+      "type": "integer"
+    },
+    "required_base_artifact_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Required Base Artifact Hash",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "target_modules": {
+      "default": [
+        "synthetic_output_projection"
+      ],
+      "items": {
+        "const": "synthetic_output_projection",
+        "type": "string"
+      },
+      "title": "Target Modules",
+      "type": "array"
+    },
+    "training_run_id": {
+      "format": "uuid",
+      "title": "Training Run Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "adapter_type",
+    "base_model_version_id",
+    "required_base_artifact_hash",
+    "dataset_snapshot_id",
+    "training_run_id",
+    "artifact_uri",
+    "artifact_hash"
+  ],
+  "title": "AdapterVersion",
+  "type": "object"
+}

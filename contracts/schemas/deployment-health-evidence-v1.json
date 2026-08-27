@@ -1,0 +1,70 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Checks",
+      "type": "array"
+    },
+    "environment": {
+      "enum": [
+        "development",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "ready": {
+      "const": true,
+      "title": "Ready",
+      "type": "boolean"
+    },
+    "release_manifest_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Release Manifest Hash",
+      "type": "string"
+    },
+    "runtime_image_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Runtime Image Digest"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_revision": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Source Revision",
+      "type": "string"
+    }
+  },
+  "required": [
+    "release_manifest_hash",
+    "environment",
+    "source_revision",
+    "ready",
+    "checks"
+  ],
+  "title": "DeploymentHealthEvidence",
+  "type": "object"
+}

@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "response_length": {
+      "enum": [
+        "brief",
+        "balanced",
+        "detailed"
+      ],
+      "title": "Response Length",
+      "type": "string"
+    },
+    "revision": {
+      "exclusiveMinimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "revision",
+    "response_length",
+    "reason"
+  ],
+  "title": "CommunicationPreference",
+  "type": "object"
+}

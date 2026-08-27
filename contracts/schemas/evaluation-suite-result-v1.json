@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "EvaluationCaseResult": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Artifact Refs",
+          "type": "array"
+        },
+        "case_id": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Case Id",
+          "type": "string"
+        },
+        "case_result_id": {
+          "format": "uuid",
+          "title": "Case Result Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "critical": {
+          "default": false,
+          "title": "Critical",
+          "type": "boolean"
+        },
+        "domain": {
+          "$ref": "#/$defs/EvidenceDomain"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "metric_values": {
+          "additionalProperties": true,
+          "title": "Metric Values",
+          "type": "object"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "inconclusive",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "trace_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Trace Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "domain",
+        "status",
+        "summary"
+      ],
+      "title": "EvaluationCaseResult",
+      "type": "object"
+    },
+    "EvidenceDomain": {
+      "enum": [
+        "behavioral",
+        "retrieval",
+        "context",
+        "routing",
+        "inference",
+        "proactive",
+        "memory_lifecycle",
+        "erasure_regeneration",
+        "source_health",
+        "regression"
+      ],
+      "title": "EvidenceDomain",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "aggregate_metrics": {
+      "additionalProperties": true,
+      "title": "Aggregate Metrics",
+      "type": "object"
+    },
+    "binding": {
+      "default": false,
+      "title": "Binding",
+      "type": "boolean"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/EvaluationCaseResult"
+      },
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "domain": {
+      "$ref": "#/$defs/EvidenceDomain"
+    },
+    "fixture_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Fixture Hash",
+      "type": "string"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "runner_version": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Runner Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "suite_id": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Suite Id",
+      "type": "string"
+    },
+    "suite_result_id": {
+      "format": "uuid",
+      "title": "Suite Result Id",
+      "type": "string"
+    },
+    "suite_version": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Suite Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "suite_id",
+    "suite_version",
+    "domain",
+    "fixture_hash",
+    "runner_version",
+    "cases"
+  ],
+  "title": "EvaluationSuiteResult",
+  "type": "object"
+}

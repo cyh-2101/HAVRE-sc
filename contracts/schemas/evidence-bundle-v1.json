@@ -1,0 +1,415 @@
+{
+  "$defs": {
+    "EvaluationCaseResult": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Artifact Refs",
+          "type": "array"
+        },
+        "case_id": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Case Id",
+          "type": "string"
+        },
+        "case_result_id": {
+          "format": "uuid",
+          "title": "Case Result Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "critical": {
+          "default": false,
+          "title": "Critical",
+          "type": "boolean"
+        },
+        "domain": {
+          "$ref": "#/$defs/EvidenceDomain"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "metric_values": {
+          "additionalProperties": true,
+          "title": "Metric Values",
+          "type": "object"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "inconclusive",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "trace_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Trace Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "domain",
+        "status",
+        "summary"
+      ],
+      "title": "EvaluationCaseResult",
+      "type": "object"
+    },
+    "EvaluationSuiteResult": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_metrics": {
+          "additionalProperties": true,
+          "title": "Aggregate Metrics",
+          "type": "object"
+        },
+        "binding": {
+          "default": false,
+          "title": "Binding",
+          "type": "boolean"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/EvaluationCaseResult"
+          },
+          "minItems": 1,
+          "title": "Cases",
+          "type": "array"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "domain": {
+          "$ref": "#/$defs/EvidenceDomain"
+        },
+        "fixture_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Fixture Hash",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "runner_version": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Runner Version",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "suite_id": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Suite Id",
+          "type": "string"
+        },
+        "suite_result_id": {
+          "format": "uuid",
+          "title": "Suite Result Id",
+          "type": "string"
+        },
+        "suite_version": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Suite Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "suite_id",
+        "suite_version",
+        "domain",
+        "fixture_hash",
+        "runner_version",
+        "cases"
+      ],
+      "title": "EvaluationSuiteResult",
+      "type": "object"
+    },
+    "EvaluationVersionSet": {
+      "additionalProperties": false,
+      "properties": {
+        "code_revision": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Code Revision",
+          "type": "string"
+        },
+        "component_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Component Versions",
+          "type": "object"
+        },
+        "constitution_version_id": {
+          "minLength": 1,
+          "title": "Constitution Version Id",
+          "type": "string"
+        },
+        "environment_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Environment Hash",
+          "type": "string"
+        },
+        "identity_version_id": {
+          "minLength": 1,
+          "title": "Identity Version Id",
+          "type": "string"
+        },
+        "judge_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Judge Versions",
+          "type": "object"
+        },
+        "policy_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Policy Versions",
+          "type": "object"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "values_version_id": {
+          "minLength": 1,
+          "title": "Values Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code_revision",
+        "environment_hash",
+        "component_versions",
+        "constitution_version_id",
+        "identity_version_id",
+        "values_version_id",
+        "policy_versions"
+      ],
+      "title": "EvaluationVersionSet",
+      "type": "object"
+    },
+    "EvidenceDomain": {
+      "enum": [
+        "behavioral",
+        "retrieval",
+        "context",
+        "routing",
+        "inference",
+        "proactive",
+        "memory_lifecycle",
+        "erasure_regeneration",
+        "source_health",
+        "regression"
+      ],
+      "title": "EvidenceDomain",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Artifact Ids",
+      "type": "array"
+    },
+    "automated_gate": {
+      "enum": [
+        "candidate_review",
+        "rejected",
+        "inconclusive"
+      ],
+      "title": "Automated Gate",
+      "type": "string"
+    },
+    "candidate_release_id": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Candidate Release Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "critical_failures": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Critical Failures",
+      "type": "array"
+    },
+    "decision_scope": {
+      "const": "local_candidate_evidence_only",
+      "default": "local_candidate_evidence_only",
+      "title": "Decision Scope",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "exceptions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Exceptions",
+      "type": "array"
+    },
+    "explicit_decision": {
+      "default": "pending_human_review",
+      "enum": [
+        "pending_human_review",
+        "accepted_for_stage9_candidate_foundation",
+        "rejected",
+        "inconclusive"
+      ],
+      "title": "Explicit Decision",
+      "type": "string"
+    },
+    "human_review_decision_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Human Review Decision Ids",
+      "type": "array"
+    },
+    "judge_calibration_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Judge Calibration Ids",
+      "type": "array"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "release_comparison_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Release Comparison Ids",
+      "type": "array"
+    },
+    "release_promotion_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Release Promotion Authorized",
+      "type": "boolean"
+    },
+    "runner_version": {
+      "const": "unified-evaluation-runner-v1",
+      "default": "unified-evaluation-runner-v1",
+      "title": "Runner Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "suite_results": {
+      "items": {
+        "$ref": "#/$defs/EvaluationSuiteResult"
+      },
+      "minItems": 1,
+      "title": "Suite Results",
+      "type": "array"
+    },
+    "trace_ids": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Trace Ids",
+      "type": "array"
+    },
+    "versions": {
+      "$ref": "#/$defs/EvaluationVersionSet"
+    }
+  },
+  "required": [
+    "owner_id",
+    "candidate_release_id",
+    "versions",
+    "suite_results",
+    "automated_gate"
+  ],
+  "title": "EvidenceBundle",
+  "type": "object"
+}

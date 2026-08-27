@@ -1,0 +1,110 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "automated_recommendation": {
+      "enum": [
+        "candidate_review",
+        "reject",
+        "inconclusive"
+      ],
+      "title": "Automated Recommendation",
+      "type": "string"
+    },
+    "automatic_promotion_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Automatic Promotion Authorized",
+      "type": "boolean"
+    },
+    "baseline_bundle_id": {
+      "format": "uuid",
+      "title": "Baseline Bundle Id",
+      "type": "string"
+    },
+    "candidate_bundle_id": {
+      "format": "uuid",
+      "title": "Candidate Bundle Id",
+      "type": "string"
+    },
+    "comparison_id": {
+      "format": "uuid",
+      "title": "Comparison Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "controlled_differences": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Controlled Differences",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "critical_regressions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Critical Regressions",
+      "type": "array"
+    },
+    "domain_deltas": {
+      "additionalProperties": true,
+      "title": "Domain Deltas",
+      "type": "object"
+    },
+    "noncritical_regressions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Noncritical Regressions",
+      "type": "array"
+    },
+    "observed_version_differences": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Observed Version Differences",
+      "type": "array"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "uncontrolled_differences": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Uncontrolled Differences",
+      "type": "array"
+    }
+  },
+  "required": [
+    "owner_id",
+    "baseline_bundle_id",
+    "candidate_bundle_id",
+    "controlled_differences",
+    "uncontrolled_differences",
+    "domain_deltas",
+    "automated_recommendation"
+  ],
+  "title": "ReleaseComparison",
+  "type": "object"
+}

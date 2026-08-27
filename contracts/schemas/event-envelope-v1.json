@@ -1,0 +1,1958 @@
+{
+  "$defs": {
+    "AssistantMessagePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "content_parts": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "text": "#/$defs/TextContentPart"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TextContentPart"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Content Parts",
+          "type": "array"
+        },
+        "context_pack_id": {
+          "format": "uuid",
+          "title": "Context Pack Id",
+          "type": "string"
+        },
+        "delivery": {
+          "$ref": "#/$defs/DeliveryRecord"
+        },
+        "inference_response_id": {
+          "format": "uuid",
+          "title": "Inference Response Id",
+          "type": "string"
+        },
+        "policy_decision_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Decision Id"
+        },
+        "response_policy_decision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResponsePolicyDecision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "interrupted"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content_parts",
+        "status",
+        "inference_response_id",
+        "context_pack_id",
+        "delivery"
+      ],
+      "title": "AssistantMessagePayload",
+      "type": "object"
+    },
+    "BeliefLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "created",
+            "revised"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "belief_id": {
+          "format": "uuid",
+          "title": "Belief Id",
+          "type": "string"
+        },
+        "belief_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Belief Revision",
+          "type": "integer"
+        },
+        "previous_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Revision"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "belief_id",
+        "belief_revision",
+        "action",
+        "reason"
+      ],
+      "title": "BeliefLifecyclePayload",
+      "type": "object"
+    },
+    "BeliefTransitionPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "belief_id": {
+          "format": "uuid",
+          "title": "Belief Id",
+          "type": "string"
+        },
+        "belief_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Belief Revision",
+          "type": "integer"
+        },
+        "belief_transition_id": {
+          "format": "uuid",
+          "title": "Belief Transition Id",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "replacement_belief_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replacement Belief Id"
+        },
+        "replacement_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replacement Revision"
+        },
+        "transition_type": {
+          "enum": [
+            "activated",
+            "counter_evidence_recorded",
+            "contradicted",
+            "superseded",
+            "retracted",
+            "invalidated"
+          ],
+          "title": "Transition Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "belief_transition_id",
+        "belief_id",
+        "belief_revision",
+        "transition_type",
+        "reason"
+      ],
+      "title": "BeliefTransitionPayload",
+      "type": "object"
+    },
+    "ConsolidationLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "proposed",
+            "accepted",
+            "accepted_with_correction",
+            "rejected"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "memory_class": {
+          "enum": [
+            "semantic",
+            "pattern",
+            "progress"
+          ],
+          "title": "Memory Class",
+          "type": "string"
+        },
+        "memory_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory Id"
+        },
+        "memory_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory Revision"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "action",
+        "memory_class",
+        "reason"
+      ],
+      "title": "ConsolidationLifecyclePayload",
+      "type": "object"
+    },
+    "ContextCapabilityLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "enabled",
+            "disabled"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "capability_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Capability Content Hash",
+          "type": "string"
+        },
+        "capability_revision_id": {
+          "format": "uuid",
+          "title": "Capability Revision Id",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "registered",
+            "owner_disabled",
+            "source_disabled"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "source_instance_id": {
+          "format": "uuid",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "state_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "State Content Hash",
+          "type": "string"
+        },
+        "state_revision_id": {
+          "format": "uuid",
+          "title": "State Revision Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "capability_revision_id",
+        "state_revision_id",
+        "revision",
+        "action",
+        "reason",
+        "capability_content_hash",
+        "state_content_hash"
+      ],
+      "title": "ContextCapabilityLifecyclePayload",
+      "type": "object"
+    },
+    "ContextConsentLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "activated",
+            "revoked",
+            "expired"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "capability_revision_id": {
+          "format": "uuid",
+          "title": "Capability Revision Id",
+          "type": "string"
+        },
+        "consent_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Consent Content Hash",
+          "type": "string"
+        },
+        "consent_scope_id": {
+          "format": "uuid",
+          "title": "Consent Scope Id",
+          "type": "string"
+        },
+        "consent_scope_revision_id": {
+          "format": "uuid",
+          "title": "Consent Scope Revision Id",
+          "type": "string"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "source_instance_id": {
+          "format": "uuid",
+          "title": "Source Instance Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "consent_scope_id",
+        "consent_scope_revision_id",
+        "revision",
+        "action",
+        "source_instance_id",
+        "capability_revision_id",
+        "consent_content_hash"
+      ],
+      "title": "ContextConsentLifecyclePayload",
+      "type": "object"
+    },
+    "ContextSourceLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "enabled",
+            "disabled"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "registered",
+            "owner_disabled",
+            "lost_device",
+            "key_rotated"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "source_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Source Content Hash",
+          "type": "string"
+        },
+        "source_instance_id": {
+          "format": "uuid",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "state_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "State Content Hash",
+          "type": "string"
+        },
+        "state_revision_id": {
+          "format": "uuid",
+          "title": "State Revision Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "state_revision_id",
+        "revision",
+        "action",
+        "reason",
+        "source_content_hash",
+        "state_content_hash"
+      ],
+      "title": "ContextSourceLifecyclePayload",
+      "type": "object"
+    },
+    "CurrentStateLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "estimator_version": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Estimator Version",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "state_snapshot_id": {
+          "format": "uuid",
+          "title": "State Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state_snapshot_id",
+        "expires_at",
+        "estimator_version"
+      ],
+      "title": "CurrentStateLifecyclePayload",
+      "type": "object"
+    },
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "DeliveryRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "enum": [
+            "api",
+            "cli",
+            "web"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "first_visible_at": {
+          "format": "date-time",
+          "title": "First Visible At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "first_visible_at",
+        "completed_at"
+      ],
+      "title": "DeliveryRecord",
+      "type": "object"
+    },
+    "EventType": {
+      "enum": [
+        "USER_MESSAGE",
+        "ASSISTANT_MESSAGE",
+        "INTERACTION_FAILED",
+        "MEMORY_CREATED",
+        "MEMORY_REVISED",
+        "MEMORY_RETRACTED",
+        "CURRENT_STATE_ESTIMATED",
+        "USER_BELIEF_CREATED",
+        "USER_BELIEF_REVISED",
+        "USER_BELIEF_TRANSITIONED",
+        "CONSOLIDATION_PROPOSED",
+        "CONSOLIDATION_REVIEWED",
+        "GOAL_CREATED",
+        "GOAL_UPDATED",
+        "GOAL_COMPLETED",
+        "PROGRESS_RECORDED",
+        "SCENE_SESSION_PLANNED",
+        "SCENE_SESSION_STARTED",
+        "SCENE_PHASE_CHANGED",
+        "SCENE_SESSION_PAUSED",
+        "SCENE_SESSION_ENDED",
+        "USER_SIGNAL",
+        "INTERVENTION_DECIDED",
+        "USER_ACTION_REPORTED",
+        "OUTCOME_REPORTED",
+        "REFLECTION_CREATED",
+        "CONTEXT_CONSENT_REVISED",
+        "CONTEXT_SOURCE_STATE_REVISED",
+        "CONTEXT_CAPABILITY_STATE_REVISED",
+        "LIFE_CONTEXT_OBSERVED"
+      ],
+      "title": "EventType",
+      "type": "string"
+    },
+    "GoalLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "created",
+            "updated",
+            "completed"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "goal_id": {
+          "format": "uuid",
+          "title": "Goal Id",
+          "type": "string"
+        },
+        "goal_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Goal Revision",
+          "type": "integer"
+        },
+        "next_action": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Action"
+        },
+        "priority": {
+          "enum": [
+            "low",
+            "normal",
+            "high"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "projection_canonical_json": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projection Canonical Json"
+        },
+        "projection_content_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projection Content Hash"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "review_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review At"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "paused",
+            "completed",
+            "abandoned"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "track": {
+          "enum": [
+            "reality",
+            "inner_life"
+          ],
+          "title": "Track",
+          "type": "string"
+        },
+        "why": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "goal_id",
+        "goal_revision",
+        "action",
+        "track",
+        "title",
+        "why",
+        "priority",
+        "status",
+        "reason"
+      ],
+      "title": "GoalLifecyclePayload",
+      "type": "object"
+    },
+    "InteractionFailurePayload": {
+      "additionalProperties": false,
+      "description": "Content-free terminal failure evidence for an undelivered interaction.",
+      "properties": {
+        "context_pack_id": {
+          "format": "uuid",
+          "title": "Context Pack Id",
+          "type": "string"
+        },
+        "failure_code": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Failure Code",
+          "type": "string"
+        },
+        "failure_stage": {
+          "default": "inference",
+          "enum": [
+            "capability_check",
+            "routing",
+            "version_check",
+            "inference"
+          ],
+          "title": "Failure Stage",
+          "type": "string"
+        },
+        "inference_request_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inference Request Id"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "route_decision_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Route Decision Id"
+        },
+        "safe_message": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Safe Message",
+          "type": "string"
+        },
+        "status": {
+          "const": "failed",
+          "default": "failed",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "context_pack_id",
+        "failure_code",
+        "retryable",
+        "safe_message"
+      ],
+      "title": "InteractionFailurePayload",
+      "type": "object"
+    },
+    "InterventionLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "branch": {
+          "enum": [
+            "safety_first",
+            "clarification",
+            "recovery",
+            "minimum_action",
+            "preparation",
+            "reflection"
+          ],
+          "title": "Branch",
+          "type": "string"
+        },
+        "guidance_event_id": {
+          "format": "uuid",
+          "title": "Guidance Event Id",
+          "type": "string"
+        },
+        "input_record_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Record Id"
+        },
+        "intervention_decision_id": {
+          "format": "uuid",
+          "title": "Intervention Decision Id",
+          "type": "string"
+        },
+        "outreach_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Outreach Authorized",
+          "type": "boolean"
+        },
+        "policy_version": {
+          "const": "intervention-policy-sim-v1",
+          "default": "intervention-policy-sim-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "scene_record_id": {
+          "format": "uuid",
+          "title": "Scene Record Id",
+          "type": "string"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "scene_session_id",
+        "intervention_decision_id",
+        "scene_record_id",
+        "guidance_event_id",
+        "branch"
+      ],
+      "title": "InterventionLifecyclePayload",
+      "type": "object"
+    },
+    "LifeContextObservedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_revision_id": {
+          "format": "uuid",
+          "title": "Capability Revision Id",
+          "type": "string"
+        },
+        "consent_scope_revision_id": {
+          "format": "uuid",
+          "title": "Consent Scope Revision Id",
+          "type": "string"
+        },
+        "observation_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Observation Content Hash",
+          "type": "string"
+        },
+        "observation_id": {
+          "format": "uuid",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observation_kind": {
+          "enum": [
+            "device_activity_summary",
+            "calendar_availability_window"
+          ],
+          "title": "Observation Kind",
+          "type": "string"
+        },
+        "source_instance_id": {
+          "format": "uuid",
+          "title": "Source Instance Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "source_instance_id",
+        "capability_revision_id",
+        "consent_scope_revision_id",
+        "observation_kind",
+        "observation_content_hash"
+      ],
+      "title": "LifeContextObservedPayload",
+      "type": "object"
+    },
+    "MemoryLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "created",
+            "revised",
+            "retracted"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "candidate_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Id"
+        },
+        "memory_id": {
+          "format": "uuid",
+          "title": "Memory Id",
+          "type": "string"
+        },
+        "memory_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Memory Revision",
+          "type": "integer"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "memory_id",
+        "memory_revision",
+        "action",
+        "reason"
+      ],
+      "title": "MemoryLifecyclePayload",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "ProactiveAssistantMessagePayload": {
+      "additionalProperties": false,
+      "description": "Message made visible only after a successful local Web/inbox attempt.",
+      "properties": {
+        "content_parts": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "text": "#/$defs/TextContentPart"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TextContentPart"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Content Parts",
+          "type": "array"
+        },
+        "delivery": {
+          "$ref": "#/$defs/DeliveryRecord"
+        },
+        "delivery_attempt_id": {
+          "format": "uuid",
+          "title": "Delivery Attempt Id",
+          "type": "string"
+        },
+        "external_delivery_authorized": {
+          "const": false,
+          "default": false,
+          "title": "External Delivery Authorized",
+          "type": "boolean"
+        },
+        "interaction_mode": {
+          "const": "proactive_web_inbox",
+          "default": "proactive_web_inbox",
+          "title": "Interaction Mode",
+          "type": "string"
+        },
+        "interruption_decision_id": {
+          "format": "uuid",
+          "title": "Interruption Decision Id",
+          "type": "string"
+        },
+        "proactive_context_pack_id": {
+          "format": "uuid",
+          "title": "Proactive Context Pack Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "renderer_version": {
+          "const": "proactive-template-v1",
+          "default": "proactive-template-v1",
+          "title": "Renderer Version",
+          "type": "string"
+        },
+        "rendering_id": {
+          "format": "uuid",
+          "title": "Rendering Id",
+          "type": "string"
+        },
+        "simulation_only": {
+          "const": true,
+          "default": true,
+          "title": "Simulation Only",
+          "type": "boolean"
+        },
+        "status": {
+          "const": "completed",
+          "default": "completed",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content_parts",
+        "proposal_id",
+        "interruption_decision_id",
+        "proactive_context_pack_id",
+        "rendering_id",
+        "delivery_attempt_id",
+        "delivery"
+      ],
+      "title": "ProactiveAssistantMessagePayload",
+      "type": "object"
+    },
+    "ProgressLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "enum": [
+            "toward",
+            "steady",
+            "away",
+            "unknown"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "goal_id": {
+          "format": "uuid",
+          "title": "Goal Id",
+          "type": "string"
+        },
+        "goal_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Goal Revision",
+          "type": "integer"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "progress_record_id": {
+          "format": "uuid",
+          "title": "Progress Record Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "progress_record_id",
+        "goal_id",
+        "goal_revision",
+        "direction",
+        "observed_at"
+      ],
+      "title": "ProgressLifecyclePayload",
+      "type": "object"
+    },
+    "ResponsePolicyDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "pass_through",
+            "replace"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "available_effects": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Available Effects",
+          "type": "array"
+        },
+        "category": {
+          "enum": [
+            "ordinary",
+            "memory_truth",
+            "urgent_safety",
+            "system_confidentiality",
+            "exact_structured_output",
+            "privacy_tool_boundary"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "context_pack_id": {
+          "format": "uuid",
+          "title": "Context Pack Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "delivered_output_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Delivered Output Content Hash",
+          "type": "string"
+        },
+        "inference_response_id": {
+          "format": "uuid",
+          "title": "Inference Response Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "core-response-policy-v1",
+          "default": "core-response-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "raw_output_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Raw Output Content Hash",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "trace_id",
+        "context_pack_id",
+        "inference_response_id",
+        "action",
+        "category",
+        "reason_codes",
+        "raw_output_content_hash",
+        "delivered_output_content_hash"
+      ],
+      "title": "ResponsePolicyDecision",
+      "type": "object"
+    },
+    "SceneActionPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "action_attempted": {
+          "enum": [
+            "yes",
+            "no",
+            "unknown"
+          ],
+          "title": "Action Attempted",
+          "type": "string"
+        },
+        "intervention_record_id": {
+          "format": "uuid",
+          "title": "Intervention Record Id",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "reporter": {
+          "const": "user",
+          "default": "user",
+          "title": "Reporter",
+          "type": "string"
+        },
+        "scene_record_id": {
+          "format": "uuid",
+          "title": "Scene Record Id",
+          "type": "string"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scene_session_id",
+        "scene_record_id",
+        "intervention_record_id",
+        "action",
+        "action_attempted",
+        "occurred_at"
+      ],
+      "title": "SceneActionPayload",
+      "type": "object"
+    },
+    "SceneGuidancePayload": {
+      "additionalProperties": false,
+      "description": "Deterministic low-bandwidth guidance actually shown in the Web simulation.",
+      "properties": {
+        "content_parts": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "text": "#/$defs/TextContentPart"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TextContentPart"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Content Parts",
+          "type": "array"
+        },
+        "delivery": {
+          "$ref": "#/$defs/DeliveryRecord"
+        },
+        "interaction_mode": {
+          "const": "scene_guidance",
+          "default": "scene_guidance",
+          "title": "Interaction Mode",
+          "type": "string"
+        },
+        "intervention_decision_id": {
+          "format": "uuid",
+          "title": "Intervention Decision Id",
+          "type": "string"
+        },
+        "renderer_version": {
+          "const": "scene-guidance-template-v1",
+          "default": "scene-guidance-template-v1",
+          "title": "Renderer Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "completed",
+          "default": "completed",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content_parts",
+        "intervention_decision_id",
+        "delivery"
+      ],
+      "title": "SceneGuidancePayload",
+      "type": "object"
+    },
+    "SceneOutcomePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action_record_id": {
+          "format": "uuid",
+          "title": "Action Record Id",
+          "type": "string"
+        },
+        "observation_scope": {
+          "const": "self_report",
+          "default": "self_report",
+          "title": "Observation Scope",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "outcome": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reporter": {
+          "const": "user",
+          "default": "user",
+          "title": "Reporter",
+          "type": "string"
+        },
+        "scene_record_id": {
+          "format": "uuid",
+          "title": "Scene Record Id",
+          "type": "string"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scene_session_id",
+        "scene_record_id",
+        "action_record_id",
+        "outcome",
+        "occurred_at"
+      ],
+      "title": "SceneOutcomePayload",
+      "type": "object"
+    },
+    "SceneReflectionPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "next_adjustment": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Adjustment"
+        },
+        "outcome_observation_id": {
+          "format": "uuid",
+          "title": "Outcome Observation Id",
+          "type": "string"
+        },
+        "outcome_record_id": {
+          "format": "uuid",
+          "title": "Outcome Record Id",
+          "type": "string"
+        },
+        "reflection": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Reflection",
+          "type": "string"
+        },
+        "scene_record_id": {
+          "format": "uuid",
+          "title": "Scene Record Id",
+          "type": "string"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scene_session_id",
+        "scene_record_id",
+        "outcome_record_id",
+        "outcome_observation_id",
+        "reflection"
+      ],
+      "title": "SceneReflectionPayload",
+      "type": "object"
+    },
+    "SceneSessionLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "planned",
+            "started",
+            "phase_changed",
+            "paused",
+            "resumed",
+            "ended"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "anticipated_triggers": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Anticipated Triggers"
+        },
+        "phase": {
+          "enum": [
+            "before",
+            "during",
+            "after",
+            "closed"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "planned_goal": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Planned Goal"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "scene_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Scene Revision",
+          "type": "integer"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        },
+        "situation": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Situation"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "active",
+            "paused",
+            "completed",
+            "abandoned",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scene_session_id",
+        "scene_revision",
+        "action",
+        "phase",
+        "status",
+        "reason"
+      ],
+      "title": "SceneSessionLifecyclePayload",
+      "type": "object"
+    },
+    "SceneSignalPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "avoidance": {
+          "enum": [
+            "low",
+            "present",
+            "high",
+            "unknown"
+          ],
+          "title": "Avoidance",
+          "type": "string"
+        },
+        "coercion": {
+          "enum": [
+            "absent",
+            "uncertain",
+            "present"
+          ],
+          "title": "Coercion",
+          "type": "string"
+        },
+        "danger": {
+          "enum": [
+            "low",
+            "uncertain",
+            "plausible",
+            "immediate"
+          ],
+          "title": "Danger",
+          "type": "string"
+        },
+        "energy": {
+          "enum": [
+            "adequate",
+            "low",
+            "exhausted",
+            "unknown"
+          ],
+          "title": "Energy",
+          "type": "string"
+        },
+        "goal_alignment": {
+          "enum": [
+            "active_meaningful",
+            "unclear",
+            "no_active_goal"
+          ],
+          "title": "Goal Alignment",
+          "type": "string"
+        },
+        "goal_urgency": {
+          "enum": [
+            "low",
+            "normal",
+            "urgent",
+            "unknown"
+          ],
+          "title": "Goal Urgency",
+          "type": "string"
+        },
+        "input_method": {
+          "const": "web_simulation",
+          "default": "web_simulation",
+          "title": "Input Method",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "scene_record_id": {
+          "format": "uuid",
+          "title": "Scene Record Id",
+          "type": "string"
+        },
+        "scene_session_id": {
+          "format": "uuid",
+          "title": "Scene Session Id",
+          "type": "string"
+        },
+        "signal_type": {
+          "enum": [
+            "anxious",
+            "avoidance_urge",
+            "frozen",
+            "unsure_next_step",
+            "need_help"
+          ],
+          "title": "Signal Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scene_session_id",
+        "scene_record_id",
+        "signal_type",
+        "danger",
+        "avoidance",
+        "energy",
+        "coercion",
+        "goal_alignment",
+        "goal_urgency",
+        "occurred_at"
+      ],
+      "title": "SceneSignalPayload",
+      "type": "object"
+    },
+    "TextContentPart": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 100000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "type": {
+          "const": "text",
+          "default": "text",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "TextContentPart",
+      "type": "object"
+    },
+    "UserMessagePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "enum": [
+            "api",
+            "cli",
+            "web"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "client_created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Client Created At"
+        },
+        "content_parts": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "text": "#/$defs/TextContentPart"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TextContentPart"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Content Parts",
+          "type": "array"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "maxLength": 35,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "reply_to_event_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reply To Event Id"
+        }
+      },
+      "required": [
+        "content_parts",
+        "channel"
+      ],
+      "title": "UserMessagePayload",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "causation_event_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Causation Event Id"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "event_id": {
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "event_type": {
+      "$ref": "#/$defs/EventType"
+    },
+    "event_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Event Version",
+      "type": "integer"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "payload": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UserMessagePayload"
+        },
+        {
+          "$ref": "#/$defs/AssistantMessagePayload"
+        },
+        {
+          "$ref": "#/$defs/SceneGuidancePayload"
+        },
+        {
+          "$ref": "#/$defs/ProactiveAssistantMessagePayload"
+        },
+        {
+          "$ref": "#/$defs/InteractionFailurePayload"
+        },
+        {
+          "$ref": "#/$defs/MemoryLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/BeliefLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/BeliefTransitionPayload"
+        },
+        {
+          "$ref": "#/$defs/CurrentStateLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/ConsolidationLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/GoalLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/ProgressLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/SceneSessionLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/SceneSignalPayload"
+        },
+        {
+          "$ref": "#/$defs/InterventionLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/SceneActionPayload"
+        },
+        {
+          "$ref": "#/$defs/SceneOutcomePayload"
+        },
+        {
+          "$ref": "#/$defs/SceneReflectionPayload"
+        },
+        {
+          "$ref": "#/$defs/ContextConsentLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/ContextSourceLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/ContextCapabilityLifecyclePayload"
+        },
+        {
+          "$ref": "#/$defs/LifeContextObservedPayload"
+        }
+      ],
+      "title": "Payload"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "scene_session_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scene Session Id"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_type",
+    "owner_id",
+    "session_id",
+    "request_id",
+    "trace_id",
+    "data_policy",
+    "payload"
+  ],
+  "title": "EventEnvelope",
+  "type": "object"
+}

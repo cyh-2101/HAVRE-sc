@@ -1,0 +1,233 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "EvaluationArtifactPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_roles": {
+          "items": {
+            "enum": [
+              "owner",
+              "technical_reviewer",
+              "human_reviewer"
+            ],
+            "type": "string"
+          },
+          "title": "Allowed Roles",
+          "type": "array"
+        },
+        "automatic_deletion": {
+          "const": false,
+          "default": false,
+          "title": "Automatic Deletion",
+          "type": "boolean"
+        },
+        "deletion_requires_owner_authorization": {
+          "const": true,
+          "default": true,
+          "title": "Deletion Requires Owner Authorization",
+          "type": "boolean"
+        },
+        "external_transfer_allowed": {
+          "const": false,
+          "default": false,
+          "title": "External Transfer Allowed",
+          "type": "boolean"
+        },
+        "hold_reason": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hold Reason"
+        },
+        "policy_version": {
+          "const": "protected-local-review-v1",
+          "default": "protected-local-review-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "review_after_days": {
+          "default": 30,
+          "maximum": 3650,
+          "minimum": 1,
+          "title": "Review After Days",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "allowed_roles"
+      ],
+      "title": "EvaluationArtifactPolicy",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "access_policy": {
+      "$ref": "#/$defs/EvaluationArtifactPolicy"
+    },
+    "artifact_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifact Content Hash",
+      "type": "string"
+    },
+    "artifact_id": {
+      "format": "uuid",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "enum": [
+        "suite_result",
+        "trace_export",
+        "systems_report",
+        "judge_calibration",
+        "release_comparison",
+        "evidence_bundle",
+        "human_review"
+      ],
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "artifact_uri": {
+      "maxLength": 1000,
+      "pattern": "^(local|inline)://",
+      "title": "Artifact Uri",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "media_type": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Media Type",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "artifact_kind",
+    "artifact_uri",
+    "artifact_content_hash",
+    "media_type",
+    "data_policy",
+    "access_policy"
+  ],
+  "title": "EvaluationArtifact",
+  "type": "object"
+}

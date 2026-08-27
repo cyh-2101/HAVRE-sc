@@ -1,0 +1,197 @@
+{
+  "$defs": {
+    "ComponentReference": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Artifact Hash",
+          "type": "string"
+        },
+        "component": {
+          "enum": [
+            "companion_core",
+            "database_schema",
+            "provider",
+            "foundation_model",
+            "adapter",
+            "tokenizer",
+            "serving_engine",
+            "deployment_image",
+            "database_image",
+            "proxy_image",
+            "operations_image",
+            "web",
+            "worker"
+          ],
+          "title": "Component",
+          "type": "string"
+        },
+        "lifecycle_status": {
+          "enum": [
+            "approved",
+            "candidate_fixture",
+            "not_applicable"
+          ],
+          "title": "Lifecycle Status",
+          "type": "string"
+        },
+        "replaceable": {
+          "const": true,
+          "default": true,
+          "title": "Replaceable",
+          "type": "boolean"
+        },
+        "version": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "component",
+        "version",
+        "artifact_hash",
+        "lifecycle_status"
+      ],
+      "title": "ComponentReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter_deployment_authorized": {
+      "default": false,
+      "title": "Adapter Deployment Authorized",
+      "type": "boolean"
+    },
+    "component_promotion_authorization_hashes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Component Promotion Authorization Hashes",
+      "type": "array"
+    },
+    "components": {
+      "items": {
+        "$ref": "#/$defs/ComponentReference"
+      },
+      "minItems": 1,
+      "title": "Components",
+      "type": "array"
+    },
+    "constitution_version_id": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Constitution Version Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "environment": {
+      "enum": [
+        "development",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "identity_version_id": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Identity Version Id",
+      "type": "string"
+    },
+    "migration_head": {
+      "pattern": "^[0-9]{4}_[a-z0-9_]+\\.sql$",
+      "title": "Migration Head",
+      "type": "string"
+    },
+    "promotion_approval_ref": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Promotion Approval Ref"
+    },
+    "release_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,119}$",
+      "title": "Release Id",
+      "type": "string"
+    },
+    "release_manifest_id": {
+      "format": "uuid",
+      "title": "Release Manifest Id",
+      "type": "string"
+    },
+    "release_scope": {
+      "enum": [
+        "infrastructure_only",
+        "development_candidate_fixture",
+        "production"
+      ],
+      "title": "Release Scope",
+      "type": "string"
+    },
+    "rollback_release_manifest_hash": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rollback Release Manifest Hash"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_revision": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Source Revision",
+      "type": "string"
+    },
+    "values_version_id": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Values Version Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "release_id",
+    "environment",
+    "release_scope",
+    "source_revision",
+    "migration_head",
+    "components",
+    "constitution_version_id",
+    "identity_version_id",
+    "values_version_id"
+  ],
+  "title": "ReleaseManifest",
+  "type": "object"
+}

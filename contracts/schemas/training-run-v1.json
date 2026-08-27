@@ -1,0 +1,295 @@
+{
+  "$defs": {
+    "GovernanceVersionSet": {
+      "additionalProperties": false,
+      "properties": {
+        "constitution_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Constitution Hash",
+          "type": "string"
+        },
+        "constitution_version": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Constitution Version",
+          "type": "string"
+        },
+        "identity_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Identity Hash",
+          "type": "string"
+        },
+        "identity_version": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Identity Version",
+          "type": "string"
+        },
+        "intervention_policy_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Intervention Policy Hash",
+          "type": "string"
+        },
+        "intervention_policy_version": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Intervention Policy Version",
+          "type": "string"
+        },
+        "values_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Values Hash",
+          "type": "string"
+        },
+        "values_version": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Values Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "constitution_version",
+        "constitution_hash",
+        "identity_version",
+        "identity_hash",
+        "values_version",
+        "values_hash",
+        "intervention_policy_version",
+        "intervention_policy_hash"
+      ],
+      "title": "GovernanceVersionSet",
+      "type": "object"
+    },
+    "TrainingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "alpha": {
+          "const": 4,
+          "default": 4,
+          "title": "Alpha",
+          "type": "integer"
+        },
+        "base_quantization_bits": {
+          "anyOf": [
+            {
+              "const": 4,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Quantization Bits"
+        },
+        "cloud_transfer": {
+          "const": false,
+          "default": false,
+          "title": "Cloud Transfer",
+          "type": "boolean"
+        },
+        "dropout": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Dropout",
+          "type": "number"
+        },
+        "dry_run": {
+          "const": true,
+          "default": true,
+          "title": "Dry Run",
+          "type": "boolean"
+        },
+        "epochs": {
+          "const": 2,
+          "default": 2,
+          "title": "Epochs",
+          "type": "integer"
+        },
+        "framework": {
+          "const": "havre-local-matrix-dry-run-v1",
+          "default": "havre-local-matrix-dry-run-v1",
+          "title": "Framework",
+          "type": "string"
+        },
+        "learning_rate": {
+          "const": 0.05,
+          "default": 0.05,
+          "title": "Learning Rate",
+          "type": "number"
+        },
+        "local_only": {
+          "const": true,
+          "default": true,
+          "title": "Local Only",
+          "type": "boolean"
+        },
+        "method": {
+          "enum": [
+            "lora",
+            "qlora"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "rank": {
+          "const": 2,
+          "default": 2,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "seed": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "method",
+        "seed"
+      ],
+      "title": "TrainingConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter_matrix_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Matrix Hash",
+      "type": "string"
+    },
+    "candidate_only": {
+      "const": true,
+      "default": true,
+      "title": "Candidate Only",
+      "type": "boolean"
+    },
+    "config": {
+      "$ref": "#/$defs/TrainingConfig"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dataset_snapshot_id": {
+      "format": "uuid",
+      "title": "Dataset Snapshot Id",
+      "type": "string"
+    },
+    "deployment_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Deployment Authorized",
+      "type": "boolean"
+    },
+    "final_loss": {
+      "minimum": 0,
+      "title": "Final Loss",
+      "type": "number"
+    },
+    "governance_mutation_attempted": {
+      "const": false,
+      "default": false,
+      "title": "Governance Mutation Attempted",
+      "type": "boolean"
+    },
+    "governance_versions": {
+      "$ref": "#/$defs/GovernanceVersionSet"
+    },
+    "initial_loss": {
+      "minimum": 0,
+      "title": "Initial Loss",
+      "type": "number"
+    },
+    "model_version_id": {
+      "format": "uuid",
+      "title": "Model Version Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "promotion_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Promotion Authorized",
+      "type": "boolean"
+    },
+    "rendered_artifact_id": {
+      "format": "uuid",
+      "title": "Rendered Artifact Id",
+      "type": "string"
+    },
+    "renderer_version": {
+      "const": "stage9-renderer-v1",
+      "default": "stage9-renderer-v1",
+      "title": "Renderer Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "const": "completed_dry_run",
+      "default": "completed_dry_run",
+      "title": "Status",
+      "type": "string"
+    },
+    "tokenizer_version": {
+      "const": "hashed-tokenizer-v1",
+      "default": "hashed-tokenizer-v1",
+      "title": "Tokenizer Version",
+      "type": "string"
+    },
+    "training_example_count": {
+      "exclusiveMinimum": 0,
+      "title": "Training Example Count",
+      "type": "integer"
+    },
+    "training_run_id": {
+      "format": "uuid",
+      "title": "Training Run Id",
+      "type": "string"
+    },
+    "used_user_data": {
+      "const": false,
+      "default": false,
+      "title": "Used User Data",
+      "type": "boolean"
+    },
+    "validation_example_count": {
+      "exclusiveMinimum": 0,
+      "title": "Validation Example Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "dataset_snapshot_id",
+    "model_version_id",
+    "rendered_artifact_id",
+    "config",
+    "governance_versions",
+    "training_example_count",
+    "validation_example_count",
+    "initial_loss",
+    "final_loss",
+    "adapter_matrix_hash"
+  ],
+  "title": "TrainingRun",
+  "type": "object"
+}

@@ -1,0 +1,67 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "format": "uuid",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "decision": {
+      "const": "retain",
+      "default": "retain",
+      "title": "Decision",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "retain_until": {
+      "format": "date-time",
+      "title": "Retain Until",
+      "type": "string"
+    },
+    "retention_review_id": {
+      "format": "uuid",
+      "title": "Retention Review Id",
+      "type": "string"
+    },
+    "reviewed_at": {
+      "format": "date-time",
+      "title": "Reviewed At",
+      "type": "string"
+    },
+    "reviewer": {
+      "const": "owner",
+      "default": "owner",
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "artifact_id",
+    "retain_until",
+    "reason"
+  ],
+  "title": "ArtifactRetentionReview",
+  "type": "object"
+}

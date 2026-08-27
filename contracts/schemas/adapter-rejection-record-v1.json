@@ -1,0 +1,82 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "active_adapter_after": {
+      "default": null,
+      "title": "Active Adapter After",
+      "type": "null"
+    },
+    "active_adapter_before": {
+      "default": null,
+      "title": "Active Adapter Before",
+      "type": "null"
+    },
+    "adapter_version_id": {
+      "format": "uuid",
+      "title": "Adapter Version Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "evaluation_report_id": {
+      "format": "uuid",
+      "title": "Evaluation Report Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "persistent_history_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Persistent History Unchanged",
+      "type": "boolean"
+    },
+    "persistent_identity_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Persistent Identity Unchanged",
+      "type": "boolean"
+    },
+    "reason_code": {
+      "const": "synthetic_dry_run_not_promotion_evidence",
+      "default": "synthetic_dry_run_not_promotion_evidence",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "rejected_at": {
+      "format": "date-time",
+      "title": "Rejected At",
+      "type": "string"
+    },
+    "rejection_id": {
+      "format": "uuid",
+      "title": "Rejection Id",
+      "type": "string"
+    },
+    "rollback_effect": {
+      "const": "no_activation_to_rollback",
+      "default": "no_activation_to_rollback",
+      "title": "Rollback Effect",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "adapter_version_id",
+    "evaluation_report_id"
+  ],
+  "title": "AdapterRejectionRecord",
+  "type": "object"
+}

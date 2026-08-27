@@ -1,0 +1,363 @@
+name: havre
+
+services:
+  postgres:
+    image: ${HAVRE_POSTGRES_IMAGE:?set an immutable PostgreSQL+pgvector image digest}
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 4g
+    pids_limit: 512
+    environment:
+      POSTGRES_DB: havre
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin_password
+    secrets:
+      - postgres_admin_password
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d havre"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  migrate:
+    image: ${HAVRE_API_IMAGE:?set an immutable HAVRE image digest}
+    command: ["migrate", "--bootstrap-owner"]
+    restart: "no"
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 128
+    environment:
+      HAVRE_DATABASE_URL_FILE: /run/secrets/havre_migrator_database_url
+      HAVRE_DEPLOYMENT_ENVIRONMENT: production
+      HAVRE_PUBLIC_BASE_URL: https://${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_RELEASE_MANIFEST_PATH: /run/havre/release-manifest.json
+      HAVRE_RUNTIME_IMAGE_REFERENCE: ${HAVRE_API_IMAGE}
+      HAVRE_RUNTIME_IMAGE_DIGEST: ${HAVRE_API_IMAGE_DIGEST:?set the exact API image digest}
+      HAVRE_POSTGRES_IMAGE: ${HAVRE_POSTGRES_IMAGE}
+      HAVRE_CADDY_IMAGE: ${HAVRE_CADDY_IMAGE}
+      HAVRE_OPERATIONS_IMAGE: ${HAVRE_OPERATIONS_IMAGE}
+    secrets:
+      - havre_migrator_database_url
+    configs:
+      - source: release_manifest
+        target: /run/havre/release-manifest.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
+  storage-init:
+    image: ${HAVRE_API_IMAGE:?set an immutable HAVRE image digest}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - chown 10001:10001 /var/lib/havre-operations /var/lib/havre-exports /var/lib/havre-backups
+    user: "0:0"
+    restart: "no"
+    cpus: 0.25
+    mem_limit: 64m
+    pids_limit: 32
+    read_only: true
+    cap_drop: ["ALL"]
+    cap_add: ["CHOWN", "FOWNER"]
+    security_opt: ["no-new-privileges:true"]
+    network_mode: none
+    volumes:
+      - erasure_ledger:/var/lib/havre-operations
+      - owner_exports:/var/lib/havre-exports
+      - owner_backups:/var/lib/havre-backups
+
+  api:
+    image: ${HAVRE_API_IMAGE:?set an immutable HAVRE image digest}
+    command: ["serve", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    pids_limit: 256
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    environment:
+      HAVRE_DATABASE_URL_FILE: /run/secrets/havre_app_database_url
+      HAVRE_PRIVILEGED_DATABASE_URL_FILE: /run/secrets/havre_erasure_database_url
+      HAVRE_OWNER_API_TOKEN_FILE: /run/secrets/havre_owner_api_token
+      HAVRE_DEPLOYMENT_ENVIRONMENT: production
+      HAVRE_PUBLIC_BASE_URL: https://${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_RELEASE_MANIFEST_PATH: /run/havre/release-manifest.json
+      HAVRE_RUNTIME_IMAGE_REFERENCE: ${HAVRE_API_IMAGE}
+      HAVRE_RUNTIME_IMAGE_DIGEST: ${HAVRE_API_IMAGE_DIGEST:?set the exact API image digest}
+      HAVRE_POSTGRES_IMAGE: ${HAVRE_POSTGRES_IMAGE}
+      HAVRE_CADDY_IMAGE: ${HAVRE_CADDY_IMAGE}
+      HAVRE_OPERATIONS_IMAGE: ${HAVRE_OPERATIONS_IMAGE}
+      HAVRE_ERASURE_LEDGER_PATH: /var/lib/havre-operations/erasure-ledger.sqlite3
+      HAVRE_OWNER_EXPORT_ROOT: /var/lib/havre-exports
+      HAVRE_PROVIDER_ID: ${HAVRE_PROVIDER_ID:?set a provider-neutral provider ID}
+      HAVRE_RUNTIME_ADAPTER_VERSION: ${HAVRE_RUNTIME_ADAPTER_VERSION:-}
+      HAVRE_RUNTIME_ADAPTER_HASH: ${HAVRE_RUNTIME_ADAPTER_HASH:-}
+      HAVRE_COMPONENT_PROMOTION_AUTHORIZATIONS_PATH: ${HAVRE_COMPONENT_PROMOTION_AUTHORIZATIONS_PATH:-}
+      HAVRE_SELF_HOSTED_BASE_URL: ${HAVRE_SELF_HOSTED_BASE_URL:-http://127.0.0.1:8080}
+    secrets:
+      - havre_app_database_url
+      - havre_erasure_database_url
+      - havre_owner_api_token
+    configs:
+      - source: release_manifest
+        target: /run/havre/release-manifest.json
+    volumes:
+      - erasure_ledger:/var/lib/havre-operations
+      - owner_exports:/var/lib/havre-exports
+    expose: ["8000"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
+    networks: [backend]
+    healthcheck:
+      test:
+        ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  worker:
+    profiles: ["behavior"]
+    image: ${HAVRE_API_IMAGE:?set an immutable HAVRE image digest}
+    command: ["worker-loop", "--poll-seconds", "2"]
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    pids_limit: 256
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    environment:
+      HAVRE_DATABASE_URL_FILE: /run/secrets/havre_app_database_url
+      HAVRE_DEPLOYMENT_ENVIRONMENT: production
+      HAVRE_PUBLIC_BASE_URL: https://${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_RELEASE_MANIFEST_PATH: /run/havre/release-manifest.json
+      HAVRE_RUNTIME_IMAGE_REFERENCE: ${HAVRE_API_IMAGE}
+      HAVRE_RUNTIME_IMAGE_DIGEST: ${HAVRE_API_IMAGE_DIGEST:?set the exact API image digest}
+      HAVRE_POSTGRES_IMAGE: ${HAVRE_POSTGRES_IMAGE}
+      HAVRE_CADDY_IMAGE: ${HAVRE_CADDY_IMAGE}
+      HAVRE_OPERATIONS_IMAGE: ${HAVRE_OPERATIONS_IMAGE}
+      HAVRE_PROVIDER_ID: ${HAVRE_PROVIDER_ID:?set a provider-neutral provider ID}
+      HAVRE_RUNTIME_ADAPTER_VERSION: ${HAVRE_RUNTIME_ADAPTER_VERSION:-}
+      HAVRE_RUNTIME_ADAPTER_HASH: ${HAVRE_RUNTIME_ADAPTER_HASH:-}
+      HAVRE_COMPONENT_PROMOTION_AUTHORIZATIONS_PATH: ${HAVRE_COMPONENT_PROMOTION_AUTHORIZATIONS_PATH:-}
+      HAVRE_SELF_HOSTED_BASE_URL: ${HAVRE_SELF_HOSTED_BASE_URL:-http://127.0.0.1:8080}
+    secrets:
+      - havre_app_database_url
+    configs:
+      - source: release_manifest
+        target: /run/havre/release-manifest.json
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [backend]
+
+  release-operations:
+    profiles: ["operations"]
+    image: ${HAVRE_OPERATIONS_IMAGE:?set an immutable HAVRE operations image digest}
+    command: ["release-validate", "/run/havre/release-manifest.json"]
+    restart: "no"
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    environment:
+      HAVRE_DATABASE_URL_FILE: /run/secrets/havre_release_database_url
+      HAVRE_RELEASE_DATABASE_URL_FILE: /run/secrets/havre_release_database_url
+      HAVRE_DEPLOYMENT_ENVIRONMENT: production
+      HAVRE_PUBLIC_BASE_URL: https://${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_RELEASE_MANIFEST_PATH: /run/havre/release-manifest.json
+      HAVRE_RUNTIME_IMAGE_REFERENCE: ${HAVRE_API_IMAGE}
+      HAVRE_RUNTIME_IMAGE_DIGEST: ${HAVRE_API_IMAGE_DIGEST:?set the exact API image digest}
+      HAVRE_POSTGRES_IMAGE: ${HAVRE_POSTGRES_IMAGE}
+      HAVRE_CADDY_IMAGE: ${HAVRE_CADDY_IMAGE}
+      HAVRE_OPERATIONS_IMAGE: ${HAVRE_OPERATIONS_IMAGE}
+    secrets:
+      - havre_release_database_url
+    configs:
+      - source: release_manifest
+        target: /run/havre/release-manifest.json
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [backend]
+
+  backup-operations:
+    profiles: ["operations"]
+    image: ${HAVRE_OPERATIONS_IMAGE:?set an immutable HAVRE operations image digest}
+    command: ["release-validate", "/run/havre/release-manifest.json"]
+    restart: "no"
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    environment:
+      HAVRE_DATABASE_URL_FILE: /run/secrets/havre_app_database_url
+      HAVRE_RELEASE_DATABASE_URL_FILE: /run/secrets/havre_release_database_url
+      HAVRE_DEPLOYMENT_ENVIRONMENT: production
+      HAVRE_PUBLIC_BASE_URL: https://${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_RELEASE_MANIFEST_PATH: /run/havre/release-manifest.json
+      HAVRE_RUNTIME_IMAGE_REFERENCE: ${HAVRE_API_IMAGE}
+      HAVRE_RUNTIME_IMAGE_DIGEST: ${HAVRE_API_IMAGE_DIGEST:?set the exact API image digest}
+      HAVRE_POSTGRES_IMAGE: ${HAVRE_POSTGRES_IMAGE}
+      HAVRE_CADDY_IMAGE: ${HAVRE_CADDY_IMAGE}
+      HAVRE_OPERATIONS_IMAGE: ${HAVRE_OPERATIONS_IMAGE}
+      HAVRE_ERASURE_LEDGER_PATH: /var/lib/havre-operations/erasure-ledger.sqlite3
+    secrets:
+      - havre_app_database_url
+      - havre_release_database_url
+    configs:
+      - source: release_manifest
+        target: /run/havre/release-manifest.json
+    volumes:
+      - erasure_ledger:/var/lib/havre-operations
+      - owner_backups:/var/lib/havre-backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
+    networks: [backend]
+
+  restore-operations:
+    profiles: ["restore"]
+    image: ${HAVRE_OPERATIONS_IMAGE:?set an immutable HAVRE operations image digest}
+    command: ["release-validate", "/run/havre/release-manifest.json"]
+    restart: "no"
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    environment:
+      HAVRE_DATABASE_URL_FILE: /run/secrets/havre_restore_database_url
+      HAVRE_DEPLOYMENT_ENVIRONMENT: production
+      HAVRE_PUBLIC_BASE_URL: https://${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_RELEASE_MANIFEST_PATH: /run/havre/release-manifest.json
+      HAVRE_RUNTIME_IMAGE_REFERENCE: ${HAVRE_API_IMAGE}
+      HAVRE_RUNTIME_IMAGE_DIGEST: ${HAVRE_API_IMAGE_DIGEST:?set the exact API image digest}
+      HAVRE_POSTGRES_IMAGE: ${HAVRE_POSTGRES_IMAGE}
+      HAVRE_CADDY_IMAGE: ${HAVRE_CADDY_IMAGE}
+      HAVRE_OPERATIONS_IMAGE: ${HAVRE_OPERATIONS_IMAGE}
+      HAVRE_ERASURE_LEDGER_PATH: /var/lib/havre-operations/erasure-ledger.sqlite3
+    secrets:
+      - havre_restore_database_url
+    configs:
+      - source: release_manifest
+        target: /run/havre/release-manifest.json
+    volumes:
+      - erasure_ledger:/var/lib/havre-operations
+      - owner_backups:/var/lib/havre-backups
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    networks: [backend]
+
+  context-retention-operations:
+    profiles: ["operations"]
+    image: ${HAVRE_OPERATIONS_IMAGE:?set an immutable HAVRE operations image digest}
+    command: ["context-retention-expire"]
+    restart: "no"
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    environment:
+      HAVRE_DATABASE_URL_FILE: /run/secrets/havre_app_database_url
+      HAVRE_PRIVILEGED_DATABASE_URL_FILE: /run/secrets/havre_erasure_database_url
+      HAVRE_DEPLOYMENT_ENVIRONMENT: production
+      HAVRE_PUBLIC_BASE_URL: https://${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_RELEASE_MANIFEST_PATH: /run/havre/release-manifest.json
+      HAVRE_RUNTIME_IMAGE_REFERENCE: ${HAVRE_API_IMAGE}
+      HAVRE_RUNTIME_IMAGE_DIGEST: ${HAVRE_API_IMAGE_DIGEST:?set the exact API image digest}
+      HAVRE_POSTGRES_IMAGE: ${HAVRE_POSTGRES_IMAGE}
+      HAVRE_CADDY_IMAGE: ${HAVRE_CADDY_IMAGE}
+      HAVRE_OPERATIONS_IMAGE: ${HAVRE_OPERATIONS_IMAGE}
+      HAVRE_ERASURE_LEDGER_PATH: /var/lib/havre-operations/erasure-ledger.sqlite3
+    secrets:
+      - havre_app_database_url
+      - havre_erasure_database_url
+    configs:
+      - source: release_manifest
+        target: /run/havre/release-manifest.json
+    volumes:
+      - erasure_ledger:/var/lib/havre-operations
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
+    networks: [backend]
+
+  caddy:
+    image: ${HAVRE_CADDY_IMAGE:?set an immutable Caddy image digest}
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 256m
+    pids_limit: 128
+    environment:
+      HAVRE_PUBLIC_HOST: ${HAVRE_PUBLIC_HOST:?set the owner-controlled hostname}
+      HAVRE_TLS_EMAIL: ${HAVRE_TLS_EMAIL:?set the certificate contact}
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    ports:
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [frontend, backend]
+
+networks:
+  frontend: {}
+  backend:
+    internal: true
+
+volumes:
+  postgres_data: {}
+  erasure_ledger: {}
+  owner_exports: {}
+  owner_backups: {}
+  caddy_data: {}
+  caddy_config: {}
+
+configs:
+  caddyfile:
+    file: ./Caddyfile
+  release_manifest:
+    file: ${HAVRE_RELEASE_MANIFEST_PATH:?set an immutable release manifest path}
+
+secrets:
+  postgres_admin_password:
+    file: ${HAVRE_POSTGRES_ADMIN_PASSWORD_FILE:?set a protected secret file}
+  havre_migrator_database_url:
+    file: ${HAVRE_MIGRATOR_DATABASE_URL_FILE:?set a protected secret file}
+  havre_app_database_url:
+    file: ${HAVRE_APP_DATABASE_URL_FILE:?set a protected secret file}
+  havre_erasure_database_url:
+    file: ${HAVRE_ERASURE_DATABASE_URL_FILE:?set a protected secret file}
+  havre_owner_api_token:
+    file: ${HAVRE_OWNER_API_TOKEN_FILE:?set a protected secret file}
+  havre_release_database_url:
+    file: ${HAVRE_RELEASE_DATABASE_URL_FILE:?set a protected release-operator secret file}
+  havre_restore_database_url:
+    file: ${HAVRE_RESTORE_DATABASE_URL_FILE:?set an explicit offline restore target URL file}

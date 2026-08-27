@@ -1,0 +1,90 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_name": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,240}$",
+      "title": "Artifact Name",
+      "type": "string"
+    },
+    "artifact_sha256": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "artifact_size_bytes": {
+      "exclusiveMinimum": 0,
+      "title": "Artifact Size Bytes",
+      "type": "integer"
+    },
+    "backup_id": {
+      "format": "uuid",
+      "title": "Backup Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "erasure_ledger_sequence": {
+      "minimum": 0,
+      "title": "Erasure Ledger Sequence",
+      "type": "integer"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "migration_head": {
+      "pattern": "^[0-9]{4}_[a-z0-9_]+\\.sql$",
+      "title": "Migration Head",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "release_manifest_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Release Manifest Hash",
+      "type": "string"
+    },
+    "release_manifest_id": {
+      "format": "uuid",
+      "title": "Release Manifest Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_database_name": {
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]{0,62}$",
+      "title": "Source Database Name",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "artifact_name",
+    "artifact_sha256",
+    "artifact_size_bytes",
+    "source_database_name",
+    "migration_head",
+    "release_manifest_id",
+    "release_manifest_hash",
+    "erasure_ledger_sequence",
+    "expires_at"
+  ],
+  "title": "BackupManifest",
+  "type": "object"
+}

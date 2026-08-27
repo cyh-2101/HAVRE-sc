@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "RenderedTrainingExample": {
+      "additionalProperties": false,
+      "properties": {
+        "example_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{2,79}$",
+          "title": "Example Id",
+          "type": "string"
+        },
+        "input_token_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Input Token Ids",
+          "type": "array"
+        },
+        "rendered_text": {
+          "maxLength": 5000,
+          "minLength": 1,
+          "title": "Rendered Text",
+          "type": "string"
+        },
+        "source_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Source Content Hash",
+          "type": "string"
+        },
+        "target_token_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Target Token Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "example_id",
+        "rendered_text",
+        "input_token_ids",
+        "target_token_ids",
+        "source_content_hash"
+      ],
+      "title": "RenderedTrainingExample",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contains_user_data": {
+      "const": false,
+      "default": false,
+      "title": "Contains User Data",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "dataset_snapshot_id": {
+      "format": "uuid",
+      "title": "Dataset Snapshot Id",
+      "type": "string"
+    },
+    "examples": {
+      "items": {
+        "$ref": "#/$defs/RenderedTrainingExample"
+      },
+      "minItems": 4,
+      "title": "Examples",
+      "type": "array"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "local_only": {
+      "const": true,
+      "default": true,
+      "title": "Local Only",
+      "type": "boolean"
+    },
+    "model_version_id": {
+      "format": "uuid",
+      "title": "Model Version Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "rendered_artifact_id": {
+      "format": "uuid",
+      "title": "Rendered Artifact Id",
+      "type": "string"
+    },
+    "renderer_version": {
+      "const": "stage9-renderer-v1",
+      "default": "stage9-renderer-v1",
+      "title": "Renderer Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_member_manifest_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Source Member Manifest Hash",
+      "type": "string"
+    },
+    "tokenizer_version": {
+      "const": "hashed-tokenizer-v1",
+      "default": "hashed-tokenizer-v1",
+      "title": "Tokenizer Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "dataset_snapshot_id",
+    "model_version_id",
+    "examples",
+    "source_member_manifest_hash"
+  ],
+  "title": "RenderedTrainingArtifact",
+  "type": "object"
+}

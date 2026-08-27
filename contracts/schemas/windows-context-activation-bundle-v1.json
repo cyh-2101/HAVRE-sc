@@ -1,0 +1,648 @@
+{
+  "$defs": {
+    "CalendarImportPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "freshness": {
+          "const": "through_coverage_end",
+          "default": "through_coverage_end",
+          "title": "Freshness",
+          "type": "string"
+        },
+        "max_clock_skew_seconds": {
+          "maximum": 300,
+          "minimum": 0,
+          "title": "Max Clock Skew Seconds",
+          "type": "integer"
+        },
+        "max_coverage_seconds": {
+          "maximum": 17280000,
+          "minimum": 86400,
+          "title": "Max Coverage Seconds",
+          "type": "integer"
+        },
+        "mode": {
+          "const": "owner_initiated_import",
+          "default": "owner_initiated_import",
+          "title": "Mode",
+          "type": "string"
+        },
+        "offline_buffer_seconds": {
+          "default": 300,
+          "maximum": 300,
+          "minimum": 0,
+          "title": "Offline Buffer Seconds",
+          "type": "integer"
+        },
+        "policy_version": {
+          "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "policy_version",
+        "max_coverage_seconds",
+        "max_clock_skew_seconds"
+      ],
+      "title": "CalendarImportPolicy",
+      "type": "object"
+    },
+    "ConsentScopeRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Fields",
+          "type": "array"
+        },
+        "allowed_observation_kinds": {
+          "default": [
+            "device_activity_summary"
+          ],
+          "items": {
+            "enum": [
+              "device_activity_summary",
+              "calendar_availability_window"
+            ],
+            "type": "string"
+          },
+          "title": "Allowed Observation Kinds",
+          "type": "array"
+        },
+        "authorization_ref": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Authorization Ref",
+          "type": "string"
+        },
+        "capability_revision_id": {
+          "format": "uuid",
+          "title": "Capability Revision Id",
+          "type": "string"
+        },
+        "consent_scope_id": {
+          "format": "uuid",
+          "title": "Consent Scope Id",
+          "type": "string"
+        },
+        "consent_scope_revision_id": {
+          "format": "uuid",
+          "title": "Consent Scope Revision Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "data_policy": {
+          "$ref": "#/$defs/DataPolicy"
+        },
+        "effective_at": {
+          "format": "date-time",
+          "title": "Effective At",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "permitted_destinations": {
+          "default": [
+            "owner_core_local"
+          ],
+          "items": {
+            "const": "owner_core_local",
+            "type": "string"
+          },
+          "title": "Permitted Destinations",
+          "type": "array"
+        },
+        "purpose": {
+          "const": "companion_timing_context",
+          "default": "companion_timing_context",
+          "title": "Purpose",
+          "type": "string"
+        },
+        "retention_policy": {
+          "$ref": "#/$defs/RetentionPolicy"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "sampling_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SamplingPolicy"
+            },
+            {
+              "$ref": "#/$defs/CalendarImportPolicy"
+            }
+          ],
+          "title": "Sampling Policy"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_instance_id": {
+          "format": "uuid",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "revoked",
+            "expired"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "source_instance_id",
+        "capability_revision_id",
+        "revision",
+        "status",
+        "allowed_fields",
+        "sampling_policy",
+        "retention_policy",
+        "data_policy",
+        "effective_at",
+        "expires_at",
+        "authorization_ref"
+      ],
+      "title": "ConsentScopeRevision",
+      "type": "object"
+    },
+    "ContextSourceCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Fields",
+          "type": "array"
+        },
+        "capability_id": {
+          "enum": [
+            "windows.device_activity_summary.v1",
+            "calendar.read_availability.v1"
+          ],
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "capability_revision_id": {
+          "format": "uuid",
+          "title": "Capability Revision Id",
+          "type": "string"
+        },
+        "conformance_version": {
+          "default": "windows-coarse-adapter-conformance-v1",
+          "enum": [
+            "windows-coarse-adapter-conformance-v1",
+            "calendar-availability-adapter-conformance-v1"
+          ],
+          "title": "Conformance Version",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "observation_kind": {
+          "enum": [
+            "device_activity_summary",
+            "calendar_availability_window"
+          ],
+          "title": "Observation Kind",
+          "type": "string"
+        },
+        "observation_schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Observation Schema Version",
+          "type": "integer"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "precision": {
+          "default": "coarse_category_window",
+          "enum": [
+            "coarse_category_window",
+            "availability_only_no_content"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "revision": {
+          "const": 1,
+          "default": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "sampling_modes": {
+          "default": [
+            "bounded_interval"
+          ],
+          "items": {
+            "enum": [
+              "bounded_interval",
+              "owner_initiated_import"
+            ],
+            "type": "string"
+          },
+          "title": "Sampling Modes",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_instance_id": {
+          "format": "uuid",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "status": {
+          "const": "enabled",
+          "default": "enabled",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "source_instance_id",
+        "capability_id",
+        "observation_kind",
+        "allowed_fields"
+      ],
+      "title": "ContextSourceCapability",
+      "type": "object"
+    },
+    "ContextSourceDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "pattern": "^[a-z][a-z0-9_.-]{2,127}$",
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "content_hash": {
+          "default": "",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "device_binding_id": {
+          "pattern": "^[a-z][a-z0-9_.:-]{2,127}$",
+          "title": "Device Binding Id",
+          "type": "string"
+        },
+        "enrollment_status": {
+          "const": "enabled",
+          "default": "enabled",
+          "title": "Enrollment Status",
+          "type": "string"
+        },
+        "owner_id": {
+          "format": "uuid",
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "provider_account_binding": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Account Binding"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{1,95}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "provider_tenant_binding": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Tenant Binding"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_instance_id": {
+          "format": "uuid",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "windows",
+            "calendar"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "source_version": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_id",
+        "source_kind",
+        "provider_id",
+        "device_binding_id",
+        "adapter_version",
+        "source_version"
+      ],
+      "title": "ContextSourceDescriptor",
+      "type": "object"
+    },
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "RetentionPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_retention_days": {
+          "maximum": 365,
+          "minimum": 1,
+          "title": "Canonical Retention Days",
+          "type": "integer"
+        },
+        "expiry_action": {
+          "const": "erase_with_provenance_closure",
+          "default": "erase_with_provenance_closure",
+          "title": "Expiry Action",
+          "type": "string"
+        },
+        "normalized_draft_retention_seconds": {
+          "maximum": 86400,
+          "minimum": 0,
+          "title": "Normalized Draft Retention Seconds",
+          "type": "integer"
+        },
+        "policy_version": {
+          "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_native_retention_seconds": {
+          "const": 0,
+          "default": 0,
+          "title": "Source Native Retention Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "policy_version",
+        "normalized_draft_retention_seconds",
+        "canonical_retention_days"
+      ],
+      "title": "RetentionPolicy",
+      "type": "object"
+    },
+    "SamplingPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "fresh_for_seconds": {
+          "maximum": 3600,
+          "minimum": 60,
+          "title": "Fresh For Seconds",
+          "type": "integer"
+        },
+        "idle_threshold_seconds": {
+          "maximum": 3600,
+          "minimum": 60,
+          "title": "Idle Threshold Seconds",
+          "type": "integer"
+        },
+        "max_clock_skew_seconds": {
+          "maximum": 300,
+          "minimum": 0,
+          "title": "Max Clock Skew Seconds",
+          "type": "integer"
+        },
+        "mode": {
+          "const": "bounded_interval",
+          "default": "bounded_interval",
+          "title": "Mode",
+          "type": "string"
+        },
+        "offline_buffer_seconds": {
+          "maximum": 86400,
+          "minimum": 0,
+          "title": "Offline Buffer Seconds",
+          "type": "integer"
+        },
+        "policy_version": {
+          "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "sample_interval_seconds": {
+          "maximum": 300,
+          "minimum": 10,
+          "title": "Sample Interval Seconds",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "summary_window_seconds": {
+          "maximum": 3600,
+          "minimum": 60,
+          "title": "Summary Window Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "policy_version",
+        "sample_interval_seconds",
+        "summary_window_seconds",
+        "idle_threshold_seconds",
+        "fresh_for_seconds",
+        "max_clock_skew_seconds",
+        "offline_buffer_seconds"
+      ],
+      "title": "SamplingPolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "activation_id": {
+      "format": "uuid",
+      "title": "Activation Id",
+      "type": "string"
+    },
+    "capability": {
+      "$ref": "#/$defs/ContextSourceCapability"
+    },
+    "consent": {
+      "$ref": "#/$defs/ConsentScopeRevision"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "owner_activation_ref": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Owner Activation Ref",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source": {
+      "$ref": "#/$defs/ContextSourceDescriptor"
+    }
+  },
+  "required": [
+    "source",
+    "capability",
+    "consent",
+    "owner_activation_ref"
+  ],
+  "title": "WindowsContextActivationBundle",
+  "type": "object"
+}

@@ -1,0 +1,97 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,127}$",
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "device_binding_id": {
+      "pattern": "^[a-z][a-z0-9_.:-]{2,127}$",
+      "title": "Device Binding Id",
+      "type": "string"
+    },
+    "enrollment_status": {
+      "const": "enabled",
+      "default": "enabled",
+      "title": "Enrollment Status",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "provider_account_binding": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider Account Binding"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{1,95}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "provider_tenant_binding": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider Tenant Binding"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_instance_id": {
+      "format": "uuid",
+      "title": "Source Instance Id",
+      "type": "string"
+    },
+    "source_kind": {
+      "enum": [
+        "windows",
+        "calendar"
+      ],
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "source_version": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Source Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_kind",
+    "provider_id",
+    "device_binding_id",
+    "adapter_version",
+    "source_version"
+  ],
+  "title": "ContextSourceDescriptor",
+  "type": "object"
+}

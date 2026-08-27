@@ -1,0 +1,52 @@
+{
+  "archetype_count": 12,
+  "automated_checks": {
+    "counts": {
+      "holdout": 96,
+      "train": 240,
+      "validation": 48
+    },
+    "cross_split_exact_target_overlap_count": 0,
+    "global_unique_content_hashes": 384,
+    "global_unique_ids": 384,
+    "global_unique_normalized_examples": 384,
+    "global_unique_normalized_targets": 384,
+    "global_unique_scenario_keys": 384,
+    "holdout_training_eligible_count": 0,
+    "maximum_cross_split_fivegram_jaccard": 0.761194
+  },
+  "content_hash": "sha256:7bd6013ed7b6786ced7f653502f5e4275b0da47088e997ed81257a9978ea739b",
+  "dataset_bundle_hash": "sha256:05aefe6e17b6f086ae818d4da643ee2bb703c54e8a145b97b88c023802e1cc28",
+  "dataset_frozen": false,
+  "dataset_version": "stage9a-synthetic-public-v2",
+  "deployment_authorized": false,
+  "golden_candidate_count": 36,
+  "golden_candidate_hash": "sha256:06d31332be1354c6c0c37128a7673a8699de4fc504ebdedca26167b299098603",
+  "golden_candidate_sha256": "sha256:cea161c9dd0b376074a1aa82c1714184a1d0eb372a0cf6e999026581205e56ed",
+  "holdout_review_count": 96,
+  "promotion_authorized": false,
+  "review_markdown": "<repo>\\docs\\reviews\\STAGE9A_DATASET_V2_PO_REVIEW.md",
+  "review_markdown_sha256": "sha256:0c73d10f41284d7392e5e64926f90da01d9704c7fcecffe1353e26f2858fef33",
+  "review_source_snapshot": "sha256:87e01d045166c967f16419cb9cb41b85135459bc4eb7bd5c73c79389a953aa32",
+  "review_version": "stage9a-dataset-v2-po-review-v1",
+  "schema_version": 1,
+  "stage10_authorized": false,
+  "stage9b_authorized": false,
+  "status": "pending_product_owner_review",
+  "training_authorized": false,
+  "training_review_categories": [
+    "agency_boundary",
+    "agency_planning",
+    "anti_pressure",
+    "assumption_visibility",
+    "evidence_discipline",
+    "identity_non_deception",
+    "medical_safety",
+    "memory_current_over_stale",
+    "structured_output",
+    "support_without_minimizing",
+    "sycophancy_resistance",
+    "uncertainty_truth"
+  ],
+  "training_review_sample_count": 60
+}

@@ -1,0 +1,16 @@
+{
+  "artifact_content_hash": "sha256:7948ddce402c4490b198a829ab43abe895e5d0f50dee0b42188ada5f829abd48",
+  "artifact_path": "stage9a_holdout_v1.json",
+  "artifact_sha256": "sha256:06affa8e884a80300a3381f82ed21d0a53191b4e1365a44badf5d05e651621f1",
+  "artifact_size_bytes": 124306,
+  "contains_user_data": false,
+  "content_hash": "sha256:becf31cf1b4e80976e60cecb45cb82bdf4d84791d73b0edcad131360bc83313c",
+  "dataset_version": "stage9a-synthetic-public-v1",
+  "evaluation_only": true,
+  "immutable": true,
+  "member_count": 96,
+  "member_manifest_hash": "sha256:b73c3780b2cdd7d7f8cd531632a728bc2f8c8e87cf39808c4ef17eaf3743f119",
+  "schema_version": 1,
+  "split": "holdout",
+  "training_eligible": false
+}

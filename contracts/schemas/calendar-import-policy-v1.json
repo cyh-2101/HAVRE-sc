@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "freshness": {
+      "const": "through_coverage_end",
+      "default": "through_coverage_end",
+      "title": "Freshness",
+      "type": "string"
+    },
+    "max_clock_skew_seconds": {
+      "maximum": 300,
+      "minimum": 0,
+      "title": "Max Clock Skew Seconds",
+      "type": "integer"
+    },
+    "max_coverage_seconds": {
+      "maximum": 17280000,
+      "minimum": 86400,
+      "title": "Max Coverage Seconds",
+      "type": "integer"
+    },
+    "mode": {
+      "const": "owner_initiated_import",
+      "default": "owner_initiated_import",
+      "title": "Mode",
+      "type": "string"
+    },
+    "offline_buffer_seconds": {
+      "default": 300,
+      "maximum": 300,
+      "minimum": 0,
+      "title": "Offline Buffer Seconds",
+      "type": "integer"
+    },
+    "policy_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "policy_version",
+    "max_coverage_seconds",
+    "max_clock_skew_seconds"
+  ],
+  "title": "CalendarImportPolicy",
+  "type": "object"
+}

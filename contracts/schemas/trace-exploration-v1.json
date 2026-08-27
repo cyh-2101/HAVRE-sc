@@ -1,0 +1,171 @@
+{
+  "$defs": {
+    "TraceEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "relation": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Relation",
+          "type": "string"
+        },
+        "source_node_id": {
+          "title": "Source Node Id",
+          "type": "string"
+        },
+        "target_node_id": {
+          "title": "Target Node Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_node_id",
+        "target_node_id",
+        "relation"
+      ],
+      "title": "TraceEdge",
+      "type": "object"
+    },
+    "TraceNode": {
+      "additionalProperties": false,
+      "properties": {
+        "attributes": {
+          "additionalProperties": true,
+          "title": "Attributes",
+          "type": "object"
+        },
+        "content_redacted": {
+          "const": true,
+          "default": true,
+          "title": "Content Redacted",
+          "type": "boolean"
+        },
+        "node_id": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_kind": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Node Kind",
+          "type": "string"
+        },
+        "occurred_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurred At"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        }
+      },
+      "required": [
+        "node_id",
+        "node_kind"
+      ],
+      "title": "TraceNode",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "complete_for_registered_sources": {
+      "title": "Complete For Registered Sources",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/TraceEdge"
+      },
+      "title": "Edges",
+      "type": "array"
+    },
+    "missing_source_kinds": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Source Kinds",
+      "type": "array"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/TraceNode"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "omitted_content_fields": {
+      "default": [
+        "event payload",
+        "message content",
+        "rendered content",
+        "provider body"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Omitted Content Fields",
+      "type": "array"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "registered_source_kinds": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Registered Source Kinds",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "trace_id",
+    "nodes",
+    "edges",
+    "registered_source_kinds",
+    "complete_for_registered_sources"
+  ],
+  "title": "TraceExploration",
+  "type": "object"
+}

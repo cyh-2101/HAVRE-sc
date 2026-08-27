@@ -1,0 +1,50 @@
+{
+  "check_kind": "bounded_in_memory_exact_tokenizer_no_formal_artifact",
+  "checks": [
+    {
+      "all_context_labels_masked": true,
+      "assistant_token_count": 30,
+      "context_kind": "conversation",
+      "context_message_count": 3,
+      "example_id": "stage9a-train-0001",
+      "historical_assistant_message_count": 1,
+      "memory_injected": false,
+      "only_final_target_supervised": true,
+      "prompt_token_count": 233
+    },
+    {
+      "all_context_labels_masked": true,
+      "assistant_token_count": 22,
+      "context_kind": "conversation",
+      "context_message_count": 3,
+      "example_id": "stage9a-train-0109",
+      "historical_assistant_message_count": 1,
+      "memory_injected": true,
+      "only_final_target_supervised": true,
+      "prompt_token_count": 269
+    },
+    {
+      "all_context_labels_masked": true,
+      "assistant_token_count": 19,
+      "context_kind": "authorized_proactive_rendering",
+      "context_message_count": 1,
+      "example_id": "stage9a-train-0151",
+      "historical_assistant_message_count": 0,
+      "memory_injected": false,
+      "only_final_target_supervised": true,
+      "prompt_token_count": 224
+    }
+  ],
+  "completed_at": "2026-08-20T03:06:55.744923+00:00",
+  "content_hash": "sha256:5bd7a0a29f3bf08526c6eba6eda6edb13ede11cd466759849a7f143ce26c2641",
+  "dataset_bundle_hash": "sha256:13fa5a62ec6edc571c51468a8a07c2c362744236de0b418a0d9c543de0b586c4",
+  "execution_source_snapshot": "sha256:53da8353f9897c5395e0d3d4c6c61e39ed1e5c2ff04ff6e87be6d03c042f44ff",
+  "formal_rendered_artifact_created": false,
+  "holdout_memory_context_injected": true,
+  "holdout_memory_example_id": "stage9a-holdout-0043",
+  "renderer_version": "qwen3-v4-multiturn-final-target-no-thinking-v1",
+  "schema_version": 1,
+  "status": "passed",
+  "tokenizer_class": "Qwen2TokenizerFast",
+  "training_started": false
+}

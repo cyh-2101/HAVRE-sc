@@ -1,0 +1,167 @@
+{
+  "canonical_dataset_root": "<repo>\\mlsys\\training\\fixtures\\stage9a_v4",
+  "category_counts": {
+    "holdout": {
+      "appropriate_pressure": 6,
+      "casual_companion": 6,
+      "curiosity_banter": 6,
+      "disagreement_truthfulness": 6,
+      "evidence_uncertainty": 6,
+      "guide_scene": 6,
+      "identity_relation_truth": 6,
+      "memory_uncertainty_repair": 6,
+      "misattunement_repair": 6,
+      "prepare_scene": 6,
+      "proactive_followup": 6,
+      "progress_recognition": 6,
+      "quiet_companionship": 6,
+      "reflect_scene": 6,
+      "relational_continuity": 6,
+      "relationship_non_exclusivity": 6,
+      "safety_boundary": 6,
+      "structured_output": 6,
+      "warm_firm_action": 6,
+      "warm_presence": 6
+    },
+    "train": {
+      "appropriate_pressure": 15,
+      "casual_companion": 15,
+      "curiosity_banter": 15,
+      "disagreement_truthfulness": 15,
+      "evidence_uncertainty": 15,
+      "guide_scene": 15,
+      "identity_relation_truth": 15,
+      "memory_uncertainty_repair": 15,
+      "misattunement_repair": 15,
+      "prepare_scene": 15,
+      "proactive_followup": 15,
+      "progress_recognition": 15,
+      "quiet_companionship": 15,
+      "reflect_scene": 15,
+      "relational_continuity": 15,
+      "relationship_non_exclusivity": 15,
+      "safety_boundary": 15,
+      "structured_output": 15,
+      "warm_firm_action": 15,
+      "warm_presence": 15
+    },
+    "validation": {
+      "appropriate_pressure": 3,
+      "casual_companion": 3,
+      "curiosity_banter": 3,
+      "disagreement_truthfulness": 3,
+      "evidence_uncertainty": 3,
+      "guide_scene": 3,
+      "identity_relation_truth": 3,
+      "memory_uncertainty_repair": 3,
+      "misattunement_repair": 3,
+      "prepare_scene": 3,
+      "proactive_followup": 3,
+      "progress_recognition": 3,
+      "quiet_companionship": 3,
+      "reflect_scene": 3,
+      "relational_continuity": 3,
+      "relationship_non_exclusivity": 3,
+      "safety_boundary": 3,
+      "structured_output": 3,
+      "warm_firm_action": 3,
+      "warm_presence": 3
+    }
+  },
+  "content_hash": "sha256:a2c5739bebbc7745546cd80ec8eb8ba9d512e3e1f0bdf70ae9c3c9056ef0f179",
+  "counts": {
+    "holdout": 120,
+    "train": 300,
+    "validation": 60
+  },
+  "data_boundary_audit": {
+    "dataset": {
+      "counts": {
+        "holdout": 120,
+        "train": 300,
+        "validation": 60
+      },
+      "global_unique_ids": 480,
+      "global_unique_scenarios": 480,
+      "global_unique_targets": 480,
+      "memory_conditioned_counts": {
+        "holdout": 12,
+        "train": 36,
+        "validation": 9
+      },
+      "multi_turn_counts": {
+        "holdout": 56,
+        "train": 145,
+        "validation": 28
+      },
+      "proactive_rendering_counts": {
+        "holdout": 6,
+        "train": 15,
+        "validation": 3
+      },
+      "sub_archetype_cross_split_leakage": 0
+    },
+    "dataset_bundle_hash": "sha256:13fa5a62ec6edc571c51468a8a07c2c362744236de0b418a0d9c543de0b586c4",
+    "owner_alignment_case_count": 70,
+    "owner_alignment_content_hash": "sha256:610e4ef649ceb9abdca141caece31091ce8439742c35aab29d451d81c2530e53",
+    "owner_alignment_exact_overlap": {
+      "conversation": 0,
+      "input": 0,
+      "target": 0
+    },
+    "owner_alignment_file_sha256": "sha256:51152825976d42971413cdd9b18609a2392036f114d8f4177c2a8d446e1031e9",
+    "owner_alignment_member_manifest_hash": "sha256:14be44536b8cba16bd9f1f7e5820114f8c3e8817af5db464b6814e896b3ae685",
+    "owner_alignment_path_is_outside_training_dataset": true,
+    "owner_alignment_permanently_excluded": true
+  },
+  "dataset_version": "stage9a-havre-companion-v4-candidate-1",
+  "decision": null,
+  "external_candidate_bundle_hash": "sha256:13fa5a62ec6edc571c51468a8a07c2c362744236de0b418a0d9c543de0b586c4",
+  "gate": {
+    "deployment_authorized": false,
+    "formal_rendered_artifacts_present": false,
+    "formal_seeds_started": false,
+    "po_freeze_approval_present": false,
+    "promotion_authorized": false,
+    "stage10_authorized": false,
+    "stage9b_authorized": false,
+    "successful_and_failed_run_records_checked": true,
+    "training_authorized": false
+  },
+  "generated_at": "2026-08-20T03:10:34.879093+00:00",
+  "import_package": {
+    "package_manifest_sha256": "sha256:6790d539be80d1dddcf57208806032e31a4aee141bd77c1cdbb494fe902237be",
+    "package_version": "HAVRE_STAGE9A_V4_CANDIDATE_1",
+    "po_authored_review_path": "<repo>\\var\\stage9a\\imports\\HAVRE_STAGE9A_V4_CANDIDATE_1\\PO_REVIEW_v4.md",
+    "po_authored_review_sha256": "sha256:f8d5cc123da099e7a87e7904727817523ce23db13731ab1ece685271d09ce49e",
+    "verified_file_count": 16
+  },
+  "integration_contracts": {
+    "freeze_approval_revalidated_by_every_rendered_consumer": true,
+    "historical_assistant_context_label_masked": true,
+    "proactive_scope": "wording_after_core_authorized_send_now_only",
+    "reference_similarity_role": "diagnostic_only_not_primary_companion_quality",
+    "renderer_check_content_hash": "sha256:521021ebec42e69855872c6e56b70ec23116821c0f764333cc3d2424213f97d2",
+    "renderer_check_sha256": "sha256:eb9e6534f5e05d912a567f44fe75289c8d612307562acc3fd3c341252d633419",
+    "renderer_version": "qwen3-v4-multiturn-final-target-no-thinking-v1",
+    "rubric_version": "havre-behavioral-rubric-v4",
+    "scorer_version": "havre-behavioral-scorer-v4-repo-1",
+    "selective_synthetic_memory": true,
+    "supervision_policy": "final_havre_target_only"
+  },
+  "owner_alignment": {
+    "hyperparameter_tuning_eligible": false,
+    "path": "<repo>\\var\\stage9a\\evaluation\\owner-alignment-set-70-v1\\OWNER_ALIGNMENT_SET_70_v1.json",
+    "permanently_evaluation_only": true,
+    "prompt_tuning_eligible": false,
+    "synthetic_generation_input_eligible": false,
+    "training_eligible": false,
+    "validation_for_training": false
+  },
+  "repo_native_dataset_bundle_hash": "sha256:13fa5a62ec6edc571c51468a8a07c2c362744236de0b418a0d9c543de0b586c4",
+  "repo_native_matches_external": true,
+  "review_kind": "stage9a_dataset_v4_product_owner_freeze_gate",
+  "review_source_snapshot": "sha256:a2c88644e122d8d51ecc57b11c122e3246abef816bc5d743706199a1605afebe",
+  "schema_version": 1,
+  "status": "pending_product_owner_freeze"
+}

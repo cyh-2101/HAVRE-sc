@@ -1,0 +1,144 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version": {
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "capability_revision_id": {
+      "format": "uuid",
+      "title": "Capability Revision Id",
+      "type": "string"
+    },
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "coverage_from": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Coverage From"
+    },
+    "coverage_to": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Coverage To"
+    },
+    "health_id": {
+      "format": "uuid",
+      "title": "Health Id",
+      "type": "string"
+    },
+    "last_successful_observation_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Successful Observation At"
+    },
+    "last_successful_observation_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Successful Observation Id"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "safe_error_category": {
+      "anyOf": [
+        {
+          "maxLength": 100,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Safe Error Category"
+    },
+    "schema_version": {
+      "const": 2,
+      "default": 2,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_instance_id": {
+      "format": "uuid",
+      "title": "Source Instance Id",
+      "type": "string"
+    },
+    "source_version": {
+      "title": "Source Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "unknown",
+        "healthy",
+        "degraded",
+        "stale",
+        "offline",
+        "permission_revoked",
+        "unsupported"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_instance_id",
+    "capability_revision_id",
+    "status",
+    "checked_at",
+    "adapter_version",
+    "source_version",
+    "trace_id"
+  ],
+  "title": "ContextSourceHealthV2",
+  "type": "object"
+}

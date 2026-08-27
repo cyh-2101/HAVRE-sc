@@ -1,0 +1,79 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "absence_verified": {
+      "const": true,
+      "title": "Absence Verified",
+      "type": "boolean"
+    },
+    "backup_id": {
+      "format": "uuid",
+      "title": "Backup Id",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "directives_applied": {
+      "minimum": 0,
+      "title": "Directives Applied",
+      "type": "integer"
+    },
+    "ledger_sequence_from": {
+      "minimum": 0,
+      "title": "Ledger Sequence From",
+      "type": "integer"
+    },
+    "ledger_sequence_through": {
+      "minimum": 0,
+      "title": "Ledger Sequence Through",
+      "type": "integer"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "provenance_violations": {
+      "const": 0,
+      "title": "Provenance Violations",
+      "type": "integer"
+    },
+    "replay_id": {
+      "format": "uuid",
+      "title": "Replay Id",
+      "type": "string"
+    },
+    "restored_database_name": {
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]{0,62}$",
+      "title": "Restored Database Name",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "replay_id",
+    "owner_id",
+    "backup_id",
+    "restored_database_name",
+    "ledger_sequence_from",
+    "ledger_sequence_through",
+    "directives_applied",
+    "absence_verified",
+    "provenance_violations"
+  ],
+  "title": "RestoreErasureReplay",
+  "type": "object"
+}

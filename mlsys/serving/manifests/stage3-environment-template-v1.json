@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "template_id": "stage3-local-inference-environment-v1",
+  "artifact_kind": "environment_manifest_template",
+  "immutable": true,
+  "captured_at": null,
+  "system_under_test": {
+    "code_revision": null,
+    "serving_engine_manifest_id": "serving-engine-llama-cpp-b10405-win-cuda-12.4-x64",
+    "model_manifest_id": "model-qwen3-8b-gguf-q4-k-m-7c41481f",
+    "serving_config_id": "stage3-qwen3-8b-q4-k-m-llama-cpp-b10405-v1"
+  },
+  "hardware": {
+    "machine_model": null,
+    "cpu_model": null,
+    "physical_cores": null,
+    "logical_processors": null,
+    "ram_bytes": null,
+    "storage_model": null,
+    "storage_free_bytes": null,
+    "gpu_model": null,
+    "gpu_count": null,
+    "gpu_memory_bytes": null,
+    "gpu_compute_capability": null
+  },
+  "software": {
+    "operating_system": null,
+    "operating_system_build": null,
+    "nvidia_driver": null,
+    "driver_reported_cuda": null,
+    "powershell_version": null
+  },
+  "serving": {
+    "base_url": "http://127.0.0.1:8080",
+    "context_tokens": 8192,
+    "parallel_slots": 2,
+    "gpu_layers": "all",
+    "flash_attention": true,
+    "jinja_chat_template": true,
+    "request_logging": false,
+    "web_ui": false,
+    "metrics_path": "/metrics",
+    "streaming_transport": "sse",
+    "thinking_enabled": false
+  },
+  "runtime_observations": {
+    "power_plan": null,
+    "gpu_power_limit_watts": null,
+    "available_ram_bytes_before_load": null,
+    "available_gpu_memory_bytes_before_load": null,
+    "shared_host_contention_notes": null
+  }
+}

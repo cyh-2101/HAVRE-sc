@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "governance_version": "governance-v1",
+  "approved_at": "2026-08-13T00:00:00Z",
+  "approved_by": "owner",
+  "owner_only_declassification": true,
+  "training_eligible_default": false,
+  "material_approval_required_for": [
+    "constitution",
+    "core_identity",
+    "core_values",
+    "privacy_rules",
+    "safety_boundaries",
+    "intervention_authority",
+    "training_data_policy",
+    "personalized_production_model_releases"
+  ],
+  "intentionally_unresolved": [
+    "outcome_scales",
+    "scene_signals",
+    "belief_confidence_algorithms",
+    "follow_up_cadence",
+    "quantitative_intervention_thresholds"
+  ]
+}

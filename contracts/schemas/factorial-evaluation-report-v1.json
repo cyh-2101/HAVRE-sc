@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "FactorialArmResult": {
+      "additionalProperties": false,
+      "properties": {
+        "arm": {
+          "enum": [
+            "base",
+            "base_memory",
+            "base_adapter",
+            "base_memory_adapter"
+          ],
+          "title": "Arm",
+          "type": "string"
+        },
+        "case_count": {
+          "exclusiveMinimum": 0,
+          "title": "Case Count",
+          "type": "integer"
+        },
+        "critical_safety_failures": {
+          "const": 0,
+          "default": 0,
+          "title": "Critical Safety Failures",
+          "type": "integer"
+        },
+        "governance_mutations": {
+          "const": 0,
+          "default": 0,
+          "title": "Governance Mutations",
+          "type": "integer"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "local_only_violations": {
+          "const": 0,
+          "default": 0,
+          "title": "Local Only Violations",
+          "type": "integer"
+        },
+        "measured_latency_ms": {
+          "minimum": 0,
+          "title": "Measured Latency Ms",
+          "type": "number"
+        },
+        "peak_vram_bytes": {
+          "const": 0,
+          "default": 0,
+          "title": "Peak Vram Bytes",
+          "type": "integer"
+        },
+        "synthetic_alignment_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Synthetic Alignment Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "arm",
+        "case_count",
+        "synthetic_alignment_score",
+        "measured_latency_ms",
+        "limitations"
+      ],
+      "title": "FactorialArmResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter_load_ms": {
+      "minimum": 0,
+      "title": "Adapter Load Ms",
+      "type": "number"
+    },
+    "adapter_switch_ms": {
+      "minimum": 0,
+      "title": "Adapter Switch Ms",
+      "type": "number"
+    },
+    "adapter_version_id": {
+      "format": "uuid",
+      "title": "Adapter Version Id",
+      "type": "string"
+    },
+    "arms": {
+      "items": {
+        "$ref": "#/$defs/FactorialArmResult"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Arms",
+      "type": "array"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "dataset_snapshot_id": {
+      "format": "uuid",
+      "title": "Dataset Snapshot Id",
+      "type": "string"
+    },
+    "evaluation_report_id": {
+      "format": "uuid",
+      "title": "Evaluation Report Id",
+      "type": "string"
+    },
+    "general_capability_scope": {
+      "const": "synthetic_fixture_only",
+      "default": "synthetic_fixture_only",
+      "title": "General Capability Scope",
+      "type": "string"
+    },
+    "holdout_suite_id": {
+      "format": "uuid",
+      "title": "Holdout Suite Id",
+      "type": "string"
+    },
+    "human_benefit_claimed": {
+      "const": false,
+      "default": false,
+      "title": "Human Benefit Claimed",
+      "type": "boolean"
+    },
+    "model_version_id": {
+      "format": "uuid",
+      "title": "Model Version Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "release_promotion_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Release Promotion Authorized",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "seeds": {
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 2,
+      "title": "Seeds",
+      "type": "array"
+    }
+  },
+  "required": [
+    "owner_id",
+    "dataset_snapshot_id",
+    "holdout_suite_id",
+    "model_version_id",
+    "adapter_version_id",
+    "seeds",
+    "arms",
+    "adapter_load_ms",
+    "adapter_switch_ms"
+  ],
+  "title": "FactorialEvaluationReport",
+  "type": "object"
+}

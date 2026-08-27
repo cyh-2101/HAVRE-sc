@@ -1,0 +1,69 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "applied_artifact_ref": {
+      "default": null,
+      "title": "Applied Artifact Ref",
+      "type": "null"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "accepted",
+        "rejected"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "lifecycle_proposal_id": {
+      "format": "uuid",
+      "title": "Lifecycle Proposal Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "review_id": {
+      "format": "uuid",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "reviewed_at": {
+      "format": "date-time",
+      "title": "Reviewed At",
+      "type": "string"
+    },
+    "reviewer": {
+      "const": "owner",
+      "default": "owner",
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "owner_id",
+    "lifecycle_proposal_id",
+    "decision",
+    "reason"
+  ],
+  "title": "MemoryLifecycleReview",
+  "type": "object"
+}

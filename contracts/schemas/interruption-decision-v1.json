@@ -1,0 +1,278 @@
+{
+  "$defs": {
+    "InterruptionInputs": {
+      "additionalProperties": false,
+      "properties": {
+        "category_budget_result": {
+          "enum": [
+            "available",
+            "exhausted",
+            "unresolved"
+          ],
+          "title": "Category Budget Result",
+          "type": "string"
+        },
+        "category_permission": {
+          "enum": [
+            "allowed",
+            "denied",
+            "confirmation_required",
+            "unresolved"
+          ],
+          "title": "Category Permission",
+          "type": "string"
+        },
+        "channel_eligibility": {
+          "enum": [
+            "eligible",
+            "ineligible",
+            "unresolved"
+          ],
+          "title": "Channel Eligibility",
+          "type": "string"
+        },
+        "cooldown_result": {
+          "enum": [
+            "clear",
+            "active",
+            "unresolved"
+          ],
+          "title": "Cooldown Result",
+          "type": "string"
+        },
+        "deduplication_result": {
+          "enum": [
+            "unique",
+            "duplicate",
+            "unresolved"
+          ],
+          "title": "Deduplication Result",
+          "type": "string"
+        },
+        "expiration_result": {
+          "enum": [
+            "eligible",
+            "not_yet",
+            "expired"
+          ],
+          "title": "Expiration Result",
+          "type": "string"
+        },
+        "global_budget_result": {
+          "enum": [
+            "available",
+            "exhausted",
+            "unresolved"
+          ],
+          "title": "Global Budget Result",
+          "type": "string"
+        },
+        "global_permission": {
+          "enum": [
+            "enabled",
+            "disabled",
+            "unresolved"
+          ],
+          "title": "Global Permission",
+          "type": "string"
+        },
+        "prior_response_result": {
+          "default": "none",
+          "enum": [
+            "none",
+            "responded",
+            "dismissed",
+            "snoozed",
+            "non_response",
+            "stopped"
+          ],
+          "title": "Prior Response Result",
+          "type": "string"
+        },
+        "privacy_eligibility": {
+          "enum": [
+            "eligible",
+            "ineligible",
+            "unresolved"
+          ],
+          "title": "Privacy Eligibility",
+          "type": "string"
+        },
+        "quiet_hours_result": {
+          "enum": [
+            "inside",
+            "outside",
+            "unresolved"
+          ],
+          "title": "Quiet Hours Result",
+          "type": "string"
+        },
+        "subject_stop_result": {
+          "enum": [
+            "clear",
+            "stopped"
+          ],
+          "title": "Subject Stop Result",
+          "type": "string"
+        }
+      },
+      "required": [
+        "global_permission",
+        "category_permission",
+        "quiet_hours_result",
+        "global_budget_result",
+        "category_budget_result",
+        "cooldown_result",
+        "deduplication_result",
+        "expiration_result",
+        "channel_eligibility",
+        "privacy_eligibility",
+        "subject_stop_result"
+      ],
+      "title": "InterruptionInputs",
+      "type": "object"
+    },
+    "InterruptionOutcome": {
+      "enum": [
+        "SEND_NOW",
+        "DEFER",
+        "DROP",
+        "REQUEST_OWNER_CONFIRMATION"
+      ],
+      "title": "InterruptionOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "constitution_version_id": {
+      "title": "Constitution Version Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/InterruptionOutcome"
+    },
+    "defer_until": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Defer Until"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "external_delivery_authorized": {
+      "const": false,
+      "default": false,
+      "title": "External Delivery Authorized",
+      "type": "boolean"
+    },
+    "human_explanation": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Human Explanation",
+      "type": "string"
+    },
+    "identity_version_id": {
+      "title": "Identity Version Id",
+      "type": "string"
+    },
+    "inputs_snapshot": {
+      "$ref": "#/$defs/InterruptionInputs"
+    },
+    "interruption_decision_id": {
+      "format": "uuid",
+      "title": "Interruption Decision Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "policy_version": {
+      "const": "interruption-policy-conservative-v1",
+      "default": "interruption-policy-conservative-v1",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "preference_revision_id": {
+      "format": "uuid",
+      "title": "Preference Revision Id",
+      "type": "string"
+    },
+    "proposal_id": {
+      "format": "uuid",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "reason_codes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "rendering_constraints": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Rendering Constraints",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "simulation_only": {
+      "const": true,
+      "default": true,
+      "title": "Simulation Only",
+      "type": "boolean"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "proposal_id",
+    "decision",
+    "reason_codes",
+    "human_explanation",
+    "preference_revision_id",
+    "constitution_version_id",
+    "identity_version_id",
+    "inputs_snapshot",
+    "expires_at",
+    "rendering_constraints",
+    "trace_id"
+  ],
+  "title": "InterruptionDecision",
+  "type": "object"
+}

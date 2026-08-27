@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "BeliefTransitionType": {
+      "enum": [
+        "activated",
+        "counter_evidence_recorded",
+        "contradicted",
+        "superseded",
+        "retracted",
+        "invalidated"
+      ],
+      "title": "BeliefTransitionType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "belief_id": {
+      "format": "uuid",
+      "title": "Belief Id",
+      "type": "string"
+    },
+    "belief_revision": {
+      "exclusiveMinimum": 0,
+      "title": "Belief Revision",
+      "type": "integer"
+    },
+    "belief_transition_id": {
+      "format": "uuid",
+      "title": "Belief Transition Id",
+      "type": "string"
+    },
+    "causing_event_id": {
+      "format": "uuid",
+      "title": "Causing Event Id",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "replacement_belief_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Replacement Belief Id"
+    },
+    "replacement_revision": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Replacement Revision"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "transition_type": {
+      "$ref": "#/$defs/BeliefTransitionType"
+    }
+  },
+  "required": [
+    "owner_id",
+    "belief_id",
+    "belief_revision",
+    "transition_type",
+    "occurred_at",
+    "reason",
+    "causing_event_id"
+  ],
+  "title": "BeliefTransition",
+  "type": "object"
+}

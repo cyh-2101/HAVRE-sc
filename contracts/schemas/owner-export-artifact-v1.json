@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "media_type": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Media Type",
+      "type": "string"
+    },
+    "relative_path": {
+      "pattern": "^[a-z0-9][a-z0-9._/-]{1,500}$",
+      "title": "Relative Path",
+      "type": "string"
+    },
+    "row_count": {
+      "minimum": 0,
+      "title": "Row Count",
+      "type": "integer"
+    },
+    "sha256": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    },
+    "size_bytes": {
+      "minimum": 0,
+      "title": "Size Bytes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "relative_path",
+    "media_type",
+    "sha256",
+    "size_bytes",
+    "row_count"
+  ],
+  "title": "ExportArtifact",
+  "type": "object"
+}

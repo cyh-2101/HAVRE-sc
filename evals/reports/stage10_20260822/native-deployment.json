@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "stage10-native-deployment-reliability-v1",
+  "measured_at": "2026-08-21T18:42:00Z",
+  "source_revision": "22700334eb375e1ee21283ca9d40efe5650cd8ec",
+  "deployment_source_snapshot": "sha256:52cdecdc609c7805514f4fd4fa206ac1ddee7cdbc4b7851f1b4380145eb69457",
+  "migration_head": "0034_stage10_backup_fk_index.sql",
+  "environment": {
+    "host": "Windows 11",
+    "docker_desktop": "4.87.0",
+    "docker_engine": "29.7.2",
+    "docker_compose": "5.4.0",
+    "registry": "loopback-only localhost:5000"
+  },
+  "images": {
+    "api": "localhost:5000/havre-stage10@sha256:8dca9bdd550c228b263ec5f858a02afd637501a9918a90ceed5643769577dc93",
+    "operations": "localhost:5000/havre-stage10-operations@sha256:da921dcff322ede1bb4de89e847d0a0732eded93e8808061737fbcbc8a6ede0c",
+    "postgres": "pgvector/pgvector@sha256:2ba9ca5f2e7daa0f0e7723cba1ee9167bab54efd3640516a44ac1a928dd67e7a",
+    "caddy": "caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d"
+  },
+  "release": {
+    "manifest_hash": "sha256:e770502ef13bc56a03115e9fdc3d6018863bc47ff0c3a68df5fbda4d74a626b5",
+    "release_scope": "infrastructure_only",
+    "approval_id": "01a02599-1c97-74e4-9816-3319222742c2",
+    "approval_hash": "sha256:499769564f4b8e971569001a72d7cbde12f77737053d1a9255324a2fb0060ee7",
+    "deployment_id": "01a0259a-50f1-7cd4-8a81-6d5e8b6a5d8e",
+    "deployment_status": "applied",
+    "adapter_deployment_authorized": false,
+    "adapter_promoted": false
+  },
+  "native_checks": {
+    "fresh_postgresql_18_volume_migrated_0001_through_0034": true,
+    "owner_bootstrapped": true,
+    "preapply_https_status": 200,
+    "preapply_hsts_present": true,
+    "preapply_release_active": false,
+    "preapply_authenticated_behavior_status": 503,
+    "postapply_release_active": true,
+    "postapply_behavior_status": 503,
+    "postapply_behavior_reason": "infrastructure-only release",
+    "api_image_matches_manifest_digest": true,
+    "postgres_health": "healthy",
+    "api_health": "healthy",
+    "restart_policy": "unless-stopped",
+    "exact_image_restart_probe_count": 1,
+    "database_failure_ready_status": 503,
+    "database_recovery_ready_status": 200
+  },
+  "distinct_image_deploy_and_rollback": {
+    "first_api_digest": "sha256:21ef460dcc5a8c6219144aec02c65cb727c484ea78e21e6ee2273ed86b7a107b",
+    "second_api_digest": "sha256:802d62b2cc02c1625d2d1fa8ac593cd6d4d2c756050d7d1607ff456313aa87c3",
+    "second_deployment_id": "01a02589-9ed6-7b76-9b35-1dd71d7cb88f",
+    "rollback_deployment_id": "01a0258b-1260-7cc5-982d-d945e3a3ea07",
+    "runtime_switched_to_second_digest": true,
+    "runtime_switched_back_to_first_digest": true,
+    "rollback_gate_passed": true
+  },
+  "backup_restore": {
+    "backup_id": "01a0259e-c641-76e2-9307-bc7306a586f6",
+    "backup_manifest_hash": "sha256:091f7de03f315550a4abc17aade1e5ec7237346807d24f5184f07e0921b15212",
+    "backup_artifact_hash": "sha256:2ae8cc71c8b8b73dae8e1c152c5379335aa7591057eba18c443a3cfec6de0869",
+    "backup_ledger_watermark": 1,
+    "post_backup_erasure_sequence": 2,
+    "restore_id": "0ab2939d-dff5-4d4d-83e7-f84e8f12b9c0",
+    "replayed_directives": 1,
+    "restored_source_absent": true,
+    "restored_private_marker_absent": true,
+    "absence_verified": true,
+    "provenance_violations": 0,
+    "restore_login_object_ownership_after_finalize": 0,
+    "four_actual_logins_distinct": true,
+    "four_actual_login_boundaries_passed": true,
+    "restored_api_preflight_status": 200,
+    "restored_release_preflight_verified": true,
+    "restored_applied_deployment_verified": true
+  },
+  "privacy_operations": {
+    "owner_export_id": "01a025a0-d155-7ef9-b2bb-038b7cd4ff03",
+    "owner_export_hash": "sha256:cc1c7d3b945ec087787757af4d8b1bc9bea831e945d13e697b18cdcb819e3c9f",
+    "owner_export_verified": true,
+    "synthetic_private_events_erased": 2,
+    "private_oa70_accessed": false,
+    "external_data_transfer": false
+  },
+  "regression": {
+    "primary_tests_passed": 328,
+    "isolated_stage9a_tests_passed": 57,
+    "total_tests_passed": 385,
+    "skipped_database_tests": 0,
+    "provenance_violations": 0,
+    "stage4_through_stage10_fk_index_violations": 0,
+    "pip_check_passed": true,
+    "compileall_passed": true,
+    "diff_check_passed": true
+  },
+  "limits": [
+    "This is owner-local infrastructure evidence, not a public production launch.",
+    "The deployed provider is a deterministic candidate fixture and behavioral routes remain unavailable.",
+    "No adapter was promoted or deployed and Stage 9B was not started.",
+    "No real private user data was used; all destructive drills used bounded synthetic fixtures."
+  ],
+  "passed": true
+}

@@ -1,0 +1,357 @@
+{
+  "$defs": {
+    "CalendarAvailabilityWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "busy_intervals": {
+          "items": {
+            "$ref": "#/$defs/CalendarBusyInterval"
+          },
+          "maxItems": 512,
+          "title": "Busy Intervals",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "busy_intervals"
+      ],
+      "title": "CalendarAvailabilityWindow",
+      "type": "object"
+    },
+    "CalendarBusyInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "availability": {
+          "enum": [
+            "busy",
+            "tentative",
+            "out_of_office",
+            "working_elsewhere"
+          ],
+          "title": "Availability",
+          "type": "string"
+        },
+        "ends_at": {
+          "format": "date-time",
+          "title": "Ends At",
+          "type": "string"
+        },
+        "is_all_day": {
+          "title": "Is All Day",
+          "type": "boolean"
+        },
+        "starts_at": {
+          "format": "date-time",
+          "title": "Starts At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "starts_at",
+        "ends_at",
+        "availability",
+        "is_all_day"
+      ],
+      "title": "CalendarBusyInterval",
+      "type": "object"
+    },
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "DeviceActivitySummary": {
+      "additionalProperties": false,
+      "properties": {
+        "active_seconds": {
+          "maximum": 3600,
+          "minimum": 0,
+          "title": "Active Seconds",
+          "type": "integer"
+        },
+        "activity_state": {
+          "enum": [
+            "active",
+            "idle",
+            "unknown"
+          ],
+          "title": "Activity State",
+          "type": "string"
+        },
+        "dominant_category": {
+          "enum": [
+            "browser",
+            "communication",
+            "development",
+            "game",
+            "media",
+            "office",
+            "other",
+            "system",
+            "unknown"
+          ],
+          "title": "Dominant Category",
+          "type": "string"
+        },
+        "idle_seconds": {
+          "maximum": 3600,
+          "minimum": 0,
+          "title": "Idle Seconds",
+          "type": "integer"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "maximum": 360,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "window_seconds": {
+          "maximum": 3600,
+          "minimum": 60,
+          "title": "Window Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "dominant_category",
+        "activity_state",
+        "active_seconds",
+        "idle_seconds",
+        "sample_count",
+        "window_seconds"
+      ],
+      "title": "DeviceActivitySummary",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,127}$",
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "capability_id": {
+      "enum": [
+        "windows.device_activity_summary.v1",
+        "calendar.read_availability.v1"
+      ],
+      "title": "Capability Id",
+      "type": "string"
+    },
+    "capability_revision_id": {
+      "format": "uuid",
+      "title": "Capability Revision Id",
+      "type": "string"
+    },
+    "consent_scope_revision_id": {
+      "format": "uuid",
+      "title": "Consent Scope Revision Id",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "device_binding_id": {
+      "pattern": "^[a-z][a-z0-9_.:-]{2,127}$",
+      "title": "Device Binding Id",
+      "type": "string"
+    },
+    "draft_id": {
+      "format": "uuid",
+      "title": "Draft Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "observation_kind": {
+      "enum": [
+        "device_activity_summary",
+        "calendar_availability_window"
+      ],
+      "title": "Observation Kind",
+      "type": "string"
+    },
+    "observation_schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Observation Schema Version",
+      "type": "integer"
+    },
+    "occurred_from": {
+      "format": "date-time",
+      "title": "Occurred From",
+      "type": "string"
+    },
+    "occurred_to": {
+      "format": "date-time",
+      "title": "Occurred To",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "retention_policy_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+      "title": "Retention Policy Version",
+      "type": "string"
+    },
+    "sampling_policy_version": {
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$",
+      "title": "Sampling Policy Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "signature": {
+      "default": "",
+      "pattern": "^(|hmac-sha256:[0-9a-f]{64})$",
+      "title": "Signature",
+      "type": "string"
+    },
+    "source_instance_id": {
+      "format": "uuid",
+      "title": "Source Instance Id",
+      "type": "string"
+    },
+    "source_observed_at": {
+      "format": "date-time",
+      "title": "Source Observed At",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DeviceActivitySummary"
+        },
+        {
+          "$ref": "#/$defs/CalendarAvailabilityWindow"
+        }
+      ],
+      "title": "Value"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_instance_id",
+    "device_binding_id",
+    "capability_revision_id",
+    "capability_id",
+    "observation_kind",
+    "value",
+    "occurred_from",
+    "occurred_to",
+    "source_observed_at",
+    "consent_scope_revision_id",
+    "sampling_policy_version",
+    "retention_policy_version",
+    "adapter_version",
+    "data_policy",
+    "idempotency_key",
+    "trace_id"
+  ],
+  "title": "ContextObservationDraft",
+  "type": "object"
+}

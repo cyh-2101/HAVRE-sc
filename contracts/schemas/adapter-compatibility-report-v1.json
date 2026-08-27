@@ -1,0 +1,79 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "adapter_version_id": {
+      "format": "uuid",
+      "title": "Adapter Version Id",
+      "type": "string"
+    },
+    "checked_base_artifact_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Checked Base Artifact Hash",
+      "type": "string"
+    },
+    "compatibility_report_id": {
+      "format": "uuid",
+      "title": "Compatibility Report Id",
+      "type": "string"
+    },
+    "compatible": {
+      "title": "Compatible",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "load_performed": {
+      "const": false,
+      "default": false,
+      "title": "Load Performed",
+      "type": "boolean"
+    },
+    "loader_version": {
+      "const": "candidate-adapter-loader-v1",
+      "default": "candidate-adapter-loader-v1",
+      "title": "Loader Version",
+      "type": "string"
+    },
+    "mismatch_codes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Mismatch Codes",
+      "type": "array"
+    },
+    "model_version_id": {
+      "format": "uuid",
+      "title": "Model Version Id",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "tokenizer_version": {
+      "title": "Tokenizer Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "adapter_version_id",
+    "model_version_id",
+    "checked_base_artifact_hash",
+    "tokenizer_version",
+    "compatible"
+  ],
+  "title": "AdapterCompatibilityReport",
+  "type": "object"
+}

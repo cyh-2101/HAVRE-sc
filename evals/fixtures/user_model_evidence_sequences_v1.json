@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "suite_version": "user-model-evidence-sequences-v1",
+  "synthetic": true,
+  "pattern_cases": [
+    {
+      "case_id": "one-bad-day-is-not-a-pattern",
+      "observations": [
+        {
+          "source_id": "10000000-0000-7000-8000-000000000001",
+          "occurred_at": "2026-07-01T09:00:00Z",
+          "supports_pattern": true
+        }
+      ],
+      "expected_eligible": false,
+      "expected_counter_evidence_count": 0
+    },
+    {
+      "case_id": "same-day-repetition-is-not-stable",
+      "observations": [
+        {
+          "source_id": "10000000-0000-7000-8000-000000000002",
+          "occurred_at": "2026-07-02T09:00:00Z",
+          "supports_pattern": true
+        },
+        {
+          "source_id": "10000000-0000-7000-8000-000000000003",
+          "occurred_at": "2026-07-02T18:00:00Z",
+          "supports_pattern": true
+        }
+      ],
+      "expected_eligible": false,
+      "expected_counter_evidence_count": 0
+    },
+    {
+      "case_id": "distinct-days-open-proposal-only",
+      "observations": [
+        {
+          "source_id": "10000000-0000-7000-8000-000000000004",
+          "occurred_at": "2026-07-03T09:00:00Z",
+          "supports_pattern": true
+        },
+        {
+          "source_id": "10000000-0000-7000-8000-000000000005",
+          "occurred_at": "2026-07-10T09:00:00Z",
+          "supports_pattern": true
+        }
+      ],
+      "expected_eligible": true,
+      "expected_counter_evidence_count": 0
+    },
+    {
+      "case_id": "counter-evidence-is-retained",
+      "observations": [
+        {
+          "source_id": "10000000-0000-7000-8000-000000000006",
+          "occurred_at": "2026-07-04T09:00:00Z",
+          "supports_pattern": true
+        },
+        {
+          "source_id": "10000000-0000-7000-8000-000000000007",
+          "occurred_at": "2026-07-11T09:00:00Z",
+          "supports_pattern": true
+        },
+        {
+          "source_id": "10000000-0000-7000-8000-000000000008",
+          "occurred_at": "2026-07-12T09:00:00Z",
+          "supports_pattern": false
+        }
+      ],
+      "expected_eligible": true,
+      "expected_counter_evidence_count": 1
+    }
+  ],
+  "belief_replay_cases": [
+    {
+      "case_id": "late-learned-old-valid-time",
+      "revisions": [
+        {
+          "revision": 1,
+          "statement": "The preference applied during July.",
+          "initial_status": "active",
+          "created_at": "2026-08-10T10:00:00Z",
+          "valid_from": "2026-07-01T00:00:00Z",
+          "valid_to": "2026-07-31T23:59:59Z"
+        }
+      ],
+      "transitions": [],
+      "queries": [
+        {
+          "known_as_of": "2026-08-09T23:59:59Z",
+          "valid_at": "2026-07-15T00:00:00Z",
+          "expected_revision": null,
+          "expected_status": null
+        },
+        {
+          "known_as_of": "2026-08-11T00:00:00Z",
+          "valid_at": "2026-07-15T00:00:00Z",
+          "expected_revision": 1,
+          "expected_status": "active"
+        }
+      ]
+    },
+    {
+      "case_id": "correction-preserves-prior-known-state",
+      "revisions": [
+        {
+          "revision": 1,
+          "statement": "The user always avoids unfamiliar groups.",
+          "initial_status": "active",
+          "created_at": "2026-08-01T10:00:00Z",
+          "valid_from": "2026-07-01T00:00:00Z",
+          "valid_to": null
+        },
+        {
+          "revision": 2,
+          "statement": "The user sometimes anticipates rejection in unfamiliar groups.",
+          "initial_status": "active",
+          "created_at": "2026-08-10T10:00:00Z",
+          "valid_from": "2026-07-01T00:00:00Z",
+          "valid_to": null
+        }
+      ],
+      "transitions": [
+        {
+          "belief_revision": 1,
+          "transition_type": "superseded",
+          "recorded_at": "2026-08-10T10:00:01Z"
+        }
+      ],
+      "queries": [
+        {
+          "known_as_of": "2026-08-05T00:00:00Z",
+          "valid_at": "2026-07-15T00:00:00Z",
+          "expected_revision": 1,
+          "expected_status": "active"
+        },
+        {
+          "known_as_of": "2026-08-11T00:00:00Z",
+          "valid_at": "2026-07-15T00:00:00Z",
+          "expected_revision": 2,
+          "expected_status": "active"
+        }
+      ]
+    }
+  ]
+}

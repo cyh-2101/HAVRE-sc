@@ -1,0 +1,223 @@
+{
+  "$defs": {
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    },
+    "TriggerSourceKind": {
+      "enum": [
+        "scheduled_time",
+        "goal",
+        "scene_session",
+        "owner_reminder",
+        "belief_confirmation",
+        "system_operational",
+        "synthetic_life_context"
+      ],
+      "title": "TriggerSourceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "category": {
+      "pattern": "^[a-z][a-z0-9_]{1,63}$",
+      "title": "Category",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "deduplication_key": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Deduplication Key",
+      "type": "string"
+    },
+    "earliest_eligible_at": {
+      "format": "date-time",
+      "title": "Earliest Eligible At",
+      "type": "string"
+    },
+    "execution_idempotency_key": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Execution Idempotency Key",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "intended_benefit": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Intended Benefit",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "preference_revision": {
+      "exclusiveMinimum": 0,
+      "title": "Preference Revision",
+      "type": "integer"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_]{1,95}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "reason_summary": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason Summary",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "simulation_only": {
+      "const": true,
+      "default": true,
+      "title": "Simulation Only",
+      "type": "boolean"
+    },
+    "source_kind": {
+      "$ref": "#/$defs/TriggerSourceKind"
+    },
+    "source_refs": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Source Refs",
+      "type": "array"
+    },
+    "subject_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Subject Refs",
+      "type": "array"
+    },
+    "traceparent": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Traceparent"
+    },
+    "trigger_type": {
+      "pattern": "^[a-z][a-z0-9_]{1,63}$",
+      "title": "Trigger Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "trigger_type",
+    "source_kind",
+    "source_refs",
+    "category",
+    "reason_code",
+    "reason_summary",
+    "intended_benefit",
+    "data_policy",
+    "preference_revision",
+    "execution_idempotency_key",
+    "observed_at",
+    "earliest_eligible_at",
+    "expires_at",
+    "deduplication_key"
+  ],
+  "title": "ProactiveWorkCommand",
+  "type": "object"
+}

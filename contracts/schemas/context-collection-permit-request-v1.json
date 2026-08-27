@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "device_binding_id": {
+      "pattern": "^[a-z][a-z0-9_.:-]{2,127}$",
+      "title": "Device Binding Id",
+      "type": "string"
+    },
+    "nonce": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Nonce",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "requested_at": {
+      "format": "date-time",
+      "title": "Requested At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "signature": {
+      "default": "",
+      "pattern": "^(|hmac-sha256:[0-9a-f]{64})$",
+      "title": "Signature",
+      "type": "string"
+    },
+    "source_instance_id": {
+      "format": "uuid",
+      "title": "Source Instance Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_instance_id",
+    "device_binding_id",
+    "requested_at",
+    "nonce"
+  ],
+  "title": "ContextCollectionPermitRequest",
+  "type": "object"
+}

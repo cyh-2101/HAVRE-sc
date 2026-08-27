@@ -1,0 +1,87 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "binding_evaluation": {
+      "const": false,
+      "default": false,
+      "title": "Binding Evaluation",
+      "type": "boolean"
+    },
+    "case_results": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Case Results",
+      "type": "array"
+    },
+    "code_revision": {
+      "title": "Code Revision",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "environment": {
+      "additionalProperties": true,
+      "title": "Environment",
+      "type": "object"
+    },
+    "evaluation_run_id": {
+      "format": "uuid",
+      "title": "Evaluation Run Id",
+      "type": "string"
+    },
+    "fixture_hash": {
+      "title": "Fixture Hash",
+      "type": "string"
+    },
+    "gate_status": {
+      "const": "not_evaluated",
+      "default": "not_evaluated",
+      "title": "Gate Status",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "metrics": {
+      "additionalProperties": true,
+      "title": "Metrics",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "suite_version": {
+      "const": "scene-policy-simulation-v1",
+      "title": "Suite Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "suite_version",
+    "fixture_hash",
+    "code_revision",
+    "environment",
+    "metrics",
+    "case_results",
+    "limitations"
+  ],
+  "title": "ScenePolicyEvaluationReport",
+  "type": "object"
+}

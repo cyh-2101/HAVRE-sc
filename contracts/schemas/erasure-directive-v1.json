@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "previous_content_hash": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Content Hash"
+    },
+    "requested_at": {
+      "format": "date-time",
+      "title": "Requested At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "scope": {
+      "default": "raw_source_and_derived",
+      "enum": [
+        "raw_source_and_derived",
+        "context_source_and_derived"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "sequence": {
+      "exclusiveMinimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "source_event_id": {
+      "format": "uuid",
+      "title": "Source Event Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "sequence",
+    "owner_id",
+    "source_event_id"
+  ],
+  "title": "ErasureDirective",
+  "type": "object"
+}

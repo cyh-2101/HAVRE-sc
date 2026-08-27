@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "ConversationEpisodeMember": {
+      "additionalProperties": false,
+      "properties": {
+        "event_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Event Content Hash",
+          "type": "string"
+        },
+        "event_id": {
+          "format": "uuid",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_type": {
+          "enum": [
+            "USER_MESSAGE",
+            "ASSISTANT_MESSAGE"
+          ],
+          "title": "Event Type",
+          "type": "string"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ordinal",
+        "event_id",
+        "event_content_hash",
+        "event_type"
+      ],
+      "title": "ConversationEpisodeMember",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "boundary_reason": {
+      "enum": [
+        "owner_started_new_conversation",
+        "owner_closed",
+        "idle_boundary"
+      ],
+      "title": "Boundary Reason",
+      "type": "string"
+    },
+    "cloud_eligible": {
+      "title": "Cloud Eligible",
+      "type": "boolean"
+    },
+    "content_hash": {
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "ended_at": {
+      "format": "date-time",
+      "title": "Ended At",
+      "type": "string"
+    },
+    "episode_id": {
+      "format": "uuid",
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "members": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConversationEpisodeMember"
+      },
+      "title": "Members",
+      "type": "array"
+    },
+    "memory_eligible": {
+      "title": "Memory Eligible",
+      "type": "boolean"
+    },
+    "message_count": {
+      "exclusiveMinimum": 0,
+      "title": "Message Count",
+      "type": "integer"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "policy_authorization_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy Authorization Ref"
+    },
+    "policy_decision_source": {
+      "const": "derived_conservative",
+      "default": "derived_conservative",
+      "title": "Policy Decision Source",
+      "type": "string"
+    },
+    "policy_revision_id": {
+      "format": "uuid",
+      "title": "Policy Revision Id",
+      "type": "string"
+    },
+    "policy_version": {
+      "const": "data-policy-v1",
+      "default": "data-policy-v1",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "privacy_class": {
+      "title": "Privacy Class",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "status": {
+      "const": "closed",
+      "default": "closed",
+      "title": "Status",
+      "type": "string"
+    },
+    "summary_method": {
+      "const": "extractive-episode-summary-v1",
+      "default": "extractive-episode-summary-v1",
+      "title": "Summary Method",
+      "type": "string"
+    },
+    "summary_text": {
+      "maxLength": 100000,
+      "minLength": 1,
+      "title": "Summary Text",
+      "type": "string"
+    },
+    "training_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Training Eligible",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "owner_id",
+    "episode_id",
+    "session_id",
+    "boundary_reason",
+    "message_count",
+    "summary_text",
+    "privacy_class",
+    "memory_eligible",
+    "cloud_eligible",
+    "policy_revision_id",
+    "content_hash",
+    "started_at",
+    "ended_at"
+  ],
+  "title": "ConversationEpisode",
+  "type": "object"
+}

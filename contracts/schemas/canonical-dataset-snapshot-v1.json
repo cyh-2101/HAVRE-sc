@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "CanonicalDatasetMember": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "explicit_training_authorization_ref": {
+          "minLength": 1,
+          "title": "Explicit Training Authorization Ref",
+          "type": "string"
+        },
+        "member_id": {
+          "title": "Member Id",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation",
+            "holdout"
+          ],
+          "title": "Split",
+          "type": "string"
+        }
+      },
+      "required": [
+        "member_id",
+        "source_refs",
+        "content_hash",
+        "split",
+        "explicit_training_authorization_ref"
+      ],
+      "title": "CanonicalDatasetMember",
+      "type": "object"
+    },
+    "DatasetRejection": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "enum": [
+            "training_not_eligible",
+            "source_erased",
+            "duplicate",
+            "quality_rejected",
+            "holdout_conflict"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "source_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Source Content Hash",
+          "type": "string"
+        },
+        "source_ref": {
+          "title": "Source Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_ref",
+        "source_content_hash",
+        "reason_code"
+      ],
+      "title": "DatasetRejection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "builder_version": {
+      "const": "canonical-dataset-builder-v1",
+      "default": "canonical-dataset-builder-v1",
+      "title": "Builder Version",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dataset_snapshot_id": {
+      "format": "uuid",
+      "title": "Dataset Snapshot Id",
+      "type": "string"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "member_manifest_hash": {
+      "default": "",
+      "title": "Member Manifest Hash",
+      "type": "string"
+    },
+    "members": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CanonicalDatasetMember"
+      },
+      "title": "Members",
+      "type": "array"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "rejections": {
+      "items": {
+        "$ref": "#/$defs/DatasetRejection"
+      },
+      "title": "Rejections",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_snapshot_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Source Snapshot Hash",
+      "type": "string"
+    },
+    "split_policy_version": {
+      "const": "source-grouped-holdout-v1",
+      "default": "source-grouped-holdout-v1",
+      "title": "Split Policy Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_snapshot_hash",
+    "rejections"
+  ],
+  "title": "CanonicalDatasetSnapshot",
+  "type": "object"
+}

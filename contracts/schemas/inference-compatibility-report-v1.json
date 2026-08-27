@@ -1,0 +1,874 @@
+{
+  "$defs": {
+    "BenchmarkError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "invalid_request",
+            "unsupported_capability",
+            "privacy_constraint_unsatisfied",
+            "model_unavailable",
+            "provider_rate_limited",
+            "provider_timeout",
+            "context_limit_exceeded",
+            "content_blocked",
+            "stream_interrupted",
+            "provider_protocol_error",
+            "internal_error",
+            "version_mismatch"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "provider_error_code": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Error Code"
+        },
+        "provider_status_code": {
+          "anyOf": [
+            {
+              "maximum": 599,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Status Code"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "safe_message": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Safe Message",
+          "type": "string"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "retryable",
+        "safe_message",
+        "trace_id"
+      ],
+      "title": "BenchmarkError",
+      "type": "object"
+    },
+    "CompatibilityCaseResult": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_output_content_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Output Content Hash"
+        },
+        "baseline_status": {
+          "enum": [
+            "completed",
+            "failed",
+            "not_run"
+          ],
+          "title": "Baseline Status",
+          "type": "string"
+        },
+        "candidate_output_content_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Output Content Hash"
+        },
+        "candidate_status": {
+          "enum": [
+            "completed",
+            "failed"
+          ],
+          "title": "Candidate Status",
+          "type": "string"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/CompatibilityObservation"
+          },
+          "title": "Observations",
+          "type": "array"
+        },
+        "workload_case_id": {
+          "minLength": 1,
+          "title": "Workload Case Id",
+          "type": "string"
+        },
+        "workload_class": {
+          "enum": [
+            "scene_short",
+            "chat_standard",
+            "reflection_long",
+            "extraction_structured"
+          ],
+          "title": "Workload Class",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workload_case_id",
+        "workload_class",
+        "candidate_status",
+        "baseline_status",
+        "observations"
+      ],
+      "title": "CompatibilityCaseResult",
+      "type": "object"
+    },
+    "CompatibilityObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Value"
+        },
+        "candidate_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Candidate Value"
+        },
+        "note": {
+          "minLength": 1,
+          "title": "Note",
+          "type": "string"
+        },
+        "observation": {
+          "minLength": 1,
+          "title": "Observation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation",
+        "candidate_value",
+        "note"
+      ],
+      "title": "CompatibilityObservation",
+      "type": "object"
+    },
+    "InferenceBenchmarkSample": {
+      "additionalProperties": false,
+      "description": "Content-free raw measurement for one provider stream attempt.",
+      "properties": {
+        "adapter_version_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version Id"
+        },
+        "attempt_index": {
+          "minimum": 1,
+          "title": "Attempt Index",
+          "type": "integer"
+        },
+        "attempted_requests_per_second": {
+          "minimum": 0,
+          "title": "Attempted Requests Per Second",
+          "type": "number"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "concurrency": {
+          "minimum": 1,
+          "title": "Concurrency",
+          "type": "integer"
+        },
+        "end_to_end_latency_ms": {
+          "minimum": 0,
+          "title": "End To End Latency Ms",
+          "type": "number"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BenchmarkError"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "execution_environment": {
+          "enum": [
+            "local",
+            "cloud"
+          ],
+          "title": "Execution Environment",
+          "type": "string"
+        },
+        "generation_interval_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generation Interval Ms"
+        },
+        "inference_request_id": {
+          "format": "uuid",
+          "title": "Inference Request Id",
+          "type": "string"
+        },
+        "inference_response_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inference Response Id"
+        },
+        "model_artifact_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Artifact Hash"
+        },
+        "model_version_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Version Id"
+        },
+        "output_content_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Content Hash"
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Tokens"
+        },
+        "output_tokens_per_second": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Tokens Per Second"
+        },
+        "prompt_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Tokens"
+        },
+        "provider_adapter_version_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Adapter Version Id"
+        },
+        "provider_class": {
+          "enum": [
+            "local_test",
+            "self_hosted",
+            "cloud"
+          ],
+          "title": "Provider Class",
+          "type": "string"
+        },
+        "provider_id": {
+          "minLength": 1,
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "provider_request_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Request Id"
+        },
+        "resources": {
+          "$ref": "#/$defs/ResourceSnapshot"
+        },
+        "sample_id": {
+          "format": "uuid",
+          "title": "Sample Id",
+          "type": "string"
+        },
+        "schedule_id": {
+          "minLength": 1,
+          "title": "Schedule Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "serving_config_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serving Config Version"
+        },
+        "serving_engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serving Engine"
+        },
+        "serving_engine_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serving Engine Version"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "stream_event_count": {
+          "minimum": 0,
+          "title": "Stream Event Count",
+          "type": "integer"
+        },
+        "system_manifest_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "System Manifest Content Hash",
+          "type": "string"
+        },
+        "token_count_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "provider",
+                "estimator"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Token Count Source"
+        },
+        "tokenizer_version_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tokenizer Version Id"
+        },
+        "total_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Tokens"
+        },
+        "tpot_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tpot Ms"
+        },
+        "trace_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "ttft_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ttft Ms"
+        },
+        "unavailable_measurements": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Unavailable Measurements",
+          "type": "object"
+        },
+        "visible_token_interval_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Visible Token Interval Ms"
+        },
+        "warmup": {
+          "title": "Warmup",
+          "type": "boolean"
+        },
+        "workload_case_id": {
+          "minLength": 1,
+          "title": "Workload Case Id",
+          "type": "string"
+        },
+        "workload_class": {
+          "enum": [
+            "scene_short",
+            "chat_standard",
+            "reflection_long",
+            "extraction_structured"
+          ],
+          "title": "Workload Class",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schedule_id",
+        "workload_case_id",
+        "workload_class",
+        "warmup",
+        "attempt_index",
+        "concurrency",
+        "inference_request_id",
+        "trace_id",
+        "status",
+        "started_at",
+        "completed_at",
+        "end_to_end_latency_ms",
+        "attempted_requests_per_second",
+        "stream_event_count",
+        "system_manifest_content_hash",
+        "provider_id",
+        "provider_class",
+        "execution_environment",
+        "resources"
+      ],
+      "title": "InferenceBenchmarkSample",
+      "type": "object"
+    },
+    "ResourceObservation": {
+      "additionalProperties": false,
+      "description": "One resource metric with explicit evidence or explicit unavailability.",
+      "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "unavailable_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unavailable Reason"
+        },
+        "unit": {
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "unit"
+      ],
+      "title": "ResourceObservation",
+      "type": "object"
+    },
+    "ResourceSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "cpu_percent": {
+          "$ref": "#/$defs/ResourceObservation"
+        },
+        "gpu_utilization_percent": {
+          "$ref": "#/$defs/ResourceObservation"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "ram_used_bytes": {
+          "$ref": "#/$defs/ResourceObservation"
+        },
+        "vram_peak_used_bytes": {
+          "$ref": "#/$defs/ResourceObservation"
+        },
+        "vram_used_bytes": {
+          "$ref": "#/$defs/ResourceObservation"
+        }
+      },
+      "required": [
+        "observed_at",
+        "cpu_percent",
+        "ram_used_bytes",
+        "gpu_utilization_percent",
+        "vram_used_bytes",
+        "vram_peak_used_bytes"
+      ],
+      "title": "ResourceSnapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Descriptive evidence only; never an implicit model release approval.",
+  "properties": {
+    "baseline_manifest_content_hash": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Baseline Manifest Content Hash"
+    },
+    "baseline_manifest_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Baseline Manifest Id"
+    },
+    "baseline_samples": {
+      "items": {
+        "$ref": "#/$defs/InferenceBenchmarkSample"
+      },
+      "title": "Baseline Samples",
+      "type": "array"
+    },
+    "benchmark_run_id": {
+      "format": "uuid",
+      "title": "Benchmark Run Id",
+      "type": "string"
+    },
+    "binding_evaluation": {
+      "const": false,
+      "default": false,
+      "title": "Binding Evaluation",
+      "type": "boolean"
+    },
+    "candidate_manifest_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Candidate Manifest Content Hash",
+      "type": "string"
+    },
+    "candidate_manifest_id": {
+      "minLength": 1,
+      "title": "Candidate Manifest Id",
+      "type": "string"
+    },
+    "candidate_samples": {
+      "items": {
+        "$ref": "#/$defs/InferenceBenchmarkSample"
+      },
+      "minItems": 4,
+      "title": "Candidate Samples",
+      "type": "array"
+    },
+    "case_results": {
+      "items": {
+        "$ref": "#/$defs/CompatibilityCaseResult"
+      },
+      "minItems": 4,
+      "title": "Case Results",
+      "type": "array"
+    },
+    "compatibility_run_id": {
+      "format": "uuid",
+      "title": "Compatibility Run Id",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "content_hash": {
+      "default": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "gate_status": {
+      "const": "not_evaluated",
+      "default": "not_evaluated",
+      "title": "Gate Status",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "report_type": {
+      "const": "non_binding_behavioral_compatibility",
+      "default": "non_binding_behavioral_compatibility",
+      "title": "Report Type",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "workload_content_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Workload Content Hash",
+      "type": "string"
+    },
+    "workload_manifest_id": {
+      "minLength": 1,
+      "title": "Workload Manifest Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "benchmark_run_id",
+    "started_at",
+    "completed_at",
+    "candidate_manifest_id",
+    "candidate_manifest_content_hash",
+    "workload_manifest_id",
+    "workload_content_hash",
+    "candidate_samples",
+    "baseline_samples",
+    "case_results",
+    "limitations"
+  ],
+  "title": "InferenceCompatibilityReport",
+  "type": "object"
+}
