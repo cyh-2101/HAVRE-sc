@@ -31,7 +31,7 @@ class ShowcaseDocumentationTests(unittest.TestCase):
 
     def test_readme_preserves_claim_and_publication_boundaries(self) -> None:
         readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertRegex(readme, r"Major development is\s+paused")
+        self.assertIn("current implementation and evidence", readme)
         self.assertIn("public-safe synthetic demo", readme)
         self.assertRegex(readme, r"does\s+not prove model quality")
         self.assertIn("PUBLIC_RELEASE_AUDIT.md", readme)

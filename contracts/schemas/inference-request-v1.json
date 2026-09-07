@@ -281,8 +281,13 @@
       "type": "string"
     },
     "purpose": {
-      "const": "companion_response",
       "default": "companion_response",
+      "enum": [
+        "companion_response",
+        "diary_intelligence",
+        "owner_chat_goal_plan",
+        "memory_intelligence"
+      ],
       "title": "Purpose",
       "type": "string"
     },

@@ -58,6 +58,7 @@ class GoalService:
         status: GoalStatus | None = None,
         next_action: str | None | GoalFieldUnset = GOAL_FIELD_UNSET,
         review_at: datetime | None | GoalFieldUnset = GOAL_FIELD_UNSET,
+        source_event_id: UUID | None = None,
     ):
         return self.repository.update_goal(
             owner_id=owner_id,
@@ -70,6 +71,7 @@ class GoalService:
             status=status,
             next_action=next_action,
             review_at=review_at,
+            source_event_id=source_event_id,
         )
 
     def record_progress(

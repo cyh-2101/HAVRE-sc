@@ -63,11 +63,16 @@ class Stage10PostgresStore:
         owner_id: UUID,
         erasure_repository=None,
         erasure_repository_factory=None,
+        improvement_review_root: Path | None = None,
     ) -> None:
         self.repository = repository
         self.owner_id = owner_id
         self.erasure_repository = erasure_repository
         self.erasure_repository_factory = erasure_repository_factory
+        self.improvement_review_root = (
+            None if improvement_review_root is None
+            else improvement_review_root.resolve()
+        )
 
     @property
     def erasure_available(self) -> bool:
@@ -696,6 +701,57 @@ class Stage10PostgresStore:
                     owner_id=self.owner_id,
                     source_event_id=source_event_id,
                 )
+                review_files_deleted = 0
+                if self.improvement_review_root is not None and source_exists:
+                    with erasure_repository.pool.connection() as connection:
+                        present = connection.execute(
+                            """SELECT
+                                 to_regclass('havre.daily_improvement_review_files')
+                                   IS NOT NULL AS files_present,
+                                 to_regclass('havre.daily_diary_review_memory_sources')
+                                   IS NOT NULL AS memory_sources_present"""
+                        ).fetchone()
+                        paths: list[str] = []
+                        if present["files_present"]:
+                            rows = connection.execute(
+                                """SELECT DISTINCT file.relative_path
+                                   FROM havre.daily_improvement_review_files file
+                                   WHERE file.owner_id=%s AND file.run_id IN (
+                                     SELECT source.run_id
+                                     FROM havre.daily_diary_intelligence_sources source
+                                     WHERE source.owner_id=%s AND source.event_id=%s
+                                     UNION
+                                     SELECT memory_source.run_id
+                                     FROM havre.daily_diary_review_memory_sources memory_source
+                                     JOIN havre.provenance_edges edge
+                                       ON edge.owner_id=memory_source.owner_id
+                                      AND edge.derived_kind='memory_revision'
+                                      AND edge.derived_id=memory_source.memory_id
+                                      AND edge.derived_revision=memory_source.memory_revision
+                                     WHERE memory_source.owner_id=%s
+                                       AND edge.source_kind='event'
+                                       AND edge.source_id=%s
+                                   )""",
+                                (
+                                    self.owner_id, self.owner_id, source_event_id,
+                                    self.owner_id, source_event_id,
+                                ),
+                            ).fetchall()
+                            paths = [row["relative_path"] for row in rows]
+                    for relative_path in paths:
+                        candidate = (
+                            self.improvement_review_root / relative_path
+                        ).resolve()
+                        if (
+                            candidate.parent != self.improvement_review_root
+                            or candidate.suffix.lower() != ".md"
+                        ):
+                            raise ValueError(
+                                "recorded improvement review path escaped its root"
+                            )
+                        if candidate.exists():
+                            candidate.unlink()
+                            review_files_deleted += 1
                 counts = (
                     erasure_repository.erase_source_event_derivatives(
                         owner_id=self.owner_id,
@@ -704,6 +760,7 @@ class Stage10PostgresStore:
                     if source_exists
                     else {}
                 )
+                counts["daily_improvement_review_files"] = review_files_deleted
                 with (
                     erasure_repository.pool.connection() as connection,
                     connection.transaction(),

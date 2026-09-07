@@ -82,7 +82,7 @@ Dedicated disposable PostgreSQL 18 database:
 - Portable Swift tests used the pinned official image with networking disabled:
 
   ```powershell
-  docker run --rm --network none -v '<repo>\apps\ios:/workspace:ro' -w /workspace swift@sha256:d01f3252ff3942f9fabc7b94aade5ab4102b7c75cfe1b5f6cd9989c0733071a7 swift test --scratch-path /tmp/havre-stage11-build --parallel
+  docker run --rm --network none -v 'C:\HAVRE\apps\ios:/workspace:ro' -w /workspace swift@sha256:d01f3252ff3942f9fabc7b94aade5ab4102b7c75cfe1b5f6cd9989c0733071a7 swift test --scratch-path /tmp/havre-stage11-build --parallel
   ```
 
   Result: **13/13 XCTest cases passed**. This covers the portable
@@ -94,7 +94,7 @@ Dedicated disposable PostgreSQL 18 database:
   varied materially between local runs; it is not a capacity claim.
 
   ```powershell
-  docker run --rm --network none -v '<repo>\apps\ios:/workspace:ro' -w /workspace swift@sha256:d01f3252ff3942f9fabc7b94aade5ab4102b7c75cfe1b5f6cd9989c0733071a7 swift run -c release --scratch-path /tmp/havre-stage11-benchmark HAVREMobileBenchmarks
+  docker run --rm --network none -v 'C:\HAVRE\apps\ios:/workspace:ro' -w /workspace swift@sha256:d01f3252ff3942f9fabc7b94aade5ab4102b7c75cfe1b5f6cd9989c0733071a7 swift run -c release --scratch-path /tmp/havre-stage11-benchmark HAVREMobileBenchmarks
   ```
 - Provenance audit returned `[]`; Stage 4 through Stage 10 foreign-key audits
   returned `[]`; `pip check`, `compileall`, and `git diff --check` passed.

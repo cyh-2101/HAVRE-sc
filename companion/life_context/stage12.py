@@ -178,7 +178,9 @@ class ContextSourceStateRevision(StrictModel):
     source_instance_id: UUID
     revision: int = Field(gt=0)
     status: Literal["enabled", "disabled"]
-    reason: Literal["registered", "owner_disabled", "lost_device", "key_rotated"]
+    reason: Literal[
+        "registered", "owner_enabled", "owner_disabled", "lost_device", "key_rotated"
+    ]
     effective_at: datetime
     authorization_ref: str = Field(min_length=1, max_length=500)
     content_hash: str = ""
@@ -659,7 +661,10 @@ class LifeContextObservationV2(StrictModel):
     idempotency_key: str = Field(min_length=1, max_length=200)
     draft_content_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     device_binding_id: str = Field(pattern=r"^[a-z][a-z0-9_.:-]{2,127}$")
-    draft_signing_material: str = Field(min_length=2, max_length=16_384)
+    # The Calendar contract permits 512 minimized intervals. A valid semester
+    # projection can therefore exceed 16 KiB even though it contains no event
+    # content. Keep a hard bound sized to the contract's actual maximum.
+    draft_signing_material: str = Field(min_length=2, max_length=262_144)
     device_signature: str = Field(pattern=r"^hmac-sha256:[0-9a-f]{64}$")
     measurement_quality: Literal[
         "coarse_local_aggregate", "owner_supplied_ics_projection"

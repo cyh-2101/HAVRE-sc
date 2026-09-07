@@ -273,7 +273,7 @@
       "type": "string"
     },
     "draft_signing_material": {
-      "maxLength": 16384,
+      "maxLength": 262144,
       "minLength": 2,
       "title": "Draft Signing Material",
       "type": "string"

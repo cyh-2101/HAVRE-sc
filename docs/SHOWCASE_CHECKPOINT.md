@@ -87,16 +87,23 @@ native Swift/Xcode/device evidence, or capacity/load tests.
 
 ## Public-release decision
 
-The private source branch was not safe for direct publication. This public
-mirror resolves that boundary by using a new squashed history, Apache-2.0,
-GitHub noreply author identity, owner-path placeholders, and a fresh full-tree
-privacy scan. No private Git history was rewritten or copied.
+The current branch is not safe for a direct public push. Blocking issues:
 
-Follow [PUBLIC_RELEASE_AUDIT.md](PUBLIC_RELEASE_AUDIT.md) before every future
-push. The private archive remains the canonical evidence and governance source.
+1. no owner-selected top-level public license;
+2. personal author email in current Git history;
+3. owner-specific Windows/WSL paths in tracked historical evidence and Git
+   history;
+4. publication-rights confirmation for checked-in public/synthetic fixture
+   packages;
+5. an owner decision on full sanitized checkpoint history versus a curated or
+   squashed public history.
+
+No push or history rewrite was performed. Follow
+[PUBLIC_RELEASE_AUDIT.md](PUBLIC_RELEASE_AUDIT.md) before publication.
 
 ## Stop boundary
 
-This checkpoint does not authorize training, a new Stage, candidate
-promotion/deployment, iPhone/Stage 12 work, broader product capabilities, or
-publication of any artifact outside the sanitized public mirror.
+This checkpoint is complete when its focused/full checks pass and the changes
+are committed locally. Stop there. Do not continue training, start a new Stage,
+promote/deploy a candidate, add iPhone/Stage 12 work, broaden product
+capabilities, rewrite history, or push.

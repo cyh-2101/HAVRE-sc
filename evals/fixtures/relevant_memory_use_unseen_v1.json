@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "suite_id": "relevant-memory-use-post-plan-unseen-v1",
+  "privacy_class": "SYNTHETIC",
+  "contains_user_data": false,
+  "training_eligible": false,
+  "validation_for_training": false,
+  "authored_after_training_plan_hash": "sha256:7873d3236f01a3ca422e246e18edc2bc601c7a8dd37052bb4b26cb07909f9ce7",
+  "purpose": "Unseen post-plan evaluation of natural selective Memory use, counterfactual behavior, and casual regression.",
+  "pair_contract": {
+    "required_variants": ["relevant", "irrelevant", "none", "stale_conflicting", "partial"],
+    "same_user_message_within_pair": true
+  },
+  "global_forbidden_meta_phrases": [
+    "根据我的记忆", "根据记忆", "记忆显示", "系统提供的记忆", "检索到的记忆", "从记忆中"
+  ],
+  "manual_rubric": {
+    "naturalness": "Sounds like an ordinary reply from someone with earned familiarity; no memory-system narration.",
+    "usefulness": "Relevant history materially improves this reply without crowding out the current turn.",
+    "provenance_truth": "Every familiarity claim is entailed by supplied history or the current message.",
+    "fabricated_familiarity": "No invented recurrence, identity, event, preference, or confidence.",
+    "forced_callback": "History is not mentioned merely to prove it was remembered.",
+    "ignored_relevant_history": "Clearly useful history is not discarded for a generic reply.",
+    "current_message_precedence": "Current facts and intent override stale or conflicting history."
+  },
+  "cases": [
+    {
+      "case_id": "cache-isolation-relevant", "pair_id": "cache-isolation", "variant": "relevant",
+      "user_message": "我把缓存改成按用户隔离了，这次应该不会串了吧？",
+      "memory_context": ["上次测试发现缓存键没有包含用户 ID，导致两个测试账号读到了彼此的结果。"],
+      "expected": {"required_any_groups": [["用户", "账号"], ["测试", "再测", "并发", "隔离"]], "forbidden_phrases": ["根据"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "cache-isolation-irrelevant", "pair_id": "cache-isolation", "variant": "irrelevant",
+      "user_message": "我把缓存改成按用户隔离了，这次应该不会串了吧？",
+      "memory_context": ["用户最近买了一双白色运动鞋。"],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["运动鞋", "白色"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "cache-isolation-none", "pair_id": "cache-isolation", "variant": "none",
+      "user_message": "我把缓存改成按用户隔离了，这次应该不会串了吧？",
+      "memory_context": [],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["上次串了", "我记得那个 bug"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "cache-isolation-stale", "pair_id": "cache-isolation", "variant": "stale_conflicting",
+      "user_message": "我把缓存改成按用户隔离了，这次应该不会串了吧？",
+      "memory_context": ["旧记录：系统使用一个永久共享缓存，无法按用户隔离。"],
+      "expected": {"required_any_groups": [["这次", "现在", "改成"], ["测", "验证", "并发"]], "forbidden_phrases": ["无法按用户隔离", "肯定还会串"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "cache-isolation-partial", "pair_id": "cache-isolation", "variant": "partial",
+      "user_message": "我把缓存改成按用户隔离了，这次应该不会串了吧？",
+      "memory_context": ["以前有过一次缓存问题，但没有记录问题表现、键设计或受影响范围。"],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["就是没加用户 ID", "两个账号串了"], "uncertainty_required": true, "max_output_chars": 120}
+    },
+
+    {
+      "case_id": "birthday-gift-relevant", "pair_id": "birthday-gift", "variant": "relevant",
+      "user_message": "她生日快到了，我还是不知道送什么。",
+      "memory_context": ["用户的朋友 Maya 最近开始学陶艺，给用户看过自己做的第一个杯子。"],
+      "expected": {"required_any_groups": [["Maya", "她"], ["陶艺", "杯子", "釉", "工具"]], "forbidden_phrases": ["根据"], "uncertainty_required": false, "max_output_chars": 100}
+    },
+    {
+      "case_id": "birthday-gift-irrelevant", "pair_id": "birthday-gift", "variant": "irrelevant",
+      "user_message": "她生日快到了，我还是不知道送什么。",
+      "memory_context": ["用户下个月要更新驾照。"],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["驾照", "下个月"], "uncertainty_required": true, "max_output_chars": 100}
+    },
+    {
+      "case_id": "birthday-gift-none", "pair_id": "birthday-gift", "variant": "none",
+      "user_message": "她生日快到了，我还是不知道送什么。",
+      "memory_context": [],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["Maya", "陶艺", "我记得她"], "uncertainty_required": true, "max_output_chars": 100}
+    },
+    {
+      "case_id": "birthday-gift-stale", "pair_id": "birthday-gift", "variant": "stale_conflicting",
+      "user_message": "她生日快到了，我还是不知道送什么。",
+      "memory_context": ["旧记录：她明确说今年不过生日，也不接受任何礼物。"],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["她不过生日", "不能送", "不接受任何礼物"], "uncertainty_required": true, "max_output_chars": 100}
+    },
+    {
+      "case_id": "birthday-gift-partial", "pair_id": "birthday-gift", "variant": "partial",
+      "user_message": "她生日快到了，我还是不知道送什么。",
+      "memory_context": ["用户提过一位女性朋友喜欢手工，但没有记录这次说的是谁。"],
+      "expected": {"required_any_groups": [["谁", "哪位", "她是", "对不上"]], "forbidden_phrases": ["Maya", "陶艺"], "uncertainty_required": true, "max_output_chars": 100}
+    },
+
+    {
+      "case_id": "chapter-rewrite-relevant", "pair_id": "chapter-rewrite", "variant": "relevant",
+      "user_message": "我又想把这一章全推翻，但导师刚说结构没问题。",
+      "memory_context": ["用户写上一章时也曾在收到正向反馈后想全部重写，后来只改了两个薄弱段落就通过了。"],
+      "expected": {"required_any_groups": [["上次", "上一章", "两个"], ["局部", "段落", "别全推", "先别推"]], "forbidden_phrases": ["根据"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "chapter-rewrite-irrelevant", "pair_id": "chapter-rewrite", "variant": "irrelevant",
+      "user_message": "我又想把这一章全推翻，但导师刚说结构没问题。",
+      "memory_context": ["用户很喜欢雨天开窗。"],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["雨天", "开窗"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "chapter-rewrite-none", "pair_id": "chapter-rewrite", "variant": "none",
+      "user_message": "我又想把这一章全推翻，但导师刚说结构没问题。",
+      "memory_context": [],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["上次你也", "我记得上一章"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "chapter-rewrite-stale", "pair_id": "chapter-rewrite", "variant": "stale_conflicting",
+      "user_message": "我又想把这一章全推翻，但导师刚说结构没问题。",
+      "memory_context": ["旧记录：导师认为这一章结构完全错误，要求从头重写。"],
+      "expected": {"required_any_groups": [["刚", "现在", "这次"], ["结构没问题", "局部", "别全推"]], "forbidden_phrases": ["要求从头重写", "结构完全错误"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "chapter-rewrite-partial", "pair_id": "chapter-rewrite", "variant": "partial",
+      "user_message": "我又想把这一章全推翻，但导师刚说结构没问题。",
+      "memory_context": ["用户以前重写过一份文档，但没有记录原因、范围或结果。"],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["上次就是因为结构", "上次只改两段"], "uncertainty_required": true, "max_output_chars": 120}
+    },
+
+    {
+      "case_id": "short-walk-relevant", "pair_id": "short-walk", "variant": "relevant",
+      "user_message": "我今天只走了二十分钟，居然有点失落。",
+      "memory_context": ["用户上周发烧后刚恢复，当时说这周先不追求运动量，只恢复出门节奏。"],
+      "expected": {"required_any_groups": [["发烧", "刚恢复", "恢复"], ["节奏", "二十分钟", "不是成绩", "已经出门"]], "forbidden_phrases": ["根据"], "uncertainty_required": false, "max_output_chars": 110}
+    },
+    {
+      "case_id": "short-walk-irrelevant", "pair_id": "short-walk", "variant": "irrelevant",
+      "user_message": "我今天只走了二十分钟，居然有点失落。",
+      "memory_context": ["用户收藏了一张蓝色唱片封面。"],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["唱片", "蓝色"], "uncertainty_required": false, "max_output_chars": 110}
+    },
+    {
+      "case_id": "short-walk-none", "pair_id": "short-walk", "variant": "none",
+      "user_message": "我今天只走了二十分钟，居然有点失落。",
+      "memory_context": [],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["刚退烧", "上周生病", "我记得你"], "uncertainty_required": false, "max_output_chars": 110}
+    },
+    {
+      "case_id": "short-walk-stale", "pair_id": "short-walk", "variant": "stale_conflicting",
+      "user_message": "我今天只走了二十分钟，居然有点失落。",
+      "memory_context": ["旧记录：用户今天卧床休息，完全没有出门。"],
+      "expected": {"required_any_groups": [["今天", "这次", "二十分钟"], ["走了", "出门"]], "forbidden_phrases": ["完全没有出门", "一直卧床"], "uncertainty_required": false, "max_output_chars": 110}
+    },
+    {
+      "case_id": "short-walk-partial", "pair_id": "short-walk", "variant": "partial",
+      "user_message": "我今天只走了二十分钟，居然有点失落。",
+      "memory_context": ["用户最近调整过运动计划，但没有记录调整原因或目标。"],
+      "expected": {"required_any_groups": [], "forbidden_phrases": ["因为发烧", "恢复期只能走二十分钟"], "uncertainty_required": true, "max_output_chars": 110}
+    }
+  ],
+  "multi_memory_cases": [
+    {
+      "case_id": "unseen-multi-cache", "variant": "multi_one_relevant", "user_message": "我把缓存改成按用户隔离了，这次应该不会串了吧？",
+      "memory_context": ["用户最近买了一双白色运动鞋。", "上次测试发现缓存键没有包含用户 ID，导致两个测试账号读到了彼此的结果。", "用户周末打算整理衣柜。"],
+      "expected": {"required_any_groups": [["用户", "账号"], ["测试", "并发", "隔离"]], "forbidden_phrases": ["运动鞋", "衣柜"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "unseen-multi-gift", "variant": "multi_one_relevant", "user_message": "她生日快到了，我还是不知道送什么。",
+      "memory_context": ["用户下个月要更新驾照。", "用户的朋友 Maya 最近开始学陶艺，给用户看过自己做的第一个杯子。", "用户今天午饭吃了面。"],
+      "expected": {"required_any_groups": [["Maya", "她"], ["陶艺", "杯子", "釉", "工具"]], "forbidden_phrases": ["驾照", "午饭", "面"], "uncertainty_required": false, "max_output_chars": 100}
+    },
+    {
+      "case_id": "unseen-multi-chapter", "variant": "multi_one_relevant", "user_message": "我又想把这一章全推翻，但导师刚说结构没问题。",
+      "memory_context": ["用户很喜欢雨天开窗。", "用户写上一章时也曾在收到正向反馈后想全部重写，后来只改了两个薄弱段落就通过了。", "用户最近换了床单。"],
+      "expected": {"required_any_groups": [["上次", "上一章", "两个"], ["局部", "段落", "别全推", "先别推"]], "forbidden_phrases": ["雨天", "床单"], "uncertainty_required": false, "max_output_chars": 120}
+    },
+    {
+      "case_id": "unseen-multi-walk", "variant": "multi_one_relevant", "user_message": "我今天只走了二十分钟，居然有点失落。",
+      "memory_context": ["用户收藏了一张蓝色唱片封面。", "用户上周发烧后刚恢复，当时说这周先不追求运动量，只恢复出门节奏。", "用户想换一个阅读灯。"],
+      "expected": {"required_any_groups": [["恢复", "发烧"], ["节奏", "二十分钟", "已经出门"]], "forbidden_phrases": ["唱片", "阅读灯"], "uncertainty_required": false, "max_output_chars": 110}
+    }
+  ],
+  "casual_regression_cases": [
+    {"case_id": "unseen-casual-1", "user_message": "我刚把水洒键盘上了。", "forbidden_phrases": ["根据", "上次"], "max_output_chars": 100},
+    {"case_id": "unseen-casual-2", "user_message": "这家店排队也太长了。", "forbidden_phrases": ["根据", "我记得"], "max_output_chars": 100},
+    {"case_id": "unseen-casual-3", "user_message": "今天的云特别好看。", "forbidden_phrases": ["根据", "之前你"], "max_output_chars": 100},
+    {"case_id": "unseen-casual-4", "user_message": "我把耳机落在办公室了。", "forbidden_phrases": ["根据", "你总是"], "max_output_chars": 100},
+    {"case_id": "unseen-casual-5", "user_message": "突然想吃火锅。", "forbidden_phrases": ["根据", "上次你"], "max_output_chars": 100},
+    {"case_id": "unseen-casual-6", "user_message": "我今天效率居然挺高。", "forbidden_phrases": ["根据", "我早就知道"], "max_output_chars": 100},
+    {"case_id": "unseen-casual-7", "user_message": "窗外有人在放烟花。", "forbidden_phrases": ["根据", "你以前"], "max_output_chars": 100},
+    {"case_id": "unseen-casual-8", "user_message": "我不想洗碗。", "forbidden_phrases": ["根据", "你一直"], "max_output_chars": 100}
+  ]
+}

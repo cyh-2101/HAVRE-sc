@@ -1,5 +1,22 @@
 # Benchmark Plan
 
+## Personal-context compiler and recall regression (2026-09-06)
+
+Run `.venv/Scripts/python.exe scripts/benchmark_personal_context.py --help` for the
+current explicit dedicated-database invocation. The checked-in runner compares
+fixed baseline commit `b5664e53ccb527d89a5b07f036b3dabd2f54ef34` and current source
+on the same constructed fixtures, recording hashes, budget exclusions, source
+identities, versions and timings. It covers 13 budget bounds, history beyond 256
+Events, two-year raw recall, long-message tail evidence, nearby correction,
+absence and ambiguous references. It does not score an unresolved entity as known.
+
+These development counterfactuals are not a clean holdout. Run the existing
+`evals.semantic_memory_benchmark` and legacy database retrieval gold workload as
+separate regressions; their corpus/algorithms differ from runtime lifetime recall.
+Measure strict-local access separately, and do not extrapolate hundreds of Events
+to years of large private history. Final provider tokens and end-to-end reply time
+must be reported separately from compiler estimates and retrieval latency.
+
 Status: **Stage 6/7 second acceptance-correction evidence technically verified at execution-source snapshot `sha256:8ba8b94632ae181c2966acc3d6c498d8f7a63337d2e8558629b47dd440386f9c`; pending Product Owner reacceptance**
 
 Stage 2 activation uses `evals/fixtures/retrieval_gold_v1.json` and `havre benchmark-retrieval` against a dedicated synthetic database. It pins corpus/query counts, reviewed importance values, algorithms, embedding/index/selection-policy versions, Python/PostgreSQL/pgvector environment, per-case rankings, quality metrics, and p50/p95 latency in both a SHA-256 content-hash-verified JSON artifact and immutable database row. It compares R0, legacy ungated R1, and the default gated R1 v2. See [`STAGE2_CHECKPOINT.md`](STAGE2_CHECKPOINT.md).

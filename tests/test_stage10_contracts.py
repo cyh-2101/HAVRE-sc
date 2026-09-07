@@ -30,6 +30,7 @@ from companion.operations import (
 )
 from companion.operations.backup import BackupService
 from companion.operations.ledger import ErasureLedger
+from mlsys.contracts import ProviderVersion
 from scripts.export_contract_schemas import CONTRACTS
 from services.api.settings import Settings
 from services.api.app import create_app
@@ -133,7 +134,7 @@ class Stage10ReleaseContractTests(unittest.TestCase):
                 return_value=(repository, store),
             ):
                 result = verify_release_preflight(
-                    settings=Settings.from_env(),
+                    settings=Settings.from_env(require_owner_api_token=False),
                     manifest_path=manifest,
                 )
         store.require_release_preflight.assert_called_once()
@@ -328,7 +329,7 @@ class Stage10BackupContractTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(ValueError, "isolated target owner"):
                 restore_backup(
-                    settings=Settings.from_env(),
+                    settings=Settings.from_env(require_owner_api_token=False),
                     artifact=Path("fixture.dump"),
                     manifest=Path("fixture.manifest.json"),
                     target_database_url="postgresql://restore/target",
@@ -469,7 +470,7 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
         self.assertNotIn("attacker", rendered)
 
     def test_behavior_worker_requires_scope_and_applied_activation(self) -> None:
-        settings = Settings.from_env().model_copy(
+        settings = Settings.from_env(require_owner_api_token=False).model_copy(
             update={"deployment_environment": "production"}
         )
         infrastructure = SimpleNamespace(
@@ -501,7 +502,7 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
                 _worker_loop(settings, poll_seconds=0.1)
 
     def test_runtime_adapter_binding_is_generic_and_atomic(self) -> None:
-        base = Settings.from_env()
+        base = Settings.from_env(require_owner_api_token=False)
         with self.assertRaisesRegex(ValidationError, "atomic"):
             Settings.model_validate(
                 {
@@ -569,10 +570,17 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
 
         class RuntimeFixture:
             def __init__(self):
+                self.repository = SimpleNamespace(recover_expired_interactions=lambda **kwargs: [])
                 self.operations_store = Operations()
+                self.retrieval_service = SimpleNamespace(
+                    default_algorithm="retrieval-r1-vector-gated-v2",
+                    embedding_provider=SimpleNamespace(version=SimpleNamespace(
+                        embedding_version_id="embedding-deterministic-hash-v1")),
+                )
                 self.release_manifest = release
                 self.service = SimpleNamespace(
                     provider=SimpleNamespace(
+                        provider_id="provider-v1",
                         health=lambda: None,
                     )
                 )
@@ -591,8 +599,14 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
         runtime.service.provider.health = healthy
 
         async def version():
-            return SimpleNamespace(
+            return ProviderVersion(
                 provider_id="provider-v1",
+                provider_class="cloud",
+                execution_environment="cloud",
+                provider_adapter_version_id="stage10-provider-adapter-v1",
+                serving_engine="stage10-test-engine",
+                serving_engine_version="stage10-test-engine-v1",
+                serving_config_version="stage10-test-config-v1",
                 model_version_id="unused",
                 model_artifact_hash=None,
                 tokenizer_version_id="unused",
@@ -601,7 +615,7 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
             )
 
         runtime.service.provider.version = version
-        settings = Settings.from_env().model_copy(
+        settings = Settings.from_env(require_owner_api_token=False).model_copy(
             update={
                 "deployment_environment": "production",
                 "owner_api_token": None,
@@ -609,7 +623,22 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
         )
         with patch("services.api.app.build_runtime", return_value=runtime):
             with TestClient(create_app(settings)) as client:
-                self.assertEqual(client.get("/health/preflight").status_code, 200)
+                preflight = client.get("/health/preflight")
+                self.assertEqual(preflight.status_code, 200)
+                self.assertEqual(
+                    preflight.json()["providers"]["provider-v1"]["version"][
+                        "provider_id"
+                    ],
+                    "provider-v1",
+                )
+                version_response = client.get("/version")
+                self.assertEqual(version_response.status_code, 200)
+                self.assertEqual(
+                    version_response.json()["providers"]["provider-v1"][
+                        "provider_id"
+                    ],
+                    "provider-v1",
+                )
                 ready = client.get("/health/ready")
                 self.assertEqual(ready.status_code, 200)
                 self.assertFalse(ready.json()["release_active"])
@@ -633,7 +662,7 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
                 "postgresql://erasure:secret@postgres:5432/havre\n",
                 encoding="utf-8",
             )
-            token.write_text("owner-secret\n", encoding="utf-8")
+            token.write_text("owner-secret-" + "x" * 32 + "\n", encoding="utf-8")
             environment = {
                 "HAVRE_DATABASE_URL_FILE": str(database),
                 "HAVRE_PRIVILEGED_DATABASE_URL_FILE": str(privileged),
@@ -652,7 +681,7 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
             self.assertTrue(settings.database_url_from_secret_file)
             self.assertTrue(settings.privileged_database_url_from_secret_file)
             self.assertTrue(settings.owner_api_token_from_secret_file)
-            self.assertEqual(settings.owner_api_token, "owner-secret")
+            self.assertEqual(settings.owner_api_token, "owner-secret-" + "x" * 32)
             with patch.dict(os.environ, environment, clear=True):
                 with self.assertRaisesRegex(
                     ValidationError, "context API requires one exact device"
@@ -682,6 +711,63 @@ class Stage10DeploymentAssetTests(unittest.TestCase):
             with patch.dict(os.environ, environment, clear=True):
                 with self.assertRaisesRegex(ValidationError, "exact configured digest"):
                     Settings.from_env()
+
+    def test_public_product_and_web_push_require_owner_authentication(self) -> None:
+        base = Settings.from_env(require_owner_api_token=False)
+        with self.assertRaisesRegex(ValidationError, "require owner authentication"):
+            Settings.model_validate({
+                **base.model_dump(),
+                "public_base_url": "https://havre.owner.example",
+            })
+        with self.assertRaisesRegex(ValidationError, "require owner authentication"):
+            Settings.model_validate({
+                **base.model_dump(),
+                "public_base_url": "https://localhost:8443",
+                "web_push_enabled": True,
+                "web_push_vapid_public_key": "public",
+                "web_push_vapid_private_key": "private",
+                "web_push_vapid_subject": "mailto:owner@example.test",
+            })
+
+    def test_web_push_requires_dpapi_and_exact_private_tailnet_origin(self) -> None:
+        base = Settings.from_env(require_owner_api_token=False)
+        common = {
+            **base.model_dump(),
+            "require_owner_api_token": True,
+            "owner_api_token": "o" * 48,
+            "web_push_enabled": True,
+            "web_push_vapid_public_key": "public",
+            "web_push_vapid_private_key": "private",
+            "web_push_vapid_key_version": "vapid-owner-test",
+            "web_push_vapid_subject": "mailto:owner@example.test",
+        }
+        with self.assertRaisesRegex(ValidationError, "DPAPI-only"):
+            Settings.model_validate({
+                **common,
+                "public_base_url": "https://havre-node.tail-test.ts.net",
+                "web_push_vapid_private_key_from_dpapi": False,
+            })
+        for origin in (
+            "https://havre.owner.example",
+            "https://havre-node.tail-test.ts.net:443",
+            "https://havre-node.tail-test.ts.net/path",
+            "https://user@havre-node.tail-test.ts.net",
+        ):
+            with self.subTest(origin=origin), self.assertRaisesRegex(
+                ValidationError, "private ts.net"
+            ):
+                Settings.model_validate({
+                    **common,
+                    "public_base_url": origin,
+                    "web_push_vapid_private_key_from_dpapi": True,
+                })
+        accepted = Settings.model_validate({
+            **common,
+            "public_base_url": "https://havre-node.tail-test.ts.net",
+            "web_push_vapid_private_key_from_dpapi": True,
+            "tailscale_cli_path": "C:/Program Files/Tailscale/tailscale.exe",
+        })
+        self.assertTrue(accepted.web_push_enabled)
 
     def test_direct_and_file_secret_cannot_be_ambiguous(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

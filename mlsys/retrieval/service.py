@@ -9,6 +9,7 @@ from time import perf_counter_ns
 from typing import Any
 
 from companion.memory.embedding import DeterministicEmbeddingProvider
+from companion.memory.lexical import overlap as lexical_overlap, tokens as lexical_tokens
 from companion.persistence.postgres import PostgresRepository
 from companion.policy import DataPolicy
 from mlsys.retrieval.models import (
@@ -25,6 +26,8 @@ from mlsys.retrieval.models import (
     RetrievalSelectionPolicy,
     RetrievalTiming,
     RetrievalVersions,
+    HYBRID_ALGORITHM_VERSION,
+    context_safety_profile,
 )
 
 
@@ -46,13 +49,62 @@ class RetrievalService:
     ) -> None:
         self.repository = repository
         self.embedding_provider = embedding_provider
+        self.default_algorithm = (
+            HYBRID_ALGORITHM_VERSION if getattr(embedding_provider, "semantic", False)
+            else CONTEXT_SAFE_ALGORITHM_VERSION
+        )
+        profile = context_safety_profile(self.default_algorithm)
+        (self.context_selection_policy_version, self.minimum_semantic_similarity,
+         self.duplicate_similarity_threshold, self.duplicate_token_overlap_threshold) = profile
+
+    def retrieve_empty(
+        self, request: RetrievalRequest, *, persist: bool = True
+    ) -> RetrievalResult:
+        """Persist an explicit no-retrieval result for a governed manual rerun."""
+
+        result = RetrievalResult(
+            retrieval_request_id=request.retrieval_request_id,
+            request_id=request.request_id,
+            query_event_id=request.query.event_id,
+            trace_id=request.trace_id,
+            owner_id=request.owner_id,
+            as_of=request.as_of,
+            versions=RetrievalVersions(
+                algorithm_version=request.algorithm_version,
+                embedding_version_id=self.embedding_provider.version.embedding_version_id,
+                index_version=self.index_version,
+            ),
+            selection_policy=RetrievalSelectionPolicy(
+                policy_version=self.context_selection_policy_version,
+                minimum_semantic_similarity=self.minimum_semantic_similarity,
+                duplicate_similarity_threshold=self.duplicate_similarity_threshold,
+                duplicate_token_overlap_threshold=self.duplicate_token_overlap_threshold,
+            ),
+            candidates=(),
+            exclusions=(),
+            timing_ms=RetrievalTiming(
+                query_embedding=0,
+                candidate_search=0,
+                filtering=0,
+                reranking=0,
+                total=0,
+            ),
+        )
+        if persist:
+            self.repository.persist_retrieval_result(request=request, result=result)
+        return result
 
     def retrieve(self, request: RetrievalRequest, *, persist: bool = True) -> RetrievalResult:
         started = perf_counter_ns()
+        if request.algorithm_version == HYBRID_ALGORITHM_VERSION and self.default_algorithm != HYBRID_ALGORITHM_VERSION:
+            raise ValueError("hybrid retrieval requires semantic embeddings")
+        if self.default_algorithm == HYBRID_ALGORITHM_VERSION and request.algorithm_version != HYBRID_ALGORITHM_VERSION:
+            raise ValueError("legacy retrieval requires its historical encoder")
         embedding_started = perf_counter_ns()
         use_vector = request.algorithm_version in {
             "retrieval-r1-vector-v1",
             "retrieval-r1-vector-gated-v2",
+            HYBRID_ALGORITHM_VERSION,
         }
         query_vector = (
             self.embedding_provider.embed(request.query.text)
@@ -84,6 +136,12 @@ class RetrievalService:
                     recency=recency,
                     importance=importance,
                 )
+            elif request.algorithm_version == HYBRID_ALGORITHM_VERSION:
+                lexical = lexical_overlap(request.query.text, row["content_text"])
+                score = 0.70 * semantic + 0.15 * lexical + 0.10 * recency + 0.05 * importance
+                components = RetrievalScoreComponents(
+                    semantic=semantic, lexical=lexical, recency=recency, importance=importance,
+                )
             else:
                 score = 0.75 * semantic + 0.15 * recency + 0.10 * importance
                 components = RetrievalScoreComponents(
@@ -102,7 +160,7 @@ class RetrievalService:
         reranking_ms = (perf_counter_ns() - rank_started) / 1_000_000
 
         filtering_started = perf_counter_ns()
-        gated = request.algorithm_version == CONTEXT_SAFE_ALGORITHM_VERSION
+        gated = context_safety_profile(request.algorithm_version) is not None
         exclusions: list[RetrievalExclusion] = []
         context_safe: list[
             tuple[float, dict[str, Any], RetrievalScoreComponents]
@@ -110,7 +168,10 @@ class RetrievalService:
         if gated:
             for score, row, components in ranked:
                 semantic = components.semantic
-                if semantic is None or semantic < self.minimum_semantic_similarity:
+                if semantic is None or semantic < self.minimum_semantic_similarity or (
+                    request.algorithm_version == HYBRID_ALGORITHM_VERSION
+                    and semantic < 0.45 and (components.lexical or 0.0) < 0.25
+                ):
                     exclusions.append(
                         RetrievalExclusion(
                             memory_id=row["memory_id"],
@@ -222,14 +283,15 @@ class RetrievalService:
         row: dict[str, Any],
         accepted: list[tuple[float, dict[str, Any], RetrievalScoreComponents]],
     ):
-        candidate_tokens = self._tokens(row["content_text"])
+        tokenize = lexical_tokens if self.default_algorithm == HYBRID_ALGORITHM_VERSION else self._tokens
+        candidate_tokens = tokenize(row["content_text"])
         candidate_vector = self.embedding_provider.embed(row["content_text"])
         for _, accepted_row, _ in accepted:
             if row["content_hash"] == accepted_row["content_hash"]:
                 return accepted_row["memory_id"]
             overlap = self._overlap_coefficient(
                 candidate_tokens,
-                self._tokens(accepted_row["content_text"]),
+                tokenize(accepted_row["content_text"]),
             )
             if overlap < self.duplicate_token_overlap_threshold:
                 continue
@@ -257,6 +319,8 @@ class RetrievalService:
 
     @staticmethod
     def _selection_reasons(algorithm_version: str) -> tuple[str, ...]:
+        if algorithm_version == HYBRID_ALGORITHM_VERSION:
+            return ("local_semantic_similarity", "unicode_lexical_ranking", "minimum_relevance_passed", "duplicate_suppression_passed", "owner_policy_match")
         if algorithm_version == CONTEXT_SAFE_ALGORITHM_VERSION:
             return (
                 "exact_vector_similarity",

@@ -213,7 +213,6 @@ class Stage3PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 "inference_response_id": uuid.uuid4(),
                 "inference_request_id": uuid.uuid4(),
                 "attempt_number": int(source["attempt_number"]) + 1,
-                "provider_id": "forged-self-hosted-provider",
                 "provider_class": "self_hosted",
                 "runtime_attestation_contract_version": 0,
                 "runtime_attestation_id": None,
@@ -234,8 +233,98 @@ class Stage3PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 with connection.transaction():
                     connection.execute(statement, tuple(attempted[column] for column in columns))
 
+    async def test_database_guards_route_provider_model_and_attestation_lineage(
+        self,
+    ) -> None:
+        result = await self._interact(
+            message="Create exact route and attempt rows for 0052 attack probes."
+        )
+        with self.repository.pool.connection() as connection:
+            source_route = dict(connection.execute(
+                "SELECT * FROM havre.route_decisions WHERE request_id=%s",
+                (result.request_id,),
+            ).fetchone())
+            source_attempt = dict(connection.execute(
+                "SELECT * FROM havre.inference_attempts WHERE request_id=%s",
+                (result.request_id,),
+            ).fetchone())
+
+        forged_route = dict(source_route)
+        forged_route.update({
+            "route_decision_id": uuid.uuid4(),
+            "effective_policy_revision_id": uuid.uuid4(),
+        })
+        for column in ("eligible_candidates", "excluded_candidates"):
+            forged_route[column] = Jsonb(forged_route[column])
+        route_columns = tuple(forged_route)
+        route_statement = sql.SQL(
+            "INSERT INTO havre.route_decisions ({}) VALUES ({})"
+        ).format(
+            sql.SQL(", ").join(map(sql.Identifier, route_columns)),
+            sql.SQL(", ").join(sql.Placeholder() for _ in route_columns),
+        )
+        with self.assertRaises(
+            psycopg.errors.ObjectNotInPrerequisiteState
+        ) as route_error:
+            with self.repository.pool.connection() as connection:
+                with connection.transaction():
+                    connection.execute(
+                        route_statement,
+                        tuple(forged_route[column] for column in route_columns),
+                    )
+        self.assertEqual(route_error.exception.sqlstate, "55000")
+
+        attestation = synthetic_runtime_attestation()
+        self.repository.register_runtime_attestation(attestation)
+        variants = {
+            "provider": {"provider_id": "forged-provider-v1"},
+            "model": {"model_version_id": "forged-model-v1"},
+            "attestation": {
+                "provider_class": "self_hosted",
+                "runtime_attestation_contract_version": 1,
+                "runtime_attestation_id": attestation.attestation_id,
+                "runtime_attestation_hash": attestation.attestation_hash,
+            },
+        }
+        for name, updates in variants.items():
+            with self.subTest(lineage=name):
+                forged_attempt = dict(source_attempt)
+                forged_attempt.update({
+                    "inference_attempt_id": uuid.uuid4(),
+                    "inference_response_id": uuid.uuid4(),
+                    "inference_request_id": uuid.uuid4(),
+                    "attempt_number": int(source_attempt["attempt_number"]) + 1,
+                    **updates,
+                })
+                for column in ("usage", "timing_ms", "failure"):
+                    if forged_attempt[column] is not None:
+                        forged_attempt[column] = Jsonb(forged_attempt[column])
+                attempt_columns = tuple(forged_attempt)
+                attempt_statement = sql.SQL(
+                    "INSERT INTO havre.inference_attempts ({}) VALUES ({})"
+                ).format(
+                    sql.SQL(", ").join(map(sql.Identifier, attempt_columns)),
+                    sql.SQL(", ").join(
+                        sql.Placeholder() for _ in attempt_columns
+                    ),
+                )
+                with self.assertRaises(
+                    psycopg.errors.ObjectNotInPrerequisiteState
+                ) as attempt_error:
+                    with self.repository.pool.connection() as connection:
+                        with connection.transaction():
+                            connection.execute(
+                                attempt_statement,
+                                tuple(
+                                    forged_attempt[column]
+                                    for column in attempt_columns
+                                ),
+                            )
+                self.assertEqual(attempt_error.exception.sqlstate, "55000")
+
     async def test_self_hosted_attempt_references_registered_runtime_attestation(self) -> None:
         attestation = synthetic_runtime_attestation()
+        self.repository.register_runtime_attestation(attestation)
         self.repository.register_runtime_attestation(attestation)
         chunks = (
             'data: {"id":"attested-provider-request","model":"transport-model",'
@@ -329,6 +418,46 @@ class Stage3PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(attempt["status"], "failed")
         self.assertEqual(attempt["failure"]["code"], "internal_error")
         self.assertIsNone(attempt["inference_response_id"])
+        self.assertEqual(
+            [event["event_type"] for event in evidence["events"]],
+            ["USER_MESSAGE", "INTERACTION_FAILED"],
+        )
+
+    async def test_response_cannot_claim_adapter_absent_from_provider_version(self) -> None:
+        class ForgedAdapterProvider(DeterministicLocalProvider):
+            async def generate(self, request):
+                response = await super().generate(request)
+                return response.model_copy(update={
+                    "versions": response.versions.model_copy(
+                        update={"adapter_version_id": "forged-adapter-v1"}
+                    )
+                })
+
+        provider = ForgedAdapterProvider(
+            active_adapter_version_id=None,
+            active_adapter_artifact_hash=None,
+        )
+        key = f"stage3-forged-adapter-{uuid.uuid4()}"
+        with self.assertRaisesRegex(ValueError, "adapter_version_id"):
+            await self._service(provider).interact(InteractionCommand(
+                message="Reject response metadata not attested by the provider version.",
+                privacy_class=PrivacyClass.LOCAL_ONLY,
+                channel="api",
+                idempotency_key=key,
+            ))
+
+        with self.repository.pool.connection() as connection:
+            request = connection.execute(
+                """SELECT request_id,status,assistant_event_id,error_code
+                   FROM havre.interaction_requests
+                   WHERE owner_id=%s AND idempotency_key=%s""",
+                (self.owner_id, key),
+            ).fetchone()
+        self.assertEqual(request["status"], "failed")
+        self.assertIsNone(request["assistant_event_id"])
+        evidence = self.repository.evidence(request["request_id"], owner_id=self.owner_id)
+        self.assertEqual(evidence["inference"]["status"], "failed")
+        self.assertIsNone(evidence["inference"]["adapter_version_id"])
         self.assertEqual(
             [event["event_type"] for event in evidence["events"]],
             ["USER_MESSAGE", "INTERACTION_FAILED"],
@@ -630,6 +759,92 @@ class Stage3PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 )
             )
 
+    async def test_repository_rejects_forged_completion_lineage_without_assistant(
+        self,
+    ) -> None:
+        complete_interaction = self.repository.complete_interaction
+
+        def tamper(**kwargs):
+            kwargs["inference_request"] = kwargs["inference_request"].model_copy(
+                update={"context_pack_id": uuid.uuid4()}
+            )
+            return complete_interaction(**kwargs)
+
+        key = f"stage3-forged-completion-{uuid.uuid4()}"
+        with mock.patch.object(
+            self.repository,
+            "complete_interaction",
+            side_effect=tamper,
+        ), self.assertRaisesRegex(ValueError, "inference request lineage"):
+            await self._service().interact(InteractionCommand(
+                message="Reject a completion bound to a foreign ContextPack.",
+                privacy_class=PrivacyClass.LOCAL_ONLY,
+                channel="api",
+                idempotency_key=key,
+            ))
+
+        with self.repository.pool.connection() as connection:
+            request = connection.execute(
+                """SELECT request_id,status,assistant_event_id
+                   FROM havre.interaction_requests
+                   WHERE owner_id=%s AND idempotency_key=%s""",
+                (self.owner_id, key),
+            ).fetchone()
+        self.assertEqual(request["status"], "failed")
+        self.assertIsNone(request["assistant_event_id"])
+        evidence = self.repository.evidence(request["request_id"], owner_id=self.owner_id)
+        self.assertEqual(evidence["inference"]["status"], "failed")
+        self.assertEqual(
+            [event["event_type"] for event in evidence["events"]],
+            ["USER_MESSAGE", "INTERACTION_FAILED"],
+        )
+
+    async def test_repository_rejects_forged_inference_failure_atomically(self) -> None:
+        class FailingProvider(DeterministicLocalProvider):
+            async def generate(self, request):
+                raise RuntimeError("create inference failure fixture")
+
+        fail_interaction = self.repository.fail_inference_interaction
+
+        def tamper(**kwargs):
+            kwargs["failure_event"] = kwargs["failure_event"].model_copy(
+                update={"session_id": uuid.uuid4()}
+            )
+            return fail_interaction(**kwargs)
+
+        key = f"stage3-forged-inference-failure-{uuid.uuid4()}"
+        with mock.patch.object(
+            self.repository,
+            "fail_inference_interaction",
+            side_effect=tamper,
+        ), self.assertRaisesRegex(ValueError, "durable interaction request lineage"):
+            await self._service(FailingProvider()).interact(InteractionCommand(
+                message="Reject a failure Event with a foreign session.",
+                privacy_class=PrivacyClass.LOCAL_ONLY,
+                channel="api",
+                idempotency_key=key,
+            ))
+
+        with self.repository.pool.connection() as connection:
+            request = connection.execute(
+                """SELECT request_id,status,context_pack_id,inference_attempt_id,
+                          assistant_event_id,failure_event_id
+                   FROM havre.interaction_requests
+                   WHERE owner_id=%s AND idempotency_key=%s""",
+                (self.owner_id, key),
+            ).fetchone()
+            event_types = connection.execute(
+                """SELECT event_type FROM havre.events
+                   WHERE owner_id=%s AND request_id=%s ORDER BY recorded_at,event_id""",
+                (self.owner_id, request["request_id"]),
+            ).fetchall()
+        self.assertEqual(request["status"], "processing")
+        self.assertIsNone(request["context_pack_id"])
+        self.assertIsNone(request["inference_attempt_id"])
+        self.assertIsNone(request["assistant_event_id"])
+        self.assertIsNone(request["failure_event_id"])
+        self.assertEqual([row["event_type"] for row in event_types], ["USER_MESSAGE"])
+
     async def test_capability_failure_retains_context_and_typed_failure_event(self) -> None:
         class CapabilitiesUnavailableProvider(DeterministicLocalProvider):
             async def capabilities(self):
@@ -705,7 +920,7 @@ class Stage3PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
         first_evidence = self.repository.evidence(first.request_id, owner_id=self.owner_id)
         assert first_evidence is not None
 
-        with self.assertRaises(psycopg.errors.ForeignKeyViolation):
+        with self.assertRaises(psycopg.errors.ObjectNotInPrerequisiteState):
             with self.repository.pool.connection() as connection:
                 connection.execute(
                     """
@@ -721,7 +936,7 @@ class Stage3PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 )
         second_evidence = self.repository.evidence(second.request_id, owner_id=self.owner_id)
         assert second_evidence is not None
-        with self.assertRaises(psycopg.errors.ForeignKeyViolation):
+        with self.assertRaises(psycopg.errors.ObjectNotInPrerequisiteState):
             with self.repository.pool.connection() as connection:
                 connection.execute(
                     """

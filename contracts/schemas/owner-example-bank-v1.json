@@ -1,0 +1,233 @@
+{
+  "$defs": {
+    "BehaviorExampleMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "content"
+      ],
+      "title": "BehaviorExampleMessage",
+      "type": "object"
+    },
+    "DataPolicy": {
+      "additionalProperties": false,
+      "description": "A complete policy snapshot attached to each personal artifact.\n\nStage 1 deliberately rejects training eligibility. Turning it on is a\nmaterial governance change and cannot arrive as a request-level flag.",
+      "properties": {
+        "authorization_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorization Ref"
+        },
+        "cloud_eligible": {
+          "title": "Cloud Eligible",
+          "type": "boolean"
+        },
+        "decision_source": {
+          "enum": [
+            "owner_default",
+            "owner_explicit",
+            "derived_conservative"
+          ],
+          "title": "Decision Source",
+          "type": "string"
+        },
+        "memory_eligible": {
+          "title": "Memory Eligible",
+          "type": "boolean"
+        },
+        "policy_revision_id": {
+          "format": "uuid",
+          "title": "Policy Revision Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": "data-policy-v1",
+          "default": "data-policy-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "privacy_class": {
+          "$ref": "#/$defs/PrivacyClass"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "training_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Training Eligible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "privacy_class",
+        "memory_eligible",
+        "cloud_eligible",
+        "decision_source"
+      ],
+      "title": "DataPolicy",
+      "type": "object"
+    },
+    "OwnerBehaviorExample": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "pattern": "^owner-anchor-[0-9]{3}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/$defs/BehaviorExampleMessage"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Messages",
+          "type": "array"
+        },
+        "preferred_reply": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Preferred Reply",
+          "type": "string"
+        },
+        "source_case_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Source Case Content Hash",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "title",
+        "messages",
+        "preferred_reply",
+        "source_case_content_hash"
+      ],
+      "title": "OwnerBehaviorExample",
+      "type": "object"
+    },
+    "PrivacyClass": {
+      "enum": [
+        "PUBLIC",
+        "NORMAL",
+        "PRIVATE",
+        "HIGHLY_PRIVATE",
+        "LOCAL_ONLY"
+      ],
+      "title": "PrivacyClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "content_hash": {
+      "default": "",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicy"
+    },
+    "example_bank_version": {
+      "const": "owner-example-bank-oa70-all70-v2",
+      "default": "owner-example-bank-oa70-all70-v2",
+      "title": "Example Bank Version",
+      "type": "string"
+    },
+    "examples": {
+      "items": {
+        "$ref": "#/$defs/OwnerBehaviorExample"
+      },
+      "maxItems": 70,
+      "minItems": 70,
+      "title": "Examples",
+      "type": "array"
+    },
+    "max_examples_per_turn": {
+      "default": 3,
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Max Examples Per Turn",
+      "type": "integer"
+    },
+    "owner_authorization_ref": {
+      "const": "product-owner:2026-09-04:oa70-all70-runtime-examples",
+      "default": "product-owner:2026-09-04:oa70-all70-runtime-examples",
+      "title": "Owner Authorization Ref",
+      "type": "string"
+    },
+    "owner_id": {
+      "format": "uuid",
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "selection_policy_version": {
+      "const": "owner-example-selector-cjk-overlap-v2",
+      "default": "owner-example-selector-cjk-overlap-v2",
+      "title": "Selection Policy Version",
+      "type": "string"
+    },
+    "source_artifact_sha256": {
+      "const": "sha256:51152825976d42971413cdd9b18609a2392036f114d8f4177c2a8d446e1031e9",
+      "default": "sha256:51152825976d42971413cdd9b18609a2392036f114d8f4177c2a8d446e1031e9",
+      "title": "Source Artifact Sha256",
+      "type": "string"
+    },
+    "source_case_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 70,
+      "minItems": 70,
+      "title": "Source Case Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "owner_id",
+    "source_case_ids",
+    "data_policy",
+    "examples"
+  ],
+  "title": "OwnerExampleBank",
+  "type": "object"
+}

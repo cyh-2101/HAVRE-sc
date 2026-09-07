@@ -3,7 +3,7 @@
   "benchmark": "stage11-portable-mobile-core-v1",
   "recorded_on": "2026-08-22",
   "source_revision": "4b2d3096c1b303bab8ffba58cb1e370ee4e67e92",
-  "command": "docker run --rm --network none -v <repo>\\apps\\ios:/workspace:ro -w /workspace swift@sha256:d01f3252ff3942f9fabc7b94aade5ab4102b7c75cfe1b5f6cd9989c0733071a7 swift run -c release --scratch-path /tmp/havre-stage11-benchmark HAVREMobileBenchmarks",
+  "command": "docker run --rm --network none -v C:\\HAVRE\\apps\\ios:/workspace:ro -w /workspace swift@sha256:d01f3252ff3942f9fabc7b94aade5ab4102b7c75cfe1b5f6cd9989c0733071a7 swift run -c release --scratch-path /tmp/havre-stage11-benchmark HAVREMobileBenchmarks",
   "environment": {
     "container_image": "swift:6.1-bookworm",
     "container_digest": "sha256:d01f3252ff3942f9fabc7b94aade5ab4102b7c75cfe1b5f6cd9989c0733071a7",

@@ -5,6 +5,7 @@ from companion.application.service import (
     InferenceTimeoutError,
     InteractionPreviouslyFailed,
     InteractionResult,
+    ManualStrongContext,
     InteractionService,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "InferenceTimeoutError",
     "InteractionPreviouslyFailed",
     "InteractionResult",
+    "ManualStrongContext",
     "InteractionService",
 ]

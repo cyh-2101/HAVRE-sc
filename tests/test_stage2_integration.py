@@ -128,6 +128,82 @@ class Stage2PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
         )
         return source, revision
 
+    async def test_web_chat_proposes_only_stable_memory_and_accepts_owner_edit(self) -> None:
+        owner_id, service, worker = self._isolated_owner_runtime()
+        transient = await service.interact(InteractionCommand(
+            message="今天有点累",
+            memory_eligible=True,
+            channel="web",
+            idempotency_key=f"web-transient-{uuid.uuid4()}",
+        ))
+        stable = await service.interact(InteractionCommand(
+            message="今天聊了很多。请记住我喜欢先看结论再看解释。",
+            memory_eligible=True,
+            channel="web",
+            idempotency_key=f"web-stable-{uuid.uuid4()}",
+        ))
+        with self.repository.pool.connection() as connection:
+            transient_jobs = connection.execute(
+                "SELECT count(*) FROM havre.background_jobs WHERE owner_id=%s AND source_event_id=%s",
+                (owner_id, transient.user_event_id),
+            ).fetchone()["count"]
+            stable_jobs = connection.execute(
+                "SELECT count(*) FROM havre.background_jobs WHERE owner_id=%s AND source_event_id=%s",
+                (owner_id, stable.user_event_id),
+            ).fetchone()["count"]
+        self.assertEqual(transient_jobs, 0)
+        self.assertEqual(stable_jobs, 1)
+        candidate = worker.run_once()
+        self.assertEqual(candidate["source_event_id"], stable.user_event_id)
+        self.assertEqual(candidate["content_text"], "请记住我喜欢先看结论再看解释")
+        original_hash = candidate["content_hash"]
+        revision = self.memory.accept_candidate(
+            owner_id=owner_id,
+            candidate_id=candidate["candidate_id"],
+            reason="Owner edited and confirmed from the Memory review surface",
+            content_text="我喜欢先看结论，再看必要的解释。",
+        )
+        self.assertEqual(revision.content_text, "我喜欢先看结论，再看必要的解释。")
+        self.assertEqual(revision.confidence_method, "owner-correction-v1")
+        self.assertEqual(revision.transform_version, "owner-accepted-correction-v1")
+        accepted_candidate = next(
+            item for item in self.memory.list_candidates(
+                owner_id=owner_id,
+                status="accepted",
+            )
+            if item["candidate_id"] == candidate["candidate_id"]
+        )
+        self.assertEqual(accepted_candidate["content_text"], candidate["content_text"])
+        self.assertEqual(accepted_candidate["content_hash"], original_hash)
+
+    async def test_rejected_web_memory_does_not_return_unchanged(self) -> None:
+        owner_id, service, worker = self._isolated_owner_runtime()
+        message = "请记住我不喜欢每条回复最后都带一个问题。"
+        first = await service.interact(InteractionCommand(
+            message=message,
+            memory_eligible=True,
+            channel="web",
+            idempotency_key=f"web-reject-first-{uuid.uuid4()}",
+        ))
+        first_candidate = worker.run_once()
+        self.assertEqual(first_candidate["source_event_id"], first.user_event_id)
+        self.memory.reject_candidate(
+            owner_id=owner_id,
+            candidate_id=first_candidate["candidate_id"],
+            reason="Owner does not want this Memory",
+        )
+        second = await service.interact(InteractionCommand(
+            message=message,
+            memory_eligible=True,
+            channel="web",
+            idempotency_key=f"web-reject-second-{uuid.uuid4()}",
+        ))
+        duplicate = worker.run_once()
+        self.assertEqual(duplicate["source_event_id"], second.user_event_id)
+        self.assertEqual(duplicate["status"], "duplicate")
+        pending = self.memory.list_candidates(owner_id=owner_id, status="pending")
+        self.assertFalse(any(item["source_event_id"] == second.user_event_id for item in pending))
+
     async def test_event_job_candidate_memory_and_embedding_are_durable_and_idempotent(self) -> None:
         result, candidate, revision = await self._create_accepted_memory(
             "I practice piano every Sunday morning before breakfast.",
@@ -171,7 +247,7 @@ class Stage2PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
             "For piano practice I use a slow metronome and repeat the difficult measure."
         )
         query = await self.service.interact(InteractionCommand(
-            message="What was my piano practice method with the metronome?",
+            message="What was my piano practice method from last time with the metronome?",
             privacy_class=PrivacyClass.NORMAL, channel="api",
             memory_eligible=False,
             idempotency_key=f"stage2-query-{uuid.uuid4()}",
@@ -218,6 +294,15 @@ class Stage2PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertNotIn(revision.memory_id, [row["memory_id"] for row in other_rows])
         self.assertTrue(all(row["owner_id"] == self.second_owner_id for row in other_rows))
+
+    async def test_active_memory_exposes_owner_scoped_provenance_refs(self) -> None:
+        result, _, revision = await self._create_accepted_memory(
+            "I finished the memory provenance review."
+        )
+        rows = self.memory.list_active(owner_id=self.owner_id)
+        current = next(row for row in rows if row["memory_id"] == revision.memory_id)
+        self.assertIn(f"event/{result.user_event_id}", current["source_refs"])
+
 
     async def test_correction_and_retraction_preserve_history_and_as_of_replay(self) -> None:
         _, _, first = await self._create_accepted_memory(
@@ -346,7 +431,7 @@ class Stage2PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
             "For cello practice I use a slow metronome on difficult measures."
         )
         query = await self.service.interact(InteractionCommand(
-            message="What slow metronome method do I use for difficult cello measures?",
+            message="What slow metronome method did I use last time for difficult cello measures?",
             memory_eligible=False, channel="api",
             idempotency_key=f"erase-copy-query-{uuid.uuid4()}",
         ))
@@ -395,7 +480,7 @@ class Stage2PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
             ),
         )
         query = await service.interact(InteractionCommand(
-            message="Which afternoon is my current piano lesson?",
+            message="From our earlier conversations, which afternoon is my current piano lesson?",
             memory_eligible=False, channel="api",
             idempotency_key=f"excluded-low-{uuid.uuid4()}",
         ))
@@ -438,7 +523,7 @@ class Stage2PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
             text="I repeat difficult piano measures while using a slow metronome.",
         )
         query = await service.interact(InteractionCommand(
-            message="What method helps my difficult piano practice with a metronome?",
+            message="From our earlier conversations, what method helps my difficult piano practice with a metronome?",
             memory_eligible=False, channel="api",
             idempotency_key=f"excluded-duplicate-{uuid.uuid4()}",
         ))

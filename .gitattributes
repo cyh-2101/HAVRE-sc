@@ -1,2 +1,7 @@
 * text=auto eol=lf
-
+db/migrations/0039_daily_companion_acceptance_corrections.sql text eol=lf whitespace=-blank-at-eof
+db/migrations/0051_manual_strong_brain_disclosure.sql -text whitespace=cr-at-eol,-blank-at-eof
+db/migrations/005[2-9]_*.sql text eol=lf
+db/migrations/006*.sql text eol=lf
+db/migrations/0070_personal_context_short_search_terms.sql -text whitespace=cr-at-eol
+db/migrations/0071_current_state_delivery_freshness_lock.sql -text whitespace=cr-at-eol

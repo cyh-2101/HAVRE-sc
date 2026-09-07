@@ -231,6 +231,38 @@ END:VCALENDAR\r
         self.assertTrue(value.busy_intervals[0].is_all_day)
         self.assertNotIn("private", value.model_dump_json().lower())
 
+    def test_semester_scale_availability_fits_the_signed_observation_contract(self) -> None:
+        source, capability, consent, permit = calendar_fixture()
+        starts = datetime(2026, 8, 24, 14, tzinfo=UTC)
+        intervals = tuple(
+            CalendarBusyInterval(
+                starts_at=starts + timedelta(hours=index * 8),
+                ends_at=starts + timedelta(hours=index * 8 + 1),
+                availability="busy",
+                is_all_day=False,
+            )
+            for index in range(512)
+        )
+        class SemesterProvider:
+            def read_all_calendar_availability(self, *, window_from, window_to, before_read=None):
+                if before_read is not None:
+                    before_read()
+                return CalendarAvailabilityWindow(busy_intervals=intervals), 6, 1
+
+        provider = SemesterProvider()
+        collected = CalendarAvailabilityAdapter(
+            source=source,
+            capability=capability,
+            consent=consent,
+            signing_secret=SECRET,
+            provider=provider,
+            permit_resolver=lambda: permit,
+            clock=lambda: permit.issued_at,
+        ).collect(window_from=starts, window_to=starts + timedelta(days=171))
+        self.assertGreater(len(collected.draft.signing_material()), 32_768)
+        self.assertLessEqual(len(collected.draft.signing_material()), 262_144)
+        self.assertEqual(len(collected.draft.value.busy_intervals), 512)
+
     def _historical_graph_scope_is_delegated_read_without_user_profile_scope(self) -> None:
         self.assertEqual(
             GRAPH_DELEGATED_SCOPES, ("offline_access", "Calendars.ReadBasic")
@@ -874,12 +906,20 @@ class Stage12CalendarPostgresTests(unittest.TestCase):
         class Provider:
             def read_all_calendar_availability(self, **kwargs):
                 kwargs["before_read"]()
-                return CalendarAvailabilityWindow(busy_intervals=(CalendarBusyInterval(
-                    starts_at=now + timedelta(hours=1),
-                    ends_at=now + timedelta(hours=2),
-                    availability="busy",
-                    is_all_day=False,
-                ),)), 1, 1
+                return CalendarAvailabilityWindow(busy_intervals=(
+                    CalendarBusyInterval(
+                        starts_at=now + timedelta(hours=1),
+                        ends_at=now + timedelta(hours=2),
+                        availability="busy",
+                        is_all_day=False,
+                    ),
+                    CalendarBusyInterval(
+                        starts_at=now + timedelta(days=100, hours=1),
+                        ends_at=now + timedelta(days=100, hours=2),
+                        availability="tentative",
+                        is_all_day=False,
+                    ),
+                )), 1, 1
 
         adapter = CalendarAvailabilityAdapter(
             source=source,
@@ -892,13 +932,13 @@ class Stage12CalendarPostgresTests(unittest.TestCase):
                 device_binding_id=source.device_binding_id,
             ),
         )
-        collection = adapter.collect(window_from=now, window_to=now + timedelta(days=7))
+        collection = adapter.collect(window_from=now, window_to=now + timedelta(days=120))
         ingested = store.ingest(collection.draft)
         self.assertEqual(
             ingested.observation.observation_kind,
             "calendar_availability_window",
         )
-        self.assertEqual(len(ingested.observation.value.busy_intervals), 1)
+        self.assertEqual(len(ingested.observation.value.busy_intervals), 2)
         self.assertEqual(
             ingested.observation.fresh_until,
             ingested.observation.occurred_to,
@@ -918,11 +958,138 @@ class Stage12CalendarPostgresTests(unittest.TestCase):
             "private course title", "private room", "provider-private-id",
         ):
             self.assertNotIn(forbidden, serialized)
+        selected = store.select_calendar_context(
+            query_text="我明天什么时候有空？",
+            maximum_privacy_class=PrivacyClass.LOCAL_ONLY,
+        )
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0].section_type, "calendar_availability")
+        self.assertIn(
+            f"context-observation/{ingested.observation.observation_id}",
+            selected[0].source_refs,
+        )
+        self.assertNotIn("Private course title", selected[0].content_text)
+        late_date = (now + timedelta(days=100)).date().isoformat()
+        late = store.select_calendar_context(
+            query_text=f"我的课表在 {late_date} 是什么？",
+            maximum_privacy_class=PrivacyClass.LOCAL_ONLY,
+        )
+        self.assertEqual(len(late), 1)
+        self.assertIn((now + timedelta(days=100, hours=1)).isoformat(), late[0].content_text)
+        self.assertNotIn((now + timedelta(hours=1)).isoformat(), late[0].content_text)
+        outside_date = (ingested.observation.occurred_to + timedelta(days=30)).date()
+        self.assertEqual(
+            store.select_calendar_context(
+                query_text=f"我的课表在 {outside_date.isoformat()} 是什么？",
+                maximum_privacy_class=PrivacyClass.LOCAL_ONLY,
+            ),
+            (),
+        )
+        self.assertEqual(
+            store.select_calendar_context(
+                query_text="我明天什么时候有空？",
+                maximum_privacy_class=PrivacyClass.NORMAL,
+            ),
+            (),
+        )
+        self.assertEqual(
+            store.select_calendar_context(
+                query_text="我刚看完一部电影",
+                maximum_privacy_class=PrivacyClass.LOCAL_ONLY,
+            ),
+            (),
+        )
+        for irrelevant in ("今天心情很差", "when did we discuss Strong Brain?"):
+            self.assertEqual(
+                store.select_calendar_context(
+                    query_text=irrelevant,
+                    maximum_privacy_class=PrivacyClass.LOCAL_ONLY,
+                ),
+                (),
+            )
         with self.assertRaisesRegex(Exception, "owner-initiated import policy"):
             store.ingest(adapter.collect(
                 window_from=now,
                 window_to=consent.expires_at + timedelta(seconds=1),
             ).draft)
+        with self.repository.pool.connection() as connection, connection.transaction():
+            connection.execute("SET LOCAL session_replication_role='replica'")
+            connection.execute(
+                """DELETE FROM havre.context_source_health_records
+                   WHERE owner_id=%s AND last_successful_observation_id=%s""",
+                (self.owner, ingested.observation.observation_id),
+            )
+        self.assertEqual(
+            store.select_calendar_context(
+                query_text="我的课表是什么？",
+                maximum_privacy_class=PrivacyClass.LOCAL_ONLY,
+            ),
+            (),
+        )
+        self.repository.erase_source_event_derivatives(
+            owner_id=self.owner,
+            source_event_id=ingested.observation.event_id,
+        )
+
+    def test_maximum_512_interval_calendar_window_is_durable(self) -> None:
+        source, capability, consent, _permit = calendar_fixture(self.owner)
+        store = Stage12ContextStore(
+            repository=self.repository,
+            owner_id=self.owner,
+            device_secret_resolver=lambda _binding: SECRET,
+        )
+        store.activate_calendar_bundle(CalendarContextActivationBundle(
+            source=source,
+            capability=capability,
+            consent=consent,
+            owner_activation_ref=consent.authorization_ref,
+        ))
+        starts = datetime.now(UTC).replace(microsecond=0)
+        intervals = tuple(
+            CalendarBusyInterval(
+                starts_at=starts + timedelta(hours=index * 8),
+                ends_at=starts + timedelta(hours=index * 8 + 1),
+                availability="working_elsewhere",
+                is_all_day=False,
+            )
+            for index in range(512)
+        )
+
+        class Provider:
+            def read_all_calendar_availability(self, **kwargs):
+                kwargs["before_read"]()
+                return CalendarAvailabilityWindow(busy_intervals=intervals), 512, 1
+
+        adapter = CalendarAvailabilityAdapter(
+            source=source,
+            capability=capability,
+            consent=consent,
+            signing_secret=SECRET,
+            provider=Provider(),
+            permit_resolver=lambda: store.current_collection_permit(
+                source_instance_id=source.source_instance_id,
+                device_binding_id=source.device_binding_id,
+            ),
+        )
+        ingested = store.ingest(adapter.collect(
+            window_from=starts,
+            window_to=starts + timedelta(days=171),
+        ).draft)
+        with self.repository.pool.connection() as connection:
+            row = connection.execute(
+                """SELECT length(draft_signing_material) AS draft_length,
+                          length(canonical_content_material) AS canonical_length
+                   FROM havre.life_context_observations
+                   WHERE owner_id=%s AND observation_id=%s""",
+                (self.owner, ingested.observation.observation_id),
+            ).fetchone()
+        self.assertEqual(len(ingested.observation.value.busy_intervals), 512)
+        self.assertLessEqual(row["draft_length"], 262_144)
+        self.assertLessEqual(row["canonical_length"], 262_144)
+        self.repository.erase_source_event_derivatives(
+            owner_id=self.owner,
+            source_event_id=ingested.observation.event_id,
+        )
 
     def test_calendar_revocation_stops_reads_and_erasure_closes_derivatives(self) -> None:
         source, capability, consent, _fixture_permit = calendar_fixture(self.owner)

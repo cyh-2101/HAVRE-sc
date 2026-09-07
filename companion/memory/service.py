@@ -86,7 +86,8 @@ class MemoryService:
         return self.repository.list_memory_candidates(owner_id=owner_id, status=status)
 
     def accept_candidate(
-        self, *, owner_id, candidate_id, reason: str, importance: float | None = None
+        self, *, owner_id, candidate_id, reason: str, importance: float | None = None,
+        content_text: str | None = None,
     ):
         return self.repository.accept_memory_candidate(
             owner_id=owner_id,
@@ -94,6 +95,7 @@ class MemoryService:
             reason=reason,
             embedding_provider=self.embedding_provider,
             importance=importance,
+            content_text=content_text,
         )
 
     def reject_candidate(self, *, owner_id, candidate_id, reason: str):

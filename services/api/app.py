@@ -3,23 +3,31 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 import asyncio
 import json
+import logging
+import re
 import secrets
+from zoneinfo import ZoneInfo
 from typing import Annotated, Literal
+from urllib.parse import parse_qs
 from uuid import UUID, uuid5
 
+import anyio
 from fastapi import FastAPI, Header, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from companion import __version__
+from companion.application.lifecycle import INTERACTION_DEADLINE_SECONDS, settle_cancelled_task
+from services.api.interaction_tasks import InteractionTasks
 from companion.evidence import EvidenceRef
 from companion.ids import uuid7
 from companion.mobile import MobileEnrollmentReceipt
+from companion.memory.extractor import is_memory_candidate_worthy
 from companion.life_context import (
     ContextIngestResult,
     ContextCollectionPermit,
@@ -27,6 +35,7 @@ from companion.life_context import (
     ContextObservationDraft,
     ContextSourceHealthDraft,
     ContextSourceHealthV2,
+    ContextSourceStateRevision,
 )
 from companion.persistence import ContextIdempotencyConflict, ContextIngestRejected
 from companion.goals.models import (
@@ -43,6 +52,8 @@ from companion.application import (
     InteractionPreviouslyFailed,
     InteractionResult,
 )
+from companion.commitments.service import COMMITMENT_AUTHORIZATION_REF
+from companion.context import ContextBudgetExceeded
 from companion.policy import DataPolicy, PrivacyClass
 from companion.policy.intervention import (
     AvoidanceAssessment,
@@ -71,8 +82,14 @@ from companion.proactive import (
     ProactivePreferenceRevision,
     ProactiveWorkCommand,
 )
+from companion.proactive.models import QuietHours
 from companion.user_model.models import BeliefTransitionType, BeliefType
-from mlsys.serving import ProviderInferenceError, ProviderVersionError
+from mlsys.contracts import ProviderVersion
+from mlsys.serving import (
+    ProviderInferenceError,
+    ProviderPolicyError,
+    ProviderVersionError,
+)
 from services.api.runtime import Runtime, build_runtime
 from services.api.settings import Settings
 from services.api.metrics import OperationalMetrics
@@ -88,6 +105,11 @@ class InteractionBody(BaseModel):
     session_id: UUID | None = None
     language: str | None = Field(default=None, max_length=35)
     client_created_at: datetime | None = None
+
+
+CONTEXT_LIMIT_SAFE_MESSAGE = (
+    "The selected reply route cannot fit the required conversation context."
+)
 
 
 class FeedbackBody(BaseModel):
@@ -128,6 +150,55 @@ class EpisodeSuggestionReviewBody(BaseModel):
     reason: str = Field(min_length=1, max_length=2_000)
 
 
+class PairingClaimBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    pairing_id: UUID
+    code: str = Field(pattern=r"^\d{8}$")
+    display_name: str = Field(min_length=1, max_length=120)
+    device_kind: Literal["windows", "iphone", "browser", "other"]
+
+
+class TimelineReadBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    event_id: UUID
+
+
+class PushSubscriptionBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    endpoint: str = Field(min_length=12, max_length=4096)
+    p256dh: str = Field(min_length=16, max_length=512)
+    auth: str = Field(min_length=8, max_length=256)
+    preview_level: Literal["private", "detailed"] = "private"
+    expires_at: datetime | None = None
+
+
+class RealDeviceValidationBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    delivery_locator: UUID
+    device_id: UUID
+    pwa_shell_version: str = Field(pattern=r"^havre-shell-v[0-9]+$")
+    owner_confirmation_ref: str = Field(min_length=1, max_length=500)
+
+
+class CalendarToggleBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    enabled: bool
+
+
+class ReachOutSettingsBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    enabled: bool
+    reminders_enabled: bool | None = None
+    friendly_check_ins_enabled: bool | None = None
+    cooldown_seconds: int | None = Field(default=None, ge=60, le=2_592_000)
+    quiet_start: time | None = None
+    quiet_end: time | None = None
+
+    @property
+    def quiet_hours_complete(self) -> bool:
+        return self.quiet_start is not None and self.quiet_end is not None
+
+
 class ReviewBody(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     reason: str = Field(min_length=1, max_length=1000)
@@ -135,10 +206,17 @@ class ReviewBody(BaseModel):
 
 class AcceptReviewBody(ReviewBody):
     importance: float | None = Field(default=None, ge=0, le=1)
+    content_text: str | None = Field(default=None, min_length=1, max_length=100_000)
 
 
 class CorrectMemoryBody(ReviewBody):
     content_text: str = Field(min_length=1, max_length=100_000)
+
+
+class MemoryBeliefProposalBody(ReviewBody):
+    statement: str = Field(min_length=1, max_length=10_000)
+    belief_type: BeliefType
+    confidence: float = Field(default=0.7, ge=0, le=1)
 
 
 class BeliefProposalBody(ReviewBody):
@@ -224,6 +302,42 @@ class GoalProgressBody(BaseModel):
     summary: str = Field(min_length=1, max_length=2_000)
     observed_at: datetime
     evidence: tuple[EvidenceRef, ...] = Field(min_length=1)
+
+
+class GoalReminderBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    reminder_kind: Literal["start_window", "check_in", "encouragement"]
+    reminder_text: str = Field(min_length=1, max_length=500)
+    remind_at: datetime
+    expires_at: datetime
+    supersede_existing_slot: bool = False
+
+
+class CommitmentAuthorizationBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    authorization_ref: Literal[
+        "product-owner-decision:2026-09-03:course-commitment-field-projection-v1"
+    ] = COMMITMENT_AUTHORIZATION_REF
+
+
+class CommitmentProjectionBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    entry_id: str = Field(min_length=1,max_length=240)
+    course_name: str = Field(min_length=1,max_length=160)
+    task_name: str = Field(min_length=1,max_length=500)
+    deadline_at: datetime | None = None
+
+
+class CourseReminderSupersessionBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    replacement_generation: Literal["v2"] = "v2"
 
 
 class SceneCreateBody(BaseModel):
@@ -325,6 +439,7 @@ class ProactivePreferenceBody(BaseModel):
     global_budget_per_24h: int | None = Field(default=None, gt=0, le=24)
     category_budget_per_24h: dict[str, int] = Field(default_factory=dict)
     cooldown_seconds: int | None = Field(default=None, ge=60, le=2_592_000)
+    generic_push_for_local_only: bool = False
     stopped_subject_refs: tuple[str, ...] = ()
     authorization_ref: str | None = Field(default=None, max_length=500)
     simulation_only: Literal[True]
@@ -383,6 +498,73 @@ class MemoryLifecycleReviewBody(ReviewBody):
     decision: Literal["accepted", "rejected"]
 
 
+def _reply_route_label(version: ProviderVersion) -> str:
+    model_id = version.model_version_id
+    normalized = model_id.lower()
+    if version.provider_id == "openai-codex-chatgpt":
+        return "GPT-5.6-sol"
+    if "qwen3-8b" in normalized:
+        if version.active_adapter_version_id is None:
+            return "Qwen3-8B Base"
+        return f"Qwen3-8B · {version.active_adapter_version_id}"
+    return model_id
+
+
+def _reply_routes_settings(
+    *,
+    provider_version: ProviderVersion,
+    local_version: ProviderVersion | None,
+) -> dict[str, object]:
+    local_available = (
+        local_version is not None
+        and local_version.execution_environment == "local"
+    )
+    default_privacy_classes = (
+        tuple(value.value for value in PrivacyClass)
+        if provider_version.execution_environment == "local"
+        else (PrivacyClass.PUBLIC.value, PrivacyClass.NORMAL.value)
+    )
+    local_route = None
+    if local_available:
+        assert local_version is not None
+        local_route = {
+            "available": True,
+            "privacy_classes": (
+                PrivacyClass.PRIVATE.value,
+                PrivacyClass.HIGHLY_PRIVATE.value,
+                PrivacyClass.LOCAL_ONLY.value,
+            ),
+            "provider_id": local_version.provider_id,
+            "model_version_id": local_version.model_version_id,
+            "execution_environment": local_version.execution_environment,
+            "adapter_version_id": local_version.active_adapter_version_id,
+            "label": _reply_route_label(local_version),
+        }
+    return {
+        "default": {
+            "available": True,
+            "privacy_classes": default_privacy_classes,
+            "provider_id": provider_version.provider_id,
+            "model_version_id": provider_version.model_version_id,
+            "execution_environment": provider_version.execution_environment,
+            "adapter_version_id": provider_version.active_adapter_version_id,
+            "label": _reply_route_label(provider_version),
+        },
+        "local_only_available": local_available,
+        "local_only": local_route,
+        "silent_cross_provider_fallback": False,
+    }
+
+
+def _course_task_type(task_name: str) -> str:
+    """Return the friendly course grouping without exposing schedule internals."""
+    return (
+        "exam"
+        if re.search(r"exam|midterm|final|quiz|考试|期中|期末|测验", task_name, re.I)
+        else "assignment"
+    )
+
+
 def _stable_proactive_policy(
     *, owner_id: UUID, privacy_class: PrivacyClass, memory_eligible: bool
 ) -> DataPolicy:
@@ -398,21 +580,43 @@ def _stable_proactive_policy(
     )
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings) -> FastAPI:
     # Stage 12 context is an explicit overlay. The Stage 10 baseline must remain
     # runnable with no enrolled device; its resolver then fails closed on every
     # context request instead of making the entire API fail at import/startup.
-    resolved = settings or Settings.from_env(require_context_device=False)
+    resolved = settings
     metrics = OperationalMetrics()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         runtime = build_runtime(resolved)
         app.state.runtime = runtime
+        app.state.interaction_tasks = InteractionTasks()
+        async def recover_expired():
+            while True:
+                try:
+                    sweep = asyncio.create_task(asyncio.to_thread(
+                        runtime.repository.recover_expired_interactions,
+                        owner_id=resolved.owner_id,
+                        cutoff=datetime.now(UTC)-timedelta(seconds=INTERACTION_DEADLINE_SECONDS+30),
+                    ))
+                    try:
+                        await asyncio.shield(sweep)
+                    except asyncio.CancelledError:
+                        await settle_cancelled_task(sweep)
+                        raise
+                except Exception:
+                    logging.getLogger(__name__).exception('expired interaction recovery failed')
+                await asyncio.sleep(15)
+        recovery_task = asyncio.create_task(recover_expired())
         try:
             yield
         finally:
-            await runtime.aclose()
+            recovery_task.cancel()
+            with anyio.CancelScope(shield=True):
+                await asyncio.gather(recovery_task,return_exceptions=True)
+                await app.state.interaction_tasks.aclose()
+                await runtime.aclose()
 
     app = FastAPI(
         title="HAVRE API",
@@ -424,27 +628,95 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    def configured_providers(runtime: Runtime) -> dict[str, object]:
+        registry = getattr(runtime.service, "providers", None)
+        if isinstance(registry, dict) and registry:
+            return registry
+        primary = runtime.service.provider
+        return {primary.provider_id: primary}
+
     @app.middleware("http")
     async def owner_auth_and_metrics(request: Request, call_next):
         started = metrics.timer()
+        private_boundary_request = (
+            request.url.path.startswith("/v1/")
+            or request.url.path == "/metrics"
+            or request.url.path in {"/", "/chat", "/diary", "/memory", "/settings"}
+        )
+        if resolved.web_push_enabled and private_boundary_request:
+            runtime = getattr(request.app.state, "runtime", None)
+            attested = (
+                False
+                if runtime is None
+                else await asyncio.to_thread(
+                    lambda: runtime.web_push_provider.available
+                )
+            )
+            if not attested:
+                response = JSONResponse(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    content={"detail": "private Tailscale Serve attestation is unavailable"},
+                )
+                response.headers["Cache-Control"] = "no-store"
+                return response
         protected = request.url.path.startswith("/v1/") or request.url.path == "/metrics"
         device_authenticated = request.url.path in {
             "/v1/context/collection-permit",
             "/v1/context/observations",
             "/v1/context/health",
         }
+        pairing_claim_request = request.url.path == "/v1/devices/pair/claim"
         desktop_bootstrap_request = request.url.path == "/v1/desktop/session"
         if (
             protected and not device_authenticated and not desktop_bootstrap_request
-            and resolved.owner_api_token is not None
+            and not pairing_claim_request
+            and resolved.require_owner_api_token
         ):
+            if resolved.owner_api_token is None:
+                response = JSONResponse(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    content={"detail": "owner authentication is not configured"},
+                )
+                response.headers["Cache-Control"] = "no-store"
+                return response
             authorization = request.headers.get("authorization", "")
             expected = f"Bearer {resolved.owner_api_token}"
             cookie = request.cookies.get("havre_owner_session", "")
-            if not (
-                secrets.compare_digest(authorization, expected)
-                or secrets.compare_digest(cookie, resolved.owner_api_token)
+            bearer_authenticated = secrets.compare_digest(authorization, expected)
+            cookie_authenticated = secrets.compare_digest(
+                cookie, resolved.owner_api_token
+            )
+            primary_authenticated = bearer_authenticated or cookie_authenticated
+            if (
+                cookie_authenticated
+                and not bearer_authenticated
+                and request.method in {"POST", "PUT", "PATCH", "DELETE"}
             ):
+                origin = request.headers.get("origin")
+                trusted_origins = {str(request.base_url).rstrip("/")}
+                if resolved.public_base_url is not None:
+                    trusted_origins.add(resolved.public_base_url.rstrip("/"))
+                if origin not in trusted_origins:
+                    response = JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={"detail": "trusted same-origin request required"},
+                    )
+                    response.headers["Cache-Control"] = "no-store"
+                    return response
+            request.state.device_id = None
+            if not primary_authenticated:
+                device_token = request.cookies.get("havre_device_session", "")
+                if authorization.startswith("Bearer "):
+                    device_token = authorization.removeprefix("Bearer ")
+                runtime = getattr(request.app.state, "runtime", None)
+                device_id = (
+                    None
+                    if runtime is None or not device_token
+                    else runtime.daily_companion_store.authenticate_device(device_token)
+                )
+                if device_id is not None:
+                    request.state.device_id = device_id
+            if not primary_authenticated and request.state.device_id is None:
                 response = JSONResponse(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     content={"detail": "owner authentication required"},
@@ -458,6 +730,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 )
                 response.headers["Cache-Control"] = "no-store"
                 return response
+            if primary_authenticated:
+                request.state.auth_kind = "owner_primary"
+            else:
+                request.state.auth_kind = "paired_device"
+                path, method = request.url.path, request.method
+                paired_allowed = (
+                    (method == "GET" and (
+                        path == "/v1/timeline"
+                        or path.startswith("/v1/push/navigation/")
+                        or path == "/v1/diary"
+                        or path.startswith("/v1/diary/")
+                        or path in {"/v1/product/memory", "/v1/product/settings", "/v1/pwa/config"}
+                    ))
+                    or (method == "POST" and (
+                        path in {"/v1/timeline/read", "/v1/interactions/stream", "/v1/feedback", "/v1/push/subscriptions"}
+                        or (path.startswith("/v1/push/subscriptions/") and path.endswith("/revoke"))
+                        or (path.startswith("/v1/memory/candidates/") and (
+                            path.endswith("/accept") or path.endswith("/reject")
+                        ))
+                        or (path.startswith("/v1/memories/") and (
+                            path.endswith("/correct") or path.endswith("/retract")
+                        ))
+                        or (path.startswith("/v1/product/memory/")
+                            and path.endswith("/user-model-proposal"))
+                        or (path.startswith("/v1/user-model/beliefs/") and (
+                            path.endswith("/revisions") or path.endswith("/transitions")
+                        ))
+                    ))
+                )
+                if not paired_allowed:
+                    response = JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={"detail": "paired device is not authorized for this owner-primary operation"},
+                    )
+                    response.headers["Cache-Control"] = "no-store"
+                    return response
         if (
             request.url.path.startswith("/v1/")
             and not request.url.path.startswith("/v1/privacy/")
@@ -505,23 +813,40 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         return response
 
+    desktop_bootstrap_lock = asyncio.Lock()
+    desktop_bootstrap_consumed = False
+
     @app.post("/v1/desktop/session", include_in_schema=False)
     async def desktop_session(
+        request: Request,
         desktop_bootstrap: Annotated[
             str | None, Header(alias="X-HAVRE-Desktop-Bootstrap")
         ] = None,
-    ) -> JSONResponse:
-        if (
-            resolved.deployment_environment != "development"
-            or resolved.desktop_bootstrap_token is None
-            or resolved.owner_api_token is None
-            or desktop_bootstrap is None
-            or not secrets.compare_digest(
-                desktop_bootstrap, resolved.desktop_bootstrap_token
-            )
-        ):
-            raise HTTPException(status_code=403, detail="desktop bootstrap rejected")
-        response = JSONResponse({"status": "owner_session_ready"})
+    ):
+        nonlocal desktop_bootstrap_consumed
+        form_post = desktop_bootstrap is None
+        if form_post:
+            values = parse_qs((await request.body()).decode("utf-8"), strict_parsing=True)
+            supplied = values.get("desktop_bootstrap", [None])
+            desktop_bootstrap = supplied[0] if len(supplied) == 1 else None
+        async with desktop_bootstrap_lock:
+            if (
+                desktop_bootstrap_consumed
+                or resolved.deployment_environment != "development"
+                or resolved.desktop_bootstrap_token is None
+                or resolved.owner_api_token is None
+                or desktop_bootstrap is None
+                or not secrets.compare_digest(
+                    desktop_bootstrap, resolved.desktop_bootstrap_token
+                )
+            ):
+                raise HTTPException(status_code=403, detail="desktop bootstrap rejected")
+            desktop_bootstrap_consumed = True
+        response = (
+            RedirectResponse(url="/chat", status_code=303)
+            if form_post
+            else JSONResponse({"status": "owner_session_ready"})
+        )
         response.set_cookie(
             "havre_owner_session",
             resolved.owner_api_token,
@@ -538,15 +863,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "alive", "service": "havre-api", "stage": 10}
 
     async def _preflight(runtime: Runtime) -> dict[str, object]:
-        provider_health = await runtime.service.provider.health()
-        provider_version = await runtime.service.provider.version()
+        providers = configured_providers(runtime)
+        provider_ids = tuple(providers)
+        health_values = await asyncio.gather(
+            *(providers[provider_id].health() for provider_id in provider_ids)
+        )
+        version_values = await asyncio.gather(
+            *(providers[provider_id].version() for provider_id in provider_ids)
+        )
+        provider_health_by_id = dict(zip(provider_ids, health_values, strict=True))
+        provider_version_by_id = dict(zip(provider_ids, version_values, strict=True))
+        primary_provider_id = runtime.service.provider.provider_id
+        provider_health = provider_health_by_id[primary_provider_id]
+        provider_version = provider_version_by_id[primary_provider_id]
         if runtime.release_manifest is not None:
             require_provider_version_binding(
                 components=runtime.release_manifest.components,
                 provider_version=provider_version,
             )
         database = runtime.operations_store.readiness()
-        preflight_ready = provider_health.status == "healthy"
+        preflight_ready = all(
+            health.status == "healthy"
+            for health in provider_health_by_id.values()
+        )
         release_active = bool(
             runtime.release_manifest is None
             or resolved.deployment_environment == "development"
@@ -559,6 +898,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "stage": 10,
             "database": database,
             "provider": provider_health.model_dump(mode="json"),
+            "providers": {
+                provider_id: {
+                    "health": provider_health_by_id[provider_id].model_dump(mode="json"),
+                    "version": provider_version_by_id[provider_id].model_dump(mode="json"),
+                }
+                for provider_id in provider_ids
+            },
             "release_active": release_active,
         }
 
@@ -627,7 +973,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def version(request: Request) -> dict[str, object]:
         runtime: Runtime = request.app.state.runtime
         try:
-            provider_version = await runtime.service.provider.version()
+            providers = configured_providers(runtime)
+            provider_ids = tuple(providers)
+            provider_versions = await asyncio.gather(
+                *(providers[provider_id].version() for provider_id in provider_ids)
+            )
         except ProviderVersionError as error:
             raise HTTPException(
                 status_code=(503 if error.retryable else 502),
@@ -637,6 +987,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "message": error.safe_message,
                 },
             ) from error
+        versions_by_id = dict(zip(provider_ids, provider_versions, strict=True))
+        provider_version = versions_by_id[runtime.service.provider.provider_id]
         return {
             "service": "havre-api",
             "service_version": __version__,
@@ -657,6 +1009,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 }
             ),
             "provider": provider_version.model_dump(mode="json"),
+            "memory_retrieval": {
+                "algorithm_version": runtime.retrieval_service.default_algorithm,
+                "embedding_version_id": runtime.retrieval_service.embedding_provider.version.embedding_version_id,
+                "execution_environment": "local",
+                "realtime_generation_enabled": getattr(runtime,"realtime_memory_service",None) is not None,
+                "diary_window": "05:00-to-05:00-owner-local",
+            },
+            "providers": {
+                provider_id: version.model_dump(mode="json")
+                for provider_id, version in versions_by_id.items()
+            },
         }
 
     @app.get("/metrics", response_class=PlainTextResponse)
@@ -763,6 +1126,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         except (IdempotencyConflict, InteractionInProgress, InteractionPreviouslyFailed) as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+        except ContextBudgetExceeded as error:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail={
+                    "code": "context_limit_exceeded",
+                    "retryable": False,
+                    "message": CONTEXT_LIMIT_SAFE_MESSAGE,
+                },
+            ) from error
         except InferenceTimeoutError as error:
             raise HTTPException(status_code=504, detail=str(error)) from error
         except ProviderInferenceError as error:
@@ -774,6 +1146,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "message": error.safe_message,
                 },
             ) from error
+        except (ProviderPolicyError, ProviderVersionError) as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
 
     @app.post("/v1/interactions/stream")
     async def interact_stream(
@@ -795,7 +1169,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         async def generate():
             yield json.dumps({"type": "status", "status": "thinking"}) + "\n"
             try:
-                result = await runtime.service.interact(
+                result = await request.app.state.interaction_tasks.run(runtime.service,
                     InteractionCommand(
                         message=body.message,
                         privacy_class=body.privacy_class,
@@ -814,9 +1188,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     ensure_ascii=False,
                 ) + "\n"
                 return
+            except (ProviderPolicyError, ProviderVersionError):
+                yield json.dumps(
+                    {
+                        "type": "error",
+                        "message": "The selected reply route is unavailable and was not switched to another provider.",
+                    },
+                    ensure_ascii=False,
+                ) + "\n"
+                return
             except InferenceTimeoutError:
                 yield json.dumps(
                     {"type": "error", "message": "HAVRE timed out before completing the response."},
+                    ensure_ascii=False,
+                ) + "\n"
+                return
+            except ContextBudgetExceeded:
+                yield json.dumps(
+                    {
+                        "type": "error",
+                        "code": "context_limit_exceeded",
+                        "retryable": False,
+                        "status_code": status.HTTP_413_CONTENT_TOO_LARGE,
+                        "message": CONTEXT_LIMIT_SAFE_MESSAGE,
+                    },
                     ensure_ascii=False,
                 ) + "\n"
                 return
@@ -858,6 +1253,657 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return jsonable_encoder(
             runtime.feedback_service.list_conversations(limit=max(1, min(limit, 100)))
         )
+
+    @app.get("/v1/timeline")
+    async def continuous_timeline(
+        request: Request,
+        limit: int = 60,
+        before_at: datetime | None = None,
+        before_event_id: UUID | None = None,
+        through_event_id: UUID | None = None,
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            return jsonable_encoder(runtime.daily_companion_store.timeline(
+                limit=limit,
+                before_at=before_at,
+                before_event_id=before_event_id,
+                through_event_id=through_event_id,
+            ))
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @app.post("/v1/timeline/read")
+    async def mark_timeline_read(body: TimelineReadBody, request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        device_id = getattr(request.state, "device_id", None)
+        if device_id is None:
+            raise HTTPException(status_code=409, detail="Pair this browser before syncing read state")
+        try:
+            return jsonable_encoder(runtime.daily_companion_store.mark_read(
+                device_id=device_id, event_id=body.event_id
+            ))
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.post("/v1/devices/pair")
+    async def create_device_pairing(request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        return jsonable_encoder(runtime.daily_companion_store.create_pairing())
+
+    @app.post("/v1/devices/pair/claim")
+    async def claim_device_pairing(body: PairingClaimBody, request: Request) -> JSONResponse:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            result = runtime.daily_companion_store.claim_pairing(
+                pairing_id=body.pairing_id,
+                code=body.code,
+                display_name=body.display_name,
+                device_kind=body.device_kind,
+                session_days=runtime.settings.device_session_days,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=403, detail=str(error)) from error
+        response = JSONResponse(jsonable_encoder({
+            "device_id": result["device_id"],
+            "session_expires_at": result["session_expires_at"],
+        }))
+        response.set_cookie(
+            "havre_device_session",
+            result["device_token"],
+            httponly=True,
+            secure=bool(runtime.settings.public_base_url and runtime.settings.public_base_url.startswith("https://")),
+            samesite="strict",
+            path="/",
+            expires=result["session_expires_at"],
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.get("/v1/devices")
+    async def list_companion_devices(request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        return jsonable_encoder(runtime.daily_companion_store.list_devices())
+
+    @app.post("/v1/devices/{device_id}/revoke")
+    async def revoke_companion_device(device_id: UUID, request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            runtime.daily_companion_store.revoke_device(device_id=device_id)
+            return {"device_id": str(device_id), "status": "revoked"}
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.get("/v1/pwa/config")
+    async def pwa_config(request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        worker = runtime.web_push_provider.worker_status()
+        real_device_validated = runtime.web_push_provider.real_device_validated
+        delivery_active = runtime.web_push_provider.delivery_active
+        return {
+            "web_push_available": runtime.web_push_provider.available,
+            "web_push_worker_live": worker["live"],
+            "web_push_runtime_ready": runtime.web_push_provider.runtime_ready,
+            "web_push_delivery_active": delivery_active,
+            "web_push_real_device_validated": real_device_validated,
+            "web_push_pwa_shell_version": runtime.web_push_provider.pwa_shell_version,
+            "web_push_delivery_reason": (
+                "Governed Web Push is active on a validated private device path."
+                if delivery_active else
+                "The real-device path is validated; start the HAVRE backend to deliver notifications."
+                if real_device_validated else
+                "Governed Web Push is configured; real iPhone activation evidence is still required."
+                if runtime.web_push_provider.available else
+                "HTTPS, VAPID, and an explicit key version are required."
+            ),
+            "vapid_public_key": (
+                runtime.settings.web_push_vapid_public_key
+                if runtime.web_push_provider.available
+                else None
+            ),
+            "owner_timezone": runtime.settings.owner_timezone,
+        }
+
+    @app.post("/v1/push/subscriptions")
+    async def save_push_subscription(body: PushSubscriptionBody, request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        device_id = getattr(request.state, "device_id", None)
+        if device_id is None:
+            raise HTTPException(status_code=409, detail="Pair this browser before enabling notifications")
+        try:
+            runtime.web_push_provider.ensure_configuration()
+            return jsonable_encoder(runtime.daily_companion_store.save_subscription(
+                device_id=device_id,
+                endpoint=body.endpoint,
+                p256dh=body.p256dh,
+                auth_secret=body.auth,
+                preview_level=body.preview_level,
+                vapid_key_version=runtime.settings.web_push_vapid_key_version or "",
+                expires_at=body.expires_at,
+            ))
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.post("/v1/push/subscriptions/{subscription_id}/revoke")
+    async def revoke_push_subscription(subscription_id: UUID, request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        device_id = getattr(request.state, "device_id", None)
+        if device_id is None:
+            raise HTTPException(status_code=409, detail="Paired device session required")
+        try:
+            runtime.daily_companion_store.revoke_subscription(
+                device_id=device_id, subscription_id=subscription_id
+            )
+            return {"subscription_id": str(subscription_id), "status": "revoked"}
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.post("/v1/push/deliver/run-once")
+    async def deliver_web_push(request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        return jsonable_encoder(runtime.web_push_provider.deliver_pending())
+
+    @app.post("/v1/push/real-device-validations")
+    async def record_real_device_validation(
+        body: RealDeviceValidationBody, request: Request
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            return jsonable_encoder(
+                runtime.web_push_provider.record_real_device_validation(
+                    delivery_locator=body.delivery_locator,
+                    device_id=body.device_id,
+                    pwa_shell_version=body.pwa_shell_version,
+                    owner_confirmation_ref=body.owner_confirmation_ref,
+                )
+            )
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.get("/v1/push/navigation/{delivery_locator}")
+    async def resolve_push_navigation(delivery_locator: UUID, request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            event_id = runtime.web_push_provider.resolve_navigation(
+                delivery_locator=delivery_locator,
+                device_id=getattr(request.state, "device_id", None),
+            )
+            return {"event_id": str(event_id)}
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.get("/v1/diary")
+    async def list_diary(request: Request, limit: int = 60) -> object:
+        runtime: Runtime = request.app.state.runtime
+        if runtime.diary_intelligence_service is not None:
+            return jsonable_encoder(runtime.diary_intelligence_service.list_diary(
+                timezone_name=runtime.settings.owner_timezone, limit=limit
+            ))
+        return jsonable_encoder(runtime.daily_companion_store.list_diary(
+            timezone_name=runtime.settings.owner_timezone, limit=limit
+        ))
+
+    @app.get("/v1/diary/{local_date}")
+    async def get_diary_day(local_date: date, request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        entry = (
+            runtime.diary_intelligence_service.diary_day(
+                local_date=local_date, timezone_name=runtime.settings.owner_timezone
+            )
+            if runtime.diary_intelligence_service is not None
+            else runtime.daily_companion_store.diary_day(
+                local_date=local_date,
+                timezone_name=runtime.settings.owner_timezone,
+            )
+        )
+        if entry is None:
+            raise HTTPException(status_code=404, detail="No conversation for this owner-local day")
+        return jsonable_encoder(entry)
+
+    @app.get("/v1/product/memory")
+    async def product_memory(request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        from companion.product.sources import source_previews
+
+        memories = runtime.memory_service.list_active(owner_id=runtime.settings.owner_id)
+        beliefs = runtime.user_model_service.list_beliefs(
+            owner_id=runtime.settings.owner_id, include_inactive=True
+        )
+        subjects = tuple(
+            ("memory_revision", row["memory_id"], row["revision"]) for row in memories
+        ) + tuple(
+            ("belief_revision", snapshot.revision.belief_id, snapshot.revision.revision)
+            for snapshot in beliefs
+        )
+        previews = source_previews(runtime.repository, owner_id=runtime.settings.owner_id, subjects=subjects)
+        memory_rows = [
+            {**dict(memory), "source_previews": previews.get(
+                ("memory_revision", memory["memory_id"], memory["revision"]), ()
+            )} for memory in memories
+        ]
+        belief_rows = [
+            {**snapshot.model_dump(mode="python"), "source_previews": previews.get(
+                ("belief_revision", snapshot.revision.belief_id, snapshot.revision.revision), ()
+            )} for snapshot in beliefs
+        ]
+        all_candidates = runtime.memory_service.list_candidates(
+            owner_id=runtime.settings.owner_id, status="pending"
+        )
+        with runtime.repository.pool.connection() as connection:
+            delegated_sources = {
+                row["source_event_id"]
+                for row in connection.execute(
+                    """SELECT DISTINCT source_event_id
+                       FROM havre.owner_delegated_gpt_memory_updates
+                       WHERE owner_id=%s""",
+                    (runtime.settings.owner_id,),
+                ).fetchall()
+            }
+        candidates = [
+            candidate
+            for candidate in all_candidates
+            if is_memory_candidate_worthy(candidate["content_text"])
+            and candidate["source_event_id"] not in delegated_sources
+        ]
+        candidate_previews = source_previews(
+            runtime.repository, owner_id=runtime.settings.owner_id,
+            subjects=tuple(("event", c["source_event_id"], None) for c in candidates),
+        )
+        candidate_rows = [
+            {**dict(candidate), "source_previews": candidate_previews.get(
+                ("event", candidate["source_event_id"], None), ()
+            )} for candidate in candidates
+        ]
+        goals = runtime.goal_service.list(
+            owner_id=runtime.settings.owner_id, include_inactive=True
+        )
+        with runtime.repository.pool.connection() as connection:
+            course_rows = connection.execute(
+                """SELECT projection.goal_id,projection.goal_revision,
+                          projection.course_name,projection.task_name
+                   FROM havre.commitment_projections projection
+                   JOIN havre.goals goal ON goal.owner_id=projection.owner_id
+                    AND goal.goal_id=projection.goal_id
+                    AND goal.revision=projection.goal_revision
+                   WHERE projection.owner_id=%s""",
+                (runtime.settings.owner_id,),
+            ).fetchall()
+        courses = {row["goal_id"]: dict(row) for row in course_rows}
+        goal_rows = []
+        for goal in goals:
+            item = dict(goal)
+            course = courses.get(goal["goal_id"])
+            item["display_category"] = "course" if course else "other"
+            if course:
+                item.update(course)
+                item["task_type"] = _course_task_type(course["task_name"])
+            goal_rows.append(item)
+        with runtime.repository.pool.connection() as connection:
+            memory_jobs = connection.execute(
+                """SELECT count(*) FILTER (WHERE status IN ('pending','leased')) AS pending,
+                          count(*) FILTER (WHERE status='retryable_failed') AS retrying,
+                          max(updated_at) FILTER (WHERE status='completed') AS last_completed_at
+                   FROM havre.realtime_memory_jobs WHERE owner_id=%s""",
+                (runtime.settings.owner_id,),
+            ).fetchone()
+        return jsonable_encoder({
+            "memories": memory_rows,
+            "memory_candidates": candidate_rows,
+            "beliefs": belief_rows,
+            "goals": goal_rows,
+            "understanding_status": {
+                "realtime_jobs": dict(memory_jobs),
+                "automatic_chat_context": True,
+                "automatic_recent_owner_feedback": True,
+                "automatic_memory_proposals": True,
+                "automatic_user_model_beliefs": (
+                    runtime.diary_intelligence_service is not None
+                ),
+                "automatic_pattern_acceptance": False,
+                "automatic_current_state": False,
+                "explanation": (
+                    "聊天后，值得记住的经历和你明确说过的长期偏好会陆续整理到这里，不必等到凌晨。"
+                    "私密聊天产生的新记忆仍需你确认；每天凌晨 5 点另外整理日记。"
+                ),
+                "suppressed_low_value_candidate_count": (
+                    len(all_candidates) - len(candidates)
+                ),
+            },
+            "current_state": runtime.current_state_service.current(
+                owner_id=runtime.settings.owner_id
+            ),
+            "pattern_proposals": runtime.consolidation_service.list_proposals(
+                owner_id=runtime.settings.owner_id, status="pending"
+            ),
+        })
+
+    @app.get("/v1/product/settings")
+    async def product_settings(request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        providers = configured_providers(runtime)
+        provider_ids = tuple(providers)
+        provider_versions = await asyncio.gather(
+            *(providers[provider_id].version() for provider_id in provider_ids)
+        )
+        versions_by_id = dict(zip(provider_ids, provider_versions, strict=True))
+        provider_version = versions_by_id[runtime.service.provider.provider_id]
+        local_version = versions_by_id.get("self-hosted-openai-compatible")
+        if (
+            local_version is None
+            and provider_version.execution_environment == "local"
+        ):
+            local_version = provider_version
+        if (
+            local_version is not None
+            and local_version.execution_environment != "local"
+        ):
+            local_version = None
+        dual_privacy_routing = (
+            provider_version.execution_environment == "cloud"
+            and local_version is not None
+        )
+        reply_routes = _reply_routes_settings(
+            provider_version=provider_version,
+            local_version=local_version,
+        )
+        owner_primary = getattr(request.state, "auth_kind", "owner_primary") != "paired_device"
+        strong_runtime_active = bool(
+            runtime.settings.manual_strong_brain_enabled
+            and runtime.settings.deepseek_api_key
+            and runtime.settings.deepseek_api_key.strip()
+            and runtime.strong_brain_service is not None
+        )
+        strong_available_to_requester = owner_primary and strong_runtime_active
+        worker = runtime.web_push_provider.worker_status()
+        real_device_validated = runtime.web_push_provider.real_device_validated
+        delivery_active = runtime.web_push_provider.delivery_active
+        return jsonable_encoder({
+            "auth_capabilities": {
+                "owner_primary": owner_primary,
+                "manage_devices": owner_primary,
+                "mutate_memory": True,
+                "review_understanding": True,
+                "mutate_product_settings": owner_primary,
+            },
+            "owner_timezone": runtime.settings.owner_timezone,
+            "calendar": runtime.daily_companion_store.calendar_status(),
+            "web_push_available": runtime.web_push_provider.available,
+            "web_push_worker_live": worker["live"],
+            "web_push_runtime_ready": runtime.web_push_provider.runtime_ready,
+            "web_push_delivery_active": delivery_active,
+            "web_push_real_device_validated": real_device_validated,
+            "web_push_pwa_shell_version": runtime.web_push_provider.pwa_shell_version,
+            "web_push_delivery_reason": (
+                "真实 iPhone 路径已验收，当前 governed Web Push worker 在线。"
+                if delivery_active else
+                "真实 iPhone 路径已验收；启动 HAVRE backend 后可投递。"
+                if real_device_validated else
+                "generic/private preview 已配置；真实 iPhone 激活证据仍未完成。"
+                if runtime.web_push_provider.available else
+                "尚未完成 HTTPS、VAPID 与 governed worker 配置。"
+            ),
+            "strong_brain": {
+                "mode": (
+                    "legacy_owner_manual"
+                    if strong_runtime_active
+                    else "disabled"
+                ),
+                "runtime_active": strong_runtime_active,
+                "available_for_owner_data": strong_available_to_requester,
+                "default": False,
+                "user_facing": False,
+                "reason": (
+                    "历史 Strong Brain 端点已由 owner-primary 显式启用；它不出现在日常聊天中，也不会自动路由。"
+                    if strong_available_to_requester
+                    else "历史 Strong Brain 仅允许 owner-primary 显式启用；当前请求方不可用。"
+                    if strong_runtime_active
+                    else "Strong Brain 已退出日常产品；仅有 DeepSeek key 不会激活历史端点。"
+                ),
+            },
+            "brain": {
+                "mode": (
+                    "automatic_chatgpt"
+                    if provider_version.provider_id == "openai-codex-chatgpt"
+                    else "local"
+                ),
+                "provider_id": provider_version.provider_id,
+                "model_version_id": provider_version.model_version_id,
+                "default": True,
+                "reason": (
+                    "普通且上下文允许云端时，消息默认由 GPT-5.6-sol 回复；HAVRE 合并上下文后若不适合云端则只走本机。两条路径都经过同一 Core 与 Event 流程。"
+                    if provider_version.provider_id == "openai-codex-chatgpt"
+                    else "当前使用本地回复引擎；没有自动向云端发送聊天内容。"
+                ),
+            },
+            "reply_routes": reply_routes,
+            "local_brain": {
+                "available": local_version is not None,
+                "provider_id": (
+                    None if local_version is None else local_version.provider_id
+                ),
+                "model_version_ids": (
+                    () if local_version is None else (local_version.model_version_id,)
+                ),
+                "adapter_version_id": (
+                    None
+                    if local_version is None
+                    else local_version.active_adapter_version_id
+                ),
+                "binding": (
+                    None
+                    if local_version is None
+                    else local_version.active_adapter_version_id
+                    or local_version.model_version_id
+                ),
+                "default": (
+                    not dual_privacy_routing
+                    and local_version is not None
+                    and local_version.execution_environment == "local"
+                ),
+                "privacy_route": dual_privacy_routing,
+            },
+            "reach_out": runtime.daily_companion_store.proactive_preference(),
+            "relationship_initiative_active": (
+                runtime.settings.relational_initiative_enabled
+            ),
+        })
+
+    @app.post("/v1/product/reach-out")
+    async def update_reach_out_settings(
+        body: ReachOutSettingsBody, request: Request
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        if (body.quiet_start is None) != (body.quiet_end is None):
+            raise HTTPException(status_code=422, detail="quiet hours require both start and end")
+        current_payload = runtime.daily_companion_store.proactive_preference()
+        quiet_hours = (
+            (
+                QuietHours(
+                    start_local=body.quiet_start,
+                    end_local=body.quiet_end,
+                    timezone_name=runtime.settings.owner_timezone,
+                ),
+            )
+            if body.quiet_hours_complete
+            else ()
+        )
+        if current_payload is None:
+            reminders_enabled = (
+                True if body.reminders_enabled is None else body.reminders_enabled
+            )
+            friendly_check_ins_enabled = (
+                True
+                if body.friendly_check_ins_enabled is None
+                else body.friendly_check_ins_enabled
+            )
+            preference = ProactivePreferenceRevision(
+                owner_id=runtime.settings.owner_id,
+                revision=1,
+                global_enabled=body.enabled,
+                category_permissions={
+                    "owner_reminder": (
+                        "allowed" if reminders_enabled else "denied"
+                    ),
+                    "relationship_follow_up": (
+                        "allowed" if friendly_check_ins_enabled else "denied"
+                    ),
+                    "conversation_continuation": (
+                        "allowed" if friendly_check_ins_enabled else "denied"
+                    ),
+                },
+                allowed_channels=("web_inbox",),
+                quiet_hours=quiet_hours,
+                global_budget_per_24h=5,
+                category_budget_per_24h={
+                    "owner_reminder": 4,
+                    "relationship_follow_up": 1,
+                    "conversation_continuation": 2,
+                },
+                cooldown_seconds=body.cooldown_seconds,
+                authorization_ref="owner-daily-companion-reach-out-setting-v1",
+            )
+        else:
+            current = ProactivePreferenceRevision.model_validate(current_payload)
+            category_permissions = dict(current.category_permissions)
+            if body.reminders_enabled is not None:
+                category_permissions["owner_reminder"] = (
+                    "allowed" if body.reminders_enabled else "denied"
+                )
+            if body.friendly_check_ins_enabled is not None:
+                friendly_permission = (
+                    "allowed" if body.friendly_check_ins_enabled else "denied"
+                )
+                category_permissions["relationship_follow_up"] = friendly_permission
+                category_permissions["conversation_continuation"] = friendly_permission
+            elif "conversation_continuation" not in category_permissions:
+                category_permissions["conversation_continuation"] = (
+                    category_permissions.get("relationship_follow_up", "denied")
+                )
+            category_budgets = dict(current.category_budget_per_24h)
+            category_budgets["relationship_follow_up"] = 1
+            category_budgets["conversation_continuation"] = 2
+            preference = current.model_copy(update={
+                "preference_revision_id": uuid7(),
+                "revision": current.revision + 1,
+                "global_enabled": body.enabled,
+                "quiet_hours": quiet_hours,
+                "cooldown_seconds": body.cooldown_seconds,
+                "category_permissions": category_permissions,
+                "category_budget_per_24h": category_budgets,
+                "global_budget_per_24h": current.global_budget_per_24h or 5,
+                "created_at": datetime.now(UTC),
+                "content_hash": "",
+            })
+            preference = ProactivePreferenceRevision.model_validate(
+                preference.model_dump(mode="json")
+            )
+        try:
+            runtime.proactive_store.save_preference(preference)
+        except (LookupError, ValueError) as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return jsonable_encoder(preference)
+
+    @app.post("/v1/product/calendar")
+    async def toggle_product_calendar(body: CalendarToggleBody, request: Request) -> object:
+        runtime: Runtime = request.app.state.runtime
+        with runtime.repository.pool.connection() as connection:
+            row = connection.execute(
+                """SELECT source.source_instance_id,state.revision,state.status,
+                          consent.data_policy,consent.status AS consent_status,
+                          consent.effective_at AS consent_effective_at,
+                          consent.expires_at AS consent_expires_at,
+                          consent.authorization_ref
+                   FROM havre.context_sources source
+                   JOIN LATERAL (
+                     SELECT revision,status FROM havre.context_source_state_revisions value
+                     WHERE value.owner_id=source.owner_id
+                       AND value.source_instance_id=source.source_instance_id
+                     ORDER BY revision DESC LIMIT 1
+                   ) state ON true
+                   JOIN LATERAL (
+                     SELECT data_policy,status,effective_at,expires_at,authorization_ref
+                     FROM havre.context_consent_scope_revisions value
+                     WHERE value.owner_id=source.owner_id
+                       AND value.source_instance_id=source.source_instance_id
+                     ORDER BY revision DESC LIMIT 1
+                   ) consent ON true
+                   WHERE source.owner_id=%s AND source.source_kind='calendar'
+                   ORDER BY source.created_at DESC LIMIT 1""",
+                (runtime.settings.owner_id,),
+            ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=409, detail="Import a calendar before enabling it")
+        now = datetime.now(UTC)
+        if body.enabled:
+            if row["status"] == "enabled":
+                return jsonable_encoder({"event_id": None, "calendar": runtime.daily_companion_store.calendar_status()})
+            raise HTTPException(status_code=409, detail="Re-import the calendar to create a new governed source")
+        if row["status"] == "disabled":
+            return jsonable_encoder({"event_id": None, "calendar": runtime.daily_companion_store.calendar_status()})
+        state = ContextSourceStateRevision(
+            owner_id=runtime.settings.owner_id,
+            source_instance_id=row["source_instance_id"],
+            revision=row["revision"] + 1,
+            status="disabled",
+            reason="owner_disabled",
+            effective_at=now,
+            authorization_ref=row["authorization_ref"],
+        )
+        try:
+            event_id = runtime.context_store.save_source_state(
+                state, data_policy=DataPolicy.model_validate(row["data_policy"])
+            )
+        except (ContextIngestRejected, ValueError) as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return jsonable_encoder({"event_id": event_id, "calendar": runtime.daily_companion_store.calendar_status()})
+
+    @app.post("/v1/brain/strong/rethink/{assistant_event_id}")
+    async def strong_brain_rethink(
+        assistant_event_id: UUID,
+        request: Request,
+        idempotency_key: Annotated[
+            str, Header(alias="Idempotency-Key", min_length=1, max_length=200)
+        ],
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        if (
+            not runtime.settings.manual_strong_brain_enabled
+            or not runtime.settings.deepseek_api_key
+            or runtime.strong_brain_service is None
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "历史 Strong Brain 端点未显式启用；"
+                    "本次没有向 DeepSeek 发送数据。"
+                ),
+            )
+        try:
+            result = await runtime.strong_brain_service.rethink(
+                source_assistant_event_id=assistant_event_id,
+                idempotency_key=idempotency_key,
+            )
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except (ValueError, ProviderVersionError) as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        except ProviderInferenceError as error:
+            if error.code == "content_blocked":
+                detail = (
+                    "Strong Brain 这次用完了思考额度，但没有生成最终回答。"
+                    "这次没有写入聊天，可以重新试一次。"
+                    if error.retryable
+                    else "Strong Brain 这次没有返回可显示的最终回答；聊天没有被改动。"
+                )
+            else:
+                detail = error.safe_message
+            raise HTTPException(
+                status_code=(503 if error.retryable else 502),
+                detail=detail,
+            ) from error
+        return jsonable_encoder(result)
 
     @app.get("/v1/conversations/{session_id}")
     async def conversation(session_id: UUID, request: Request) -> object:
@@ -1002,6 +2048,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 candidate_id=candidate_id,
                 reason=body.reason,
                 importance=body.importance,
+                content_text=body.content_text,
             ))
         except (LookupError, ValueError) as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
@@ -1054,6 +2101,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 reason=body.reason,
             ))
         except (LookupError, ValueError) as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.post("/v1/product/memory/{memory_id}/user-model-proposal")
+    async def propose_user_model_from_memory(
+        memory_id: UUID, body: MemoryBeliefProposalBody, request: Request
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            return jsonable_encoder(
+                runtime.user_model_service.propose_from_confirmed_memory(
+                    owner_id=runtime.settings.owner_id,
+                    memory_id=memory_id,
+                    statement=body.statement,
+                    belief_type=body.belief_type,
+                    confidence=body.confidence,
+                    reason=body.reason,
+                )
+            )
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
 
     @app.post("/v1/user-model/beliefs")
@@ -1281,6 +2349,82 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except (LookupError, ValueError) as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
 
+    @app.post("/v1/goals/{goal_id}/reminders")
+    async def schedule_goal_reminder(
+        goal_id: UUID,
+        body: GoalReminderBody,
+        request: Request,
+        idempotency_key: Annotated[
+            str, Header(alias="Idempotency-Key", min_length=1, max_length=200)
+        ],
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            return jsonable_encoder(runtime.proactive_store.enqueue_goal_reminder(
+                goal_id=goal_id,
+                reminder_kind=body.reminder_kind,
+                reminder_text=body.reminder_text,
+                remind_at=body.remind_at,
+                expires_at=body.expires_at,
+                idempotency_key=idempotency_key,
+                supersede_existing_slot=body.supersede_existing_slot,
+            ))
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.post("/v1/commitments/course-field-authorization")
+    async def authorize_commitment_fields(
+        body: CommitmentAuthorizationBody, request: Request
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            return jsonable_encoder(
+                runtime.commitment_broker.record_field_authorization(
+                    source_sha256=body.source_sha256,
+                    authorization_ref=body.authorization_ref,
+                )
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=409,detail=str(error)) from error
+
+    @app.post("/v1/commitments/course-reminders/supersede-legacy")
+    async def supersede_legacy_course_reminders(
+        body: CourseReminderSupersessionBody, request: Request
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            return jsonable_encoder(
+                runtime.commitment_broker.supersede_legacy_course_reminders(
+                    source_sha256=body.source_sha256,
+                    replacement_generation=body.replacement_generation,
+                )
+            )
+        except LookupError as error:
+            raise HTTPException(status_code=404,detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=409,detail=str(error)) from error
+
+    @app.post("/v1/goals/{goal_id}/commitment-projection")
+    async def project_commitment(
+        goal_id: UUID, body: CommitmentProjectionBody, request: Request
+    ) -> object:
+        runtime: Runtime = request.app.state.runtime
+        try:
+            return jsonable_encoder(runtime.commitment_broker.project_goal(
+                goal_id=goal_id,
+                source_sha256=body.source_sha256,
+                entry_id=body.entry_id,
+                course_name=body.course_name,
+                task_name=body.task_name,
+                deadline_at=body.deadline_at,
+            ))
+        except LookupError as error:
+            raise HTTPException(status_code=404,detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=409,detail=str(error)) from error
+
     @app.get("/scene-simulator", include_in_schema=False)
     async def scene_simulator() -> FileResponse:
         path = Path(__file__).resolve().parents[2] / "apps" / "web" / "scene-simulator.html"
@@ -1294,6 +2438,41 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             path,
             media_type="text/html",
             headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+        )
+
+    @app.get("/manifest.webmanifest", include_in_schema=False)
+    async def pwa_manifest() -> FileResponse:
+        path = Path(__file__).resolve().parents[2] / "apps" / "web" / "manifest.webmanifest"
+        return FileResponse(
+            path,
+            media_type="application/manifest+json",
+            headers={"Cache-Control": "no-cache"},
+        )
+
+    @app.get("/service-worker.js", include_in_schema=False)
+    async def pwa_service_worker() -> FileResponse:
+        path = Path(__file__).resolve().parents[2] / "apps" / "web" / "service-worker.js"
+        return FileResponse(
+            path,
+            media_type="text/javascript",
+            headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+        )
+
+    @app.get("/assets/{asset_name}", include_in_schema=False)
+    async def pwa_asset(asset_name: str) -> FileResponse:
+        allowed = {
+            "havre-app.css": "text/css",
+            "havre-app.js": "text/javascript",
+            "havre-icon.svg": "image/svg+xml",
+        }
+        media_type = allowed.get(asset_name)
+        if media_type is None:
+            raise HTTPException(status_code=404, detail="asset not found")
+        path = Path(__file__).resolve().parents[2] / "apps" / "web" / asset_name
+        return FileResponse(
+            path,
+            media_type=media_type,
+            headers={"Cache-Control": "no-cache"},
         )
 
     @app.post(
@@ -1507,6 +2686,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             global_budget_per_24h=body.global_budget_per_24h,
             category_budget_per_24h=body.category_budget_per_24h,
             cooldown_seconds=body.cooldown_seconds,
+            generic_push_for_local_only=body.generic_push_for_local_only,
             stopped_subject_refs=body.stopped_subject_refs,
             authorization_ref=body.authorization_ref,
         )
@@ -1715,7 +2895,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/v1/proactive/work/run-once")
     async def run_proactive_work(request: Request) -> object:
         runtime: Runtime = request.app.state.runtime
-        return jsonable_encoder(runtime.proactive_store.run_work_once())
+        evaluation = runtime.proactive_evaluator.run_once()
+        work = runtime.proactive_store.run_work_once()
+        delivery = runtime.web_push_provider.deliver_pending()
+        return jsonable_encoder({"evaluation": evaluation, "work": work, "web_push": delivery})
 
     @app.post("/v1/offline/jobs")
     async def enqueue_offline_job(
@@ -1767,6 +2950,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=409, detail=str(error)) from error
 
     return app
-
-
-app = create_app()

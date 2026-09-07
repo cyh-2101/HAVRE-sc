@@ -88,7 +88,9 @@
         "owner_reminder",
         "belief_confirmation",
         "system_operational",
-        "synthetic_life_context"
+        "synthetic_life_context",
+        "memory",
+        "conversation"
       ],
       "title": "TriggerSourceKind",
       "type": "string"

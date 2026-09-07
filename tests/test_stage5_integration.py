@@ -143,6 +143,24 @@ class Stage5PostgresIntegrationTests(unittest.TestCase):
             traceparent=None,
         )
         self.assertEqual(signalled.decision.branch, InterventionBranch.MINIMUM_ACTION)
+        with self.repository.pool.connection() as connection:
+            guidance = connection.execute(
+                """SELECT request.request_kind,
+                          event.payload->>'interaction_mode' AS interaction_mode,
+                          event.payload ? 'context_pack_id' AS has_context_pack_id,
+                          event.payload ? 'inference_response_id'
+                              AS has_inference_response_id
+                   FROM havre.events AS event
+                   JOIN havre.interaction_requests AS request
+                     ON request.owner_id=event.owner_id
+                    AND request.request_id=event.request_id
+                   WHERE event.owner_id=%s AND event.event_id=%s""",
+                (self.owner_id, signalled.guidance_event_id),
+            ).fetchone()
+        self.assertEqual(guidance["request_kind"], "scene_command")
+        self.assertEqual(guidance["interaction_mode"], "scene_guidance")
+        self.assertFalse(guidance["has_context_pack_id"])
+        self.assertFalse(guidance["has_inference_response_id"])
         action = self.store.record_action(
             scene_session_id=scene_id,
             expected_revision=2,
@@ -425,7 +443,7 @@ class Stage5PostgresIntegrationTests(unittest.TestCase):
 
     def test_web_simulator_serves_and_calls_the_real_scene_api(self) -> None:
         assert DATABASE_URL is not None
-        settings = Settings.from_env().model_copy(
+        settings = Settings.from_env(require_owner_api_token=False).model_copy(
             update={
                 "database_url": DATABASE_URL,
                 "owner_id": uuid.uuid4(),

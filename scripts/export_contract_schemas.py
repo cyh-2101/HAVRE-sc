@@ -7,7 +7,14 @@ from pathlib import Path
 
 from companion.application import InteractionCommand, InteractionResult
 from companion.consolidation import ConsolidationProposal
-from companion.context import ContextPack, PersonalContextItem
+from companion.context import (
+    ContextPack,
+    OwnerExampleBank,
+    PersonalContextItem,
+    ResponsePlan,
+    ResponsePlanV1,
+    ResponsePlanV2,
+)
 from companion.evidence import EvidenceRef
 from companion.events import EventEnvelope
 from companion.goals import Goal, GoalProgressRecord, GoalProjectionMaterial
@@ -136,6 +143,10 @@ from mlsys.training import (
 
 CONTRACTS = {
     "context-pack-v1": ContextPack,
+    "response-plan-v1": ResponsePlanV1,
+    "response-plan-v2": ResponsePlanV2,
+    "response-plan-v3": ResponsePlan,
+    "owner-example-bank-v1": OwnerExampleBank,
     "data-policy-v1": DataPolicy,
     "core-response-policy-decision-v1": ResponsePolicyDecision,
     "evidence-ref-v1": EvidenceRef,

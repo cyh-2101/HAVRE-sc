@@ -80,6 +80,77 @@
       "title": "PrivacyClass",
       "type": "string"
     },
+    "ProactiveSourceGuard": {
+      "additionalProperties": false,
+      "description": "Execution-time binding from queued work to one exact durable source.",
+      "properties": {
+        "projection_content_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projection Content Hash"
+        },
+        "projection_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projection Id"
+        },
+        "projection_kind": {
+          "default": "none",
+          "enum": [
+            "none",
+            "goal",
+            "scene"
+          ],
+          "title": "Projection Kind",
+          "type": "string"
+        },
+        "projection_revision": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projection Revision"
+        },
+        "source_event_content_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Source Event Content Hash",
+          "type": "string"
+        },
+        "source_event_id": {
+          "format": "uuid",
+          "title": "Source Event Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_event_id",
+        "source_event_content_hash"
+      ],
+      "title": "ProactiveSourceGuard",
+      "type": "object"
+    },
     "TriggerSourceKind": {
       "enum": [
         "scheduled_time",
@@ -88,7 +159,9 @@
         "owner_reminder",
         "belief_confirmation",
         "system_operational",
-        "synthetic_life_context"
+        "synthetic_life_context",
+        "memory",
+        "conversation"
       ],
       "title": "TriggerSourceKind",
       "type": "string"
@@ -165,6 +238,17 @@
       "title": "Simulation Only",
       "type": "boolean"
     },
+    "source_guard": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProactiveSourceGuard"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "source_kind": {
       "$ref": "#/$defs/TriggerSourceKind"
     },
@@ -195,6 +279,12 @@
       ],
       "default": null,
       "title": "Traceparent"
+    },
+    "trigger_source_version": {
+      "default": "stage6-fixture-trigger-v1",
+      "pattern": "^[a-z][a-z0-9_.-]{2,127}$",
+      "title": "Trigger Source Version",
+      "type": "string"
     },
     "trigger_type": {
       "pattern": "^[a-z][a-z0-9_]{1,63}$",

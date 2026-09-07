@@ -1,24 +1,22 @@
-# Publication Boundary
+# Publication boundary
 
-This repository is a sanitized public mirror derived from private archival
-commit 58fa49b4ccb6fbf7d01b76e6d293b5121ead8eeb on 2026-08-26.
+This public source snapshot was refreshed on 2026-09-07 from private source
+commit bcdbba9fa7b4d41d5afd439e45247915d0c7ef8e. It appends to the existing independently rooted showcase
+history. The private repository's commits and author metadata are never merged.
 
-The public mirror uses a new squashed Git history. It does not contain the
-private repository history, personal author email, owner data, real chats,
-Memory, feedback text, OA case material, credentials, model weights, databases,
-backups, logs, runtime state, or owner-local filesystem paths.
+The private archive remains authoritative for exact historical evidence and
+owner decisions. This mirror contains source, contracts, migrations, synthetic
+fixtures and technical conclusions. It excludes owner databases, private chats,
+Memory, feedback, OA case material, per-case new research outputs, credentials,
+device origins, personal screenshots, model weights and runtime state.
 
-Historical checkpoint and evaluation documents are included because accepted,
-superseded, and rejected results are part of the research record. Where a file
-originally contained an owner-local path, this mirror substitutes a placeholder.
-That redacted file is not byte-identical to the canonical private artifact.
-Hashes recorded inside it refer to the private archival evidence.
+Detailed owner audits are represented by explicit public technical synopses.
+Owner path prefixes are replaced only here. Private OA-specific prompt references
+are removed only here. These modified files are not byte-identical to private
+canonical artifacts, and hashes quoted by archival documents refer to their
+original evidence. No private test is replaced by invented data.
 
-The private archive remains authoritative for Product Owner decisions,
-immutable evidence bytes, and private evaluations. This mirror is intended for
-research applications, technical review, reproducible synthetic demonstration,
-and resume evidence only.
-
-Publishing this mirror does not authorize new training, Stage 9B, candidate
-promotion/deployment, iPhone/Stage 12 work, broader sensing, or publication of
-future private artifacts.
+See [current implementation](docs/CURRENT_IMPLEMENTATION.md),
+[public testing](docs/PUBLIC_TESTING.md) and
+[release audit](docs/PUBLIC_RELEASE_AUDIT.md).
+Publication grants no training, promotion, sensing or new delivery authority.

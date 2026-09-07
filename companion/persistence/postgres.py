@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import nullcontext
 from datetime import UTC, date, datetime, timedelta
 import re
 from typing import Any
@@ -13,6 +14,7 @@ from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 from companion.context import ContextPack, ConversationHistoryItem, PersonalContextItem
+from companion.commitments.models import CommitmentFusionClaim
 from companion.events import (
     AssistantMessagePayload,
     BeliefLifecyclePayload,
@@ -41,12 +43,18 @@ from companion.hashing import content_hash
 from companion.identity import IdentityBundle
 from companion.ids import uuid7
 from companion.memory.models import MemoryCandidate, MemoryRevision, MemoryStatus
+from companion.memory.extractor import EPISODIC_EXTRACTOR_VERSION, proposed_memory_text
 from companion.policy import DataPolicy, PrivacyClass, combine_policies
 from companion.policy.response import validate_response_policy_delivery
 from companion.policy.models import PRIVACY_RESTRICTION_ORDER
 from companion.state.models import CurrentStateSnapshot
 from companion.tracing import Span, TraceContext
-from mlsys.contracts import InferenceRequest, InferenceResponse, RouteDecision
+from mlsys.contracts import (
+    InferenceRequest,
+    InferenceResponse,
+    ProviderVersion,
+    RouteDecision,
+)
 from mlsys.retrieval.models import RetrievalRequest, RetrievalResult
 from companion.user_model.models import (
     BeliefInitialStatus,
@@ -75,6 +83,7 @@ class PostgresRepository:
     }
 
     def __init__(self, database_url: str, *, min_size: int = 1, max_size: int = 4) -> None:
+        self.memory_encoder = None
         self.pool = ConnectionPool(
             conninfo=database_url,
             min_size=min_size,
@@ -329,11 +338,17 @@ class PostgresRepository:
                 ),
             )
             self._insert_event(connection, user_event)
-            # Daily Web chat consolidates the complete session at an explicit
-            # episode boundary. Legacy API/CLI interactions retain the Stage 2
-            # per-event job for compatibility, but the normal chat path never
-            # interrupts the owner with one candidate per utterance.
-            if user_event.data_policy.memory_eligible and channel != "web":
+            source_text = "\n".join(
+                part.text for part in user_event.payload.content_parts
+            ).strip()
+            # Ordinary Web chat proposes only explicit stable owner statements.
+            # API/CLI retain the historical Stage 2 per-event behavior.
+            should_extract_memory = (
+                user_event.data_policy.memory_eligible
+                and (channel != "web" or proposed_memory_text(source_text) is not None)
+                and not (self.memory_encoder is not None and channel == "web")
+            )
+            if should_extract_memory:
                 connection.execute(
                     """
                     INSERT INTO havre.background_jobs (
@@ -355,7 +370,7 @@ class PostgresRepository:
                                 "source_request_id": str(user_event.request_id),
                             }
                         ),
-                        f"event:{user_event.event_id}:{'episodic-extractor-rule-v1'}",
+                        f"event:{user_event.event_id}:{EPISODIC_EXTRACTOR_VERSION}",
                         user_event.trace_id,
                         user_event.event_id,
                         user_event.request_id,
@@ -378,10 +393,37 @@ class PostgresRepository:
         owner_id: UUID,
         context_pack: ContextPack,
         route_decision: RouteDecision,
+        inference_request: InferenceRequest,
         inference_response: InferenceResponse,
+        provider_version: ProviderVersion,
         assistant_event: EventEnvelope,
         spans: list[Span],
+        fusion_claims: tuple[CommitmentFusionClaim, ...] = (),
     ) -> None:
+        inference_request = InferenceRequest.model_validate(
+            inference_request.model_dump(mode="json")
+        )
+        inference_response = InferenceResponse.model_validate(
+            inference_response.model_dump(mode="json")
+        )
+        provider_version = ProviderVersion.model_validate(
+            provider_version.model_dump(mode="json")
+        )
+        self._validate_routed_inference_lineage(
+            owner_id=owner_id,
+            context_pack=context_pack,
+            route_decision=route_decision,
+            inference_request=inference_request,
+        )
+        self._validate_provider_version_lineage(
+            route_decision=route_decision,
+            provider_version=provider_version,
+        )
+        self._validate_completed_response_lineage(
+            inference_request=inference_request,
+            inference_response=inference_response,
+            provider_version=provider_version,
+        )
         payload = assistant_event.payload
         if not isinstance(payload, AssistantMessagePayload):
             raise ValueError("completion requires an assistant message payload")
@@ -391,9 +433,11 @@ class PostgresRepository:
         raw_parts = tuple(part.text for part in inference_response.output_parts)
         delivered_parts = tuple(part.text for part in payload.content_parts)
         if (
-            assistant_event.owner_id != owner_id
+            assistant_event.event_type != EventType.ASSISTANT_MESSAGE
+            or assistant_event.owner_id != owner_id
             or assistant_event.request_id != context_pack.request_id
             or assistant_event.trace_id != context_pack.trace_id
+            or assistant_event.data_policy != context_pack.effective_data_policy
             or payload.context_pack_id != context_pack.context_pack_id
             or payload.inference_response_id != inference_response.inference_response_id
         ):
@@ -410,13 +454,18 @@ class PostgresRepository:
         with self.pool.connection() as connection, connection.transaction():
             request = connection.execute(
                 """
-                SELECT status FROM havre.interaction_requests
+                SELECT status, trace_id, session_id, user_event_id
+                FROM havre.interaction_requests
                 WHERE request_id = %s AND owner_id = %s FOR UPDATE
                 """,
                 (context_pack.request_id, owner_id),
             ).fetchone()
             if not request:
                 raise LookupError("interaction request does not exist")
+            self._validate_terminal_event_request_lineage(
+                terminal_event=assistant_event,
+                request=request,
+            )
             if request["status"] == "completed":
                 return
             if request["status"] != "processing":
@@ -472,6 +521,12 @@ class PostgresRepository:
                 ),
             )
             self._insert_event(connection, assistant_event)
+            self._complete_commitment_fusions(
+                connection,
+                claims=fusion_claims,
+                assistant_event=assistant_event,
+                context_pack=context_pack,
+            )
             self._insert_spans(connection, spans)
             connection.execute(
                 """
@@ -488,6 +543,134 @@ class PostgresRepository:
                     context_pack.request_id, owner_id,
                 ),
             )
+
+            # In the semantic runtime Web memory is routed after the actual
+            # reply route is known. GPT uses the durable real-time queue; local
+            # replies still create only owner-reviewed local candidates.
+            if self.memory_encoder is not None and route_decision.execution_environment == "local":
+                source = self.event_by_id(owner_id=owner_id,event_id=request["user_event_id"])
+                if source is not None and source.data_policy.memory_eligible and source.payload.channel == "web":
+                    source_text="\n".join(part.text for part in source.payload.content_parts)
+                    if proposed_memory_text(source_text) is not None:
+                        connection.execute("""INSERT INTO havre.background_jobs(job_id,owner_id,job_type,schema_version,payload,
+                            idempotency_key,status,origin_trace_id,source_event_id,source_request_id)
+                            VALUES(%s,%s,'episodic_memory_extract',1,%s,%s,'pending',%s,%s,%s)
+                            ON CONFLICT(owner_id,job_type,idempotency_key) DO NOTHING""",
+                            (uuid7(),owner_id,Jsonb({'schema_version':1,'source_event_id':str(source.event_id),
+                            'source_request_id':str(source.request_id)}),f'event:{source.event_id}:{EPISODIC_EXTRACTOR_VERSION}',
+                            source.trace_id,source.event_id,source.request_id))
+
+    def _complete_commitment_fusions(
+        self,
+        connection,
+        *,
+        claims: tuple[CommitmentFusionClaim, ...],
+        assistant_event: EventEnvelope,
+        context_pack: ContextPack,
+    ) -> None:
+        if not claims:
+            return
+        payload = assistant_event.payload
+        if not isinstance(payload, AssistantMessagePayload):
+            raise ValueError("commitment fusion requires an assistant message")
+        delivered_text = "\n".join(part.text for part in payload.content_parts)
+        now = datetime.now(UTC)
+        for claim in claims:
+            if claim.task_name.casefold() not in delivered_text.casefold():
+                connection.execute(
+                    """
+                    UPDATE havre.proactive_fusion_claims
+                    SET status='deferred',reason='final_message_omitted_reminder',
+                        resolved_at=statement_timestamp()
+                    WHERE owner_id=%s AND claim_id=%s AND status='claimed'
+                    """,
+                    (assistant_event.owner_id, claim.claim_id),
+                )
+                continue
+            material = {
+                "owner_id": str(assistant_event.owner_id),
+                "work_item_id": str(claim.work_item_id),
+                "claim_id": str(claim.claim_id),
+                "goal_id": str(claim.goal_id),
+                "goal_revision": claim.goal_revision,
+                "commitment_projection_id": str(claim.commitment_projection_id),
+                "reminder_kind": claim.reminder_kind,
+                "delivery_mode": "conversation_fusion",
+                "assistant_event_id": str(assistant_event.event_id),
+                "context_pack_id": str(context_pack.context_pack_id),
+                "source_event_id": str(claim.source_event_id),
+                "source_event_content_hash": claim.source_event_content_hash,
+                "projection_content_hash": claim.projection_content_hash,
+                "inclusion_text": claim.task_name,
+                "delivered_at": now.isoformat(),
+            }
+            connection.execute(
+                """
+                INSERT INTO havre.commitment_reminder_deliveries (
+                    delivery_id,owner_id,work_item_id,claim_id,goal_id,
+                    goal_revision,commitment_projection_id,reminder_kind,
+                    delivery_mode,assistant_event_id,context_pack_id,
+                    source_event_id,source_event_content_hash,
+                    projection_content_hash,inclusion_text,content_hash,delivered_at
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'conversation_fusion',
+                          %s,%s,%s,%s,%s,%s,%s,%s)
+                """,
+                (
+                    uuid7(),assistant_event.owner_id,claim.work_item_id,
+                    claim.claim_id,claim.goal_id,claim.goal_revision,
+                    claim.commitment_projection_id,claim.reminder_kind,
+                    assistant_event.event_id,context_pack.context_pack_id,
+                    claim.source_event_id,claim.source_event_content_hash,
+                    claim.projection_content_hash,claim.task_name,
+                    content_hash(material),now,
+                ),
+            )
+            connection.execute(
+                """
+                UPDATE havre.proactive_work_items
+                SET status='succeeded',completed_at=statement_timestamp(),
+                    lease_owner=NULL,lease_expires_at=NULL,last_error_code=NULL
+                WHERE owner_id=%s AND work_item_id=%s
+                  AND status IN ('pending','retryable_failed')
+                """,
+                (assistant_event.owner_id,claim.work_item_id),
+            )
+            connection.execute(
+                """
+                UPDATE havre.proactive_fusion_claims
+                SET status='delivered',assistant_event_id=%s,context_pack_id=%s,
+                    reason='actual_task_name_in_final_message',
+                    resolved_at=statement_timestamp()
+                WHERE owner_id=%s AND claim_id=%s AND status='claimed'
+                """,
+                (assistant_event.event_id,context_pack.context_pack_id,
+                 assistant_event.owner_id,claim.claim_id),
+            )
+
+    @staticmethod
+    def _defer_commitment_fusions(
+        connection,
+        *,
+        owner_id: UUID,
+        claims: tuple[CommitmentFusionClaim, ...],
+        reason: str,
+    ) -> None:
+        if not claims:
+            return
+        table_exists = connection.execute(
+            "SELECT to_regclass('havre.proactive_fusion_claims') "
+            "IS NOT NULL AS present"
+        ).fetchone()["present"]
+        if not table_exists:
+            return
+        connection.execute(
+            """
+            UPDATE havre.proactive_fusion_claims
+            SET status='deferred',reason=%s,resolved_at=statement_timestamp()
+            WHERE owner_id=%s AND claim_id=ANY(%s::uuid[]) AND status='claimed'
+            """,
+            (reason, owner_id, [claim.claim_id for claim in claims]),
+        )
 
     @staticmethod
     def _insert_context_pack(connection, context_pack: ContextPack) -> None:
@@ -549,6 +732,110 @@ class PostgresRepository:
             ),
         )
 
+    @staticmethod
+    def _validate_routed_inference_lineage(
+        *,
+        owner_id: UUID,
+        context_pack: ContextPack,
+        route_decision: RouteDecision,
+        inference_request: InferenceRequest,
+    ) -> None:
+        if (
+            context_pack.owner_id != owner_id
+            or route_decision.request_id != context_pack.request_id
+            or route_decision.trace_id != context_pack.trace_id
+            or route_decision.effective_data_policy_revision_id
+            != context_pack.effective_data_policy.policy_revision_id
+            or inference_request.request_id != context_pack.request_id
+            or inference_request.trace_id != context_pack.trace_id
+            or inference_request.context_pack_id != context_pack.context_pack_id
+            or inference_request.constraints.effective_data_policy
+            != context_pack.effective_data_policy
+            or inference_request.constraints.allowed_execution_environments
+            != (route_decision.execution_environment,)
+            or inference_request.generation.max_output_tokens
+            != context_pack.token_budget.reserved_output_tokens
+        ):
+            raise ValueError(
+                "inference request lineage does not match owner, context, and route"
+            )
+
+    @staticmethod
+    def _validate_provider_version_lineage(
+        *,
+        route_decision: RouteDecision,
+        provider_version: ProviderVersion,
+    ) -> None:
+        if (
+            provider_version.provider_id != route_decision.selected_provider_id
+            or provider_version.model_version_id
+            != route_decision.selected_model_version_id
+            or provider_version.execution_environment
+            != route_decision.execution_environment
+        ):
+            raise ValueError("provider version lineage does not match route")
+
+    @staticmethod
+    def _validate_completed_response_lineage(
+        *,
+        inference_request: InferenceRequest,
+        inference_response: InferenceResponse,
+        provider_version: ProviderVersion,
+    ) -> None:
+        actual = (
+            inference_response.inference_request_id,
+            inference_response.request_id,
+            inference_response.trace_id,
+            inference_response.provider.provider_id,
+            inference_response.provider.provider_class,
+            inference_response.versions.model_version_id,
+            inference_response.versions.adapter_version_id,
+            inference_response.versions.tokenizer_version_id,
+            inference_response.versions.serving_config_version,
+            inference_response.versions.provider_adapter_version_id,
+            inference_response.versions.serving_engine,
+            inference_response.versions.serving_engine_version,
+            inference_response.versions.model_artifact_hash,
+            inference_response.versions.runtime_attestation_id,
+            inference_response.versions.runtime_attestation_hash,
+        )
+        expected = (
+            inference_request.inference_request_id,
+            inference_request.request_id,
+            inference_request.trace_id,
+            provider_version.provider_id,
+            provider_version.provider_class,
+            provider_version.model_version_id,
+            provider_version.active_adapter_version_id,
+            provider_version.tokenizer_version_id,
+            provider_version.serving_config_version,
+            provider_version.provider_adapter_version_id,
+            provider_version.serving_engine,
+            provider_version.serving_engine_version,
+            provider_version.model_artifact_hash,
+            provider_version.runtime_attestation_id,
+            provider_version.runtime_attestation_hash,
+        )
+        if actual != expected:
+            raise ValueError(
+                "inference response lineage does not match request and provider version"
+            )
+
+    @staticmethod
+    def _validate_terminal_event_request_lineage(
+        *,
+        terminal_event: EventEnvelope,
+        request: dict[str, Any],
+    ) -> None:
+        if (
+            terminal_event.trace_id != request["trace_id"]
+            or terminal_event.session_id != request["session_id"]
+            or terminal_event.causation_event_id != request["user_event_id"]
+        ):
+            raise ValueError(
+                "terminal event does not match durable interaction request lineage"
+            )
+
     def fail_inference_interaction(
         self,
         *,
@@ -560,11 +847,15 @@ class PostgresRepository:
         provider_version,
         failure_event: EventEnvelope,
         spans: list[Span],
+        fusion_claims: tuple[CommitmentFusionClaim, ...] = (),
     ) -> None:
         """Atomically retain routed failure evidence without an assistant event."""
 
-        from mlsys.contracts import InferenceFailure, ProviderVersion
+        from mlsys.contracts import InferenceFailure
 
+        inference_request = InferenceRequest.model_validate(
+            inference_request.model_dump(mode="json")
+        )
         inference_failure = InferenceFailure.model_validate(
             inference_failure.model_dump(mode="json")
         )
@@ -587,20 +878,16 @@ class PostgresRepository:
         )
         if actual_lineage != expected_lineage:
             raise ValueError("inference failure lineage does not match request and route")
-        if (
-            provider_version.provider_id != route_decision.selected_provider_id
-            or provider_version.model_version_id
-            != route_decision.selected_model_version_id
-        ):
-            raise ValueError("provider version lineage does not match route")
-        if (
-            inference_request.request_id != context_pack.request_id
-            or inference_request.trace_id != context_pack.trace_id
-            or inference_request.context_pack_id != context_pack.context_pack_id
-            or route_decision.request_id != context_pack.request_id
-            or route_decision.trace_id != context_pack.trace_id
-        ):
-            raise ValueError("inference request lineage does not match context and route")
+        self._validate_routed_inference_lineage(
+            owner_id=owner_id,
+            context_pack=context_pack,
+            route_decision=route_decision,
+            inference_request=inference_request,
+        )
+        self._validate_provider_version_lineage(
+            route_decision=route_decision,
+            provider_version=provider_version,
+        )
         self._validate_failure_event(
             owner_id=owner_id,
             context_pack=context_pack,
@@ -616,13 +903,18 @@ class PostgresRepository:
         with self.pool.connection() as connection, connection.transaction():
             request = connection.execute(
                 """
-                SELECT status FROM havre.interaction_requests
+                SELECT status, trace_id, session_id, user_event_id
+                FROM havre.interaction_requests
                 WHERE request_id = %s AND owner_id = %s FOR UPDATE
                 """,
                 (context_pack.request_id, owner_id),
             ).fetchone()
             if not request:
                 raise LookupError("interaction request does not exist")
+            self._validate_terminal_event_request_lineage(
+                terminal_event=failure_event,
+                request=request,
+            )
             if request["status"] != "processing":
                 return
             self._insert_context_pack(connection, context_pack)
@@ -642,7 +934,7 @@ class PostgresRepository:
                     output_content_hash, failure, created_at
                 ) VALUES (
                     %s, NULL, %s, 1, %s, %s, %s, %s, %s, 1,
-                    'failed', NULL, %s, NULL, %s, %s, NULL,
+                    'failed', NULL, %s, NULL, %s, %s, %s,
                     %s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL, NULL, %s, %s
                 )
                 """,
@@ -654,6 +946,7 @@ class PostgresRepository:
                     route_decision.route_decision_id, inference_failure.provider_id,
                     inference_failure.provider_class,
                     route_decision.selected_model_version_id,
+                    provider_version.active_adapter_version_id,
                     provider_version.tokenizer_version_id,
                     provider_version.serving_config_version,
                     provider_version.provider_adapter_version_id,
@@ -667,6 +960,12 @@ class PostgresRepository:
                 ),
             )
             self._insert_event(connection, failure_event)
+            self._defer_commitment_fusions(
+                connection,
+                owner_id=owner_id,
+                claims=fusion_claims,
+                reason='interaction_inference_failed',
+            )
             self._insert_spans(connection, spans)
             connection.execute(
                 """
@@ -701,7 +1000,7 @@ class PostgresRepository:
                     runtime_attestation_id, schema_version, attestation_hash,
                     attestation, created_at
                 ) VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (runtime_attestation_id) DO NOTHING
+                ON CONFLICT DO NOTHING
                 """,
                 (
                     attestation.attestation_id,
@@ -731,20 +1030,19 @@ class PostgresRepository:
         failure_event: EventEnvelope,
         error_code: str,
         spans: list[Span],
+        fusion_claims: tuple[CommitmentFusionClaim, ...] = (),
     ) -> None:
         """Persist a typed routed failure without inventing provider version data."""
 
         inference_request = InferenceRequest.model_validate(
             inference_request.model_dump(mode="json")
         )
-        if (
-            inference_request.request_id != context_pack.request_id
-            or inference_request.trace_id != context_pack.trace_id
-            or inference_request.context_pack_id != context_pack.context_pack_id
-            or route_decision.request_id != context_pack.request_id
-            or route_decision.trace_id != context_pack.trace_id
-        ):
-            raise ValueError("pre-inference request lineage does not match context and route")
+        self._validate_routed_inference_lineage(
+            owner_id=owner_id,
+            context_pack=context_pack,
+            route_decision=route_decision,
+            inference_request=inference_request,
+        )
         self._validate_failure_event(
             owner_id=owner_id,
             context_pack=context_pack,
@@ -758,18 +1056,29 @@ class PostgresRepository:
         with self.pool.connection() as connection, connection.transaction():
             request = connection.execute(
                 """
-                SELECT status FROM havre.interaction_requests
+                SELECT status, trace_id, session_id, user_event_id
+                FROM havre.interaction_requests
                 WHERE request_id = %s AND owner_id = %s FOR UPDATE
                 """,
                 (context_pack.request_id, owner_id),
             ).fetchone()
             if not request:
                 raise LookupError("interaction request does not exist")
+            self._validate_terminal_event_request_lineage(
+                terminal_event=failure_event,
+                request=request,
+            )
             if request["status"] != "processing":
                 return
             self._insert_context_pack(connection, context_pack)
             self._insert_route_decision(connection, route_decision, owner_id)
             self._insert_event(connection, failure_event)
+            self._defer_commitment_fusions(
+                connection,
+                owner_id=owner_id,
+                claims=fusion_claims,
+                reason='interaction_pre_inference_failed',
+            )
             self._insert_spans(connection, spans)
             connection.execute(
                 """
@@ -793,6 +1102,7 @@ class PostgresRepository:
         failure_event: EventEnvelope,
         error_code: str,
         spans: list[Span],
+        fusion_claims: tuple[CommitmentFusionClaim, ...] = (),
     ) -> None:
         """Persist capability/routing failure evidence without fake route data."""
 
@@ -812,17 +1122,28 @@ class PostgresRepository:
         with self.pool.connection() as connection, connection.transaction():
             request = connection.execute(
                 """
-                SELECT status FROM havre.interaction_requests
+                SELECT status, trace_id, session_id, user_event_id
+                FROM havre.interaction_requests
                 WHERE request_id = %s AND owner_id = %s FOR UPDATE
                 """,
                 (context_pack.request_id, owner_id),
             ).fetchone()
             if not request:
                 raise LookupError("interaction request does not exist")
+            self._validate_terminal_event_request_lineage(
+                terminal_event=failure_event,
+                request=request,
+            )
             if request["status"] != "processing":
                 return
             self._insert_context_pack(connection, context_pack)
             self._insert_event(connection, failure_event)
+            self._defer_commitment_fusions(
+                connection,
+                owner_id=owner_id,
+                claims=fusion_claims,
+                reason='interaction_pre_route_failed',
+            )
             self._insert_spans(connection, spans)
             connection.execute(
                 """
@@ -840,6 +1161,126 @@ class PostgresRepository:
                     owner_id,
                 ),
             )
+
+    def fail_pre_context_interaction(
+        self,
+        *,
+        owner_id: UUID,
+        failure_event: EventEnvelope,
+        error_code: str,
+        spans: list[Span],
+        fusion_claims: tuple[CommitmentFusionClaim, ...] = (),
+    ) -> None:
+        """Persist a typed failure when no valid ContextPack could be built."""
+
+        payload = failure_event.payload
+        if (
+            not isinstance(payload, InteractionFailurePayload)
+            or payload.failure_stage != "context_build"
+            or payload.context_pack_id is not None
+            or payload.inference_request_id is not None
+            or payload.route_decision_id is not None
+            or failure_event.event_type != EventType.INTERACTION_FAILED
+            or failure_event.owner_id != owner_id
+            or payload.failure_code != error_code
+        ):
+            raise ValueError("pre-context failure event has invalid lineage")
+
+        with self.pool.connection() as connection, connection.transaction():
+            request = connection.execute(
+                """
+                SELECT status, trace_id, session_id, user_event_id
+                FROM havre.interaction_requests
+                WHERE request_id = %s AND owner_id = %s FOR UPDATE
+                """,
+                (failure_event.request_id, owner_id),
+            ).fetchone()
+            if not request:
+                raise LookupError("interaction request does not exist")
+            if (
+                failure_event.trace_id != request["trace_id"]
+                or failure_event.session_id != request["session_id"]
+                or failure_event.causation_event_id != request["user_event_id"]
+            ):
+                raise ValueError(
+                    "pre-context failure event does not match interaction request lineage"
+                )
+            if request["status"] != "processing":
+                return
+            self._insert_event(connection, failure_event)
+            self._defer_commitment_fusions(
+                connection,
+                owner_id=owner_id,
+                claims=fusion_claims,
+                reason='interaction_pre_context_failed',
+            )
+            self._insert_spans(connection, spans)
+            connection.execute(
+                """
+                UPDATE havre.interaction_requests SET
+                    status = 'failed', failure_event_id = %s,
+                    error_code = %s, completed_at = clock_timestamp()
+                WHERE request_id = %s AND owner_id = %s AND status = 'processing'
+                """,
+                (
+                    failure_event.event_id,
+                    error_code,
+                    failure_event.request_id,
+                    owner_id,
+                ),
+            )
+
+    def recover_expired_interactions(self, *, owner_id: UUID, cutoff: datetime,
+                                     limit: int = 25) -> list[UUID]:
+        """End expired ordinary requests lacking durable completion lineage.
+
+        Do not infer which volatile inference stage was reached. Existing
+        pre-ContextPack terminal contracts describe the persisted evidence only.
+        Request locks arbitrate recovery against completion; a late writer must
+        obey the existing non-processing rejection in complete_interaction.
+        """
+        if cutoff.utcoffset() is None:
+            raise ValueError('recovery cutoff must be timezone-aware')
+        recovered = []
+        with self.pool.connection() as connection, connection.transaction():
+            rows = connection.execute(
+                """SELECT e.* FROM havre.interaction_requests r
+                   JOIN havre.events e ON e.owner_id=r.owner_id AND e.event_id=r.user_event_id
+                   WHERE r.owner_id=%s AND r.status='processing'
+                    AND r.request_kind='interaction' AND r.created_at<=%s
+                    AND NOT EXISTS (SELECT 1 FROM havre.context_packs p
+                        WHERE p.owner_id=r.owner_id AND p.request_id=r.request_id)
+                   ORDER BY r.created_at,r.request_id LIMIT %s
+                   FOR UPDATE OF r SKIP LOCKED""",
+                (owner_id, cutoff, max(1,min(limit,100))),
+            ).fetchall()
+            for source in rows:
+                failure = EventEnvelope(
+                    event_type=EventType.INTERACTION_FAILED,
+                    owner_id=owner_id, session_id=source['session_id'],
+                    request_id=source['request_id'], trace_id=source['trace_id'],
+                    causation_event_id=source['event_id'],
+                    data_policy=self._policy_from_row(source),
+                    payload=InteractionFailurePayload(
+                        failure_stage='context_build', failure_code='interaction_expired',
+                        retryable=True,
+                        safe_message='This reply did not finish. Your message is saved and can be retried.',
+                    ),
+                )
+                self._insert_event(connection,failure)
+                connection.execute("""UPDATE havre.interaction_requests SET status='failed',
+                    failure_event_id=%s,error_code='interaction_expired',completed_at=clock_timestamp()
+                    WHERE owner_id=%s AND request_id=%s AND status='processing'""",
+                    (failure.event_id,owner_id,source['request_id']))
+                connection.execute("""UPDATE havre.proactive_fusion_claims
+                    SET status='deferred',reason='interaction_expired',resolved_at=clock_timestamp()
+                    WHERE owner_id=%s AND request_id=%s AND status='claimed'""",
+                    (owner_id,source['request_id']))
+                connection.execute("""UPDATE havre.interaction_activity_leases
+                    SET ended_at=clock_timestamp() WHERE owner_id=%s AND request_id=%s AND ended_at IS NULL""",
+                    (owner_id,source['request_id']))
+                recovered.append(source['request_id'])
+        return recovered
 
     @staticmethod
     def _validate_failure_event(
@@ -863,6 +1304,8 @@ class PostgresRepository:
             or failure_event.owner_id != owner_id
             or failure_event.request_id != context_pack.request_id
             or failure_event.trace_id != context_pack.trace_id
+            or context_pack.owner_id != owner_id
+            or failure_event.data_policy != context_pack.effective_data_policy
             or payload.failure_stage != failure_stage
             or payload.inference_request_id != inference_request_id
             or payload.context_pack_id != context_pack.context_pack_id
@@ -875,6 +1318,8 @@ class PostgresRepository:
         if route_decision is not None and (
             route_decision.request_id != context_pack.request_id
             or route_decision.trace_id != context_pack.trace_id
+            or route_decision.effective_data_policy_revision_id
+            != context_pack.effective_data_policy.policy_revision_id
         ):
             raise ValueError("failure route lineage does not match the context pack")
 
@@ -1128,6 +1573,17 @@ class PostgresRepository:
             ):
                 raise LeaseLostError("worker lease is missing, expired, or superseded")
 
+            rejected_unchanged = connection.execute(
+                """SELECT 1 FROM havre.memory_candidates
+                   WHERE owner_id=%s AND status='rejected' AND content_text=%s
+                   LIMIT 1""",
+                (candidate.owner_id, candidate.content_text),
+            ).fetchone()
+            if rejected_unchanged is not None:
+                duplicate_payload = candidate.model_dump(mode="json")
+                duplicate_payload["status"] = "duplicate"
+                duplicate_payload["content_hash"] = ""
+                candidate = MemoryCandidate.model_validate(duplicate_payload)
             policy = candidate.data_policy
             stored = connection.execute(
                 """
@@ -1273,6 +1729,7 @@ class PostgresRepository:
         reason: str,
         embedding_provider,
         importance: float | None = None,
+        content_text: str | None = None,
     ) -> MemoryRevision:
         with self.pool.connection() as connection, connection.transaction():
             candidate = connection.execute(
@@ -1313,6 +1770,21 @@ class PostgresRepository:
                 if importance is None
                 else "owner-review-importance-v1"
             )
+            accepted_text = (
+                candidate["content_text"]
+                if content_text is None
+                else content_text.strip()
+            )
+            if not accepted_text:
+                raise ValueError("accepted Memory text cannot be empty")
+            accepted_content = dict(candidate["content"])
+            accepted_content["text"] = accepted_text
+            corrected = accepted_text != candidate["content_text"]
+            transform_version = (
+                "owner-accepted-correction-v1"
+                if corrected
+                else candidate["extractor_version"]
+            )
             memory_id = uuid7()
             memory_policy = self._derived_policy_from_row(candidate)
             lifecycle_event = EventEnvelope(
@@ -1336,16 +1808,20 @@ class PostgresRepository:
                 owner_id=owner_id,
                 memory_id=memory_id,
                 revision=1,
-                content=candidate["content"],
-                content_text=candidate["content_text"],
+                content=accepted_content,
+                content_text=accepted_text,
                 confidence=float(candidate["confidence"]),
-                confidence_method=candidate["confidence_method"],
+                confidence_method=(
+                    "owner-correction-v1"
+                    if corrected
+                    else candidate["confidence_method"]
+                ),
                 importance=accepted_importance,
                 importance_policy_version=importance_policy_version,
                 status=MemoryStatus.ACTIVE,
                 source_occurred_at=candidate["recorded_at"],
                 created_by="owner_review",
-                transform_version=candidate["extractor_version"],
+                transform_version=transform_version,
                 candidate_id=candidate_id,
                 created_event_id=lifecycle_event.event_id,
                 trace_id=candidate["source_trace_id"],
@@ -1370,7 +1846,7 @@ class PostgresRepository:
                 revision=revision,
                 relation="derived_from",
                 transform_name="episodic_extractor_owner_review",
-                transform_version=candidate["extractor_version"],
+                transform_version=transform_version,
                 created_event_id=lifecycle_event.event_id,
             )
             connection.execute(
@@ -1540,12 +2016,26 @@ class PostgresRepository:
         with self.pool.connection() as connection:
             return connection.execute(
                 """
-                SELECT revision.*
+                SELECT revision.*,
+                       COALESCE(provenance.source_refs, ARRAY[]::text[]) AS source_refs
                 FROM havre.memory_heads AS head
                 JOIN havre.memory_revisions AS revision
                   ON revision.owner_id = head.owner_id
                  AND revision.memory_id = head.memory_id
                  AND revision.revision = head.current_revision
+                LEFT JOIN LATERAL (
+                  SELECT array_agg(
+                    CASE edge.source_kind
+                      WHEN 'event' THEN 'event/' || edge.source_id::text
+                      ELSE edge.source_kind || '/' || edge.source_id::text
+                    END ORDER BY edge.created_at
+                  ) AS source_refs
+                  FROM havre.provenance_edges edge
+                  WHERE edge.owner_id=revision.owner_id
+                    AND edge.derived_kind='memory_revision'
+                    AND edge.derived_id=revision.memory_id
+                    AND edge.derived_revision=revision.revision
+                ) provenance ON true
                 WHERE head.owner_id = %s AND head.status = 'active'
                 ORDER BY revision.created_at, revision.memory_id
                 """,
@@ -1594,6 +2084,8 @@ class PostgresRepository:
                   AND revision.status = 'active'
                   AND revision.memory_class = ANY(%s)
                   AND revision.privacy_class = ANY(%s)
+                  AND (revision.valid_from IS NULL OR revision.valid_from <= %s)
+                  AND (revision.valid_to IS NULL OR revision.valid_to > %s)
                   AND (%s::timestamptz IS NULL OR revision.source_occurred_at >= %s)
                   AND (%s::timestamptz IS NULL OR revision.source_occurred_at <= %s)
                 ORDER BY CASE WHEN %s THEN embedding.embedding <=> %s::vector END,
@@ -1609,6 +2101,8 @@ class PostgresRepository:
                     request.owner_id,
                     list(request.filters.memory_classes),
                     [item.value for item in request.filters.allowed_privacy_classes],
+                    request.as_of,
+                    request.as_of,
                     request.filters.occurred_after,
                     request.filters.occurred_after,
                     request.filters.occurred_before,
@@ -1697,6 +2191,13 @@ class PostgresRepository:
         """
         with self.pool.connection() as connection, connection.transaction():
             connection.execute("SET LOCAL havre.privileged_erasure = 'on'")
+            if connection.execute("SELECT to_regclass('havre.realtime_memory_jobs') IS NOT NULL AS present").fetchone()["present"]:
+                connection.execute("DELETE FROM havre.realtime_memory_jobs WHERE owner_id=%s AND (source_user_event_id=%s OR source_assistant_event_id=%s)",
+                    (owner_id,source_event_id,source_event_id))
+            connection.execute(
+                "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+                (f"web-push-owner:{owner_id}",),
+            )
             connection.execute(
                 "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
                 (f"offline-owner:{owner_id}",),
@@ -1857,6 +2358,67 @@ class PostgresRepository:
                 (owner_id, source_event_id),
             ).fetchall()
             candidate_ids = [row["candidate_id"] for row in candidate_rows]
+            diary_intelligence_run_ids: list[UUID] = []
+            delegated_memory_ids: set[UUID] = set()
+            delegated_belief_ids: set[UUID] = set()
+            diary_review_tables_present = connection.execute(
+                "SELECT to_regclass('havre.daily_diary_review_memory_sources') IS NOT NULL AS present"
+            ).fetchone()["present"]
+            if connection.execute(
+                "SELECT to_regclass('havre.daily_diary_intelligence_sources') IS NOT NULL AS present"
+            ).fetchone()["present"]:
+                affected_run_query = (
+                    """SELECT DISTINCT run_id FROM (
+                         SELECT run_id
+                         FROM havre.daily_diary_intelligence_sources
+                         WHERE owner_id=%s AND event_id=%s
+                         UNION
+                         SELECT memory_source.run_id
+                         FROM havre.daily_diary_review_memory_sources memory_source
+                         JOIN havre.provenance_edges edge
+                           ON edge.owner_id=memory_source.owner_id
+                          AND edge.derived_kind='memory_revision'
+                          AND edge.derived_id=memory_source.memory_id
+                          AND edge.derived_revision=memory_source.memory_revision
+                         WHERE memory_source.owner_id=%s
+                           AND edge.source_kind='event'
+                           AND edge.source_id=%s
+                       ) affected"""
+                    if diary_review_tables_present
+                    else """SELECT DISTINCT run_id
+                              FROM havre.daily_diary_intelligence_sources
+                              WHERE owner_id=%s AND event_id=%s"""
+                )
+                affected_run_parameters = (
+                    (owner_id, source_event_id, owner_id, source_event_id)
+                    if diary_review_tables_present
+                    else (owner_id, source_event_id)
+                )
+                diary_intelligence_run_ids = [
+                    row["run_id"]
+                    for row in connection.execute(
+                        affected_run_query,
+                        affected_run_parameters,
+                    ).fetchall()
+                ]
+                delegated_memory_ids = {
+                    row["memory_id"]
+                    for row in connection.execute(
+                        """SELECT memory_id
+                           FROM havre.owner_delegated_gpt_memory_updates
+                           WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                        (owner_id, diary_intelligence_run_ids),
+                    ).fetchall()
+                }
+                delegated_belief_ids = {
+                    row["belief_id"]
+                    for row in connection.execute(
+                        """SELECT belief_id
+                           FROM havre.owner_delegated_gpt_belief_updates
+                           WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                        (owner_id, diary_intelligence_run_ids),
+                    ).fetchall()
+                }
             lineage_rows = connection.execute(
                 """
                 WITH RECURSIVE lineage(kind, id, revision) AS (
@@ -1931,6 +2493,9 @@ class PostgresRepository:
                     UNION
                     SELECT id AS memory_id
                     FROM unnest(%s::uuid[]) AS id
+                    UNION
+                    SELECT id AS memory_id
+                    FROM unnest(%s::uuid[]) AS id
                 ) AS source_memories
                 """,
                 (
@@ -1939,10 +2504,14 @@ class PostgresRepository:
                     owner_id,
                     candidate_ids,
                     list(lineage_by_kind.get("memory_revision", set())),
+                    list(delegated_memory_ids),
                 ),
             ).fetchall()
             memory_ids = [row["memory_id"] for row in memory_rows]
-            belief_ids = list(lineage_by_kind.get("belief_revision", set()))
+            belief_ids = list(
+                lineage_by_kind.get("belief_revision", set())
+                | delegated_belief_ids
+            )
             proposal_ids = list(
                 lineage_by_kind.get("consolidation_proposal", set())
             )
@@ -1952,6 +2521,9 @@ class PostgresRepository:
             progress_record_ids = set(
                 lineage_by_kind.get("goal_progress_record", set())
             )
+            stage15_tables_exist = connection.execute(
+                "SELECT to_regclass('havre.commitment_projections') IS NOT NULL AS present"
+            ).fetchone()["present"]
             goal_rows = connection.execute(
                 """
                 SELECT goal_id, revision
@@ -1967,6 +2539,21 @@ class PostgresRepository:
                 """,
                 (owner_id, owner_id, source_event_id),
             ).fetchall()
+            if stage15_tables_exist:
+                transition_goal_rows = connection.execute(
+                    """
+                    SELECT goal.goal_id,goal.revision
+                    FROM havre.goal_transition_evidence evidence
+                    JOIN havre.goals goal ON goal.owner_id=evidence.owner_id
+                      AND goal.goal_id=evidence.goal_id
+                    WHERE evidence.owner_id=%s AND evidence.source_event_id=%s
+                    """,
+                    (owner_id, source_event_id),
+                ).fetchall()
+                goal_rows_by_id = {
+                    row["goal_id"]: row for row in [*goal_rows, *transition_goal_rows]
+                }
+                goal_rows = list(goal_rows_by_id.values())
             goal_ids = [row["goal_id"] for row in goal_rows]
             progress_record_ids.update(
                 row["progress_record_id"]
@@ -2056,6 +2643,146 @@ class PostgresRepository:
                 row["retrieval_result_id"] for row in retrieval_rows
             ]
             request_ids = {row["request_id"] for row in retrieval_rows}
+            proactive_work_item_ids: list[UUID] = []
+            proactive_request_ids: list[UUID] = []
+            proactive_evaluation_count = 0
+            continuation_run_count = 0
+            continuation_table_exists = connection.execute(
+                "SELECT to_regclass('havre.owner_conversation_continuation_runs') "
+                "IS NOT NULL AS present"
+            ).fetchone()["present"]
+            if continuation_table_exists:
+                continuation_rows = connection.execute(
+                    """SELECT run.continuation_run_id,run.work_item_id
+                       FROM havre.owner_conversation_continuation_runs run
+                       WHERE run.owner_id=%s AND (
+                         run.source_user_event_id=%s OR run.source_assistant_event_id=%s
+                         OR EXISTS (
+                           SELECT 1 FROM havre.events assistant
+                           JOIN havre.context_packs pack
+                             ON pack.owner_id=assistant.owner_id
+                            AND pack.request_id=assistant.request_id
+                           WHERE assistant.owner_id=run.owner_id
+                             AND assistant.event_id=run.source_assistant_event_id
+                             AND (pack.retrieval_result_id=ANY(%s::uuid[])
+                               OR EXISTS (
+                                 SELECT 1 FROM jsonb_array_elements(pack.sections) section
+                                 CROSS JOIN LATERAL jsonb_array_elements_text(
+                                   COALESCE(section->'source_refs','[]'::jsonb)) ref
+                                 WHERE ref.value=ANY(%s::text[])
+                               ))
+                         )
+                       )""",
+                    (owner_id, source_event_id, source_event_id,
+                     retrieval_result_ids, source_refs),
+                ).fetchall()
+                proactive_work_item_ids.extend(
+                    row["work_item_id"]
+                    for row in continuation_rows
+                    if row["work_item_id"] is not None
+                )
+            if connection.execute(
+                "SELECT to_regclass('havre.proactive_trigger_evaluations') IS NOT NULL AS present"
+            ).fetchone()["present"]:
+                proactive_evaluation_rows = connection.execute(
+                    """SELECT work_item_id
+                       FROM havre.proactive_trigger_evaluations
+                       WHERE owner_id=%s AND source_event_id=%s""",
+                    (owner_id, source_event_id),
+                ).fetchall()
+                proactive_work_item_ids.extend(
+                    row["work_item_id"]
+                    for row in proactive_evaluation_rows
+                    if row["work_item_id"] is not None
+                )
+                proactive_request_rows = connection.execute(
+                    """SELECT request_id FROM havre.proactive_work_items
+                       WHERE owner_id=%s AND work_item_id=ANY(%s::uuid[])
+                         AND request_id IS NOT NULL""",
+                    (owner_id, proactive_work_item_ids),
+                ).fetchall()
+                proactive_request_ids = [
+                    row["request_id"] for row in proactive_request_rows
+                ]
+                request_ids.update(
+                    row["request_id"] for row in proactive_request_rows
+                )
+                proactive_evaluation_count = connection.execute(
+                    """DELETE FROM havre.proactive_trigger_evaluations
+                       WHERE owner_id=%s AND source_event_id=%s
+                       RETURNING 1""",
+                    (owner_id, source_event_id),
+                ).rowcount
+            event_guard_work_rows = connection.execute(
+                """SELECT work_item_id,request_id
+                   FROM havre.proactive_work_items
+                   WHERE owner_id=%s
+                     AND command_payload#>>'{source_guard,source_event_id}'=%s""",
+                (owner_id, str(source_event_id)),
+            ).fetchall()
+            proactive_work_item_ids = list({
+                *proactive_work_item_ids,
+                *(row["work_item_id"] for row in event_guard_work_rows),
+            })
+            proactive_request_ids = list({
+                *proactive_request_ids,
+                *(
+                    row["request_id"] for row in event_guard_work_rows
+                    if row["request_id"] is not None
+                ),
+            })
+            request_ids.update(proactive_request_ids)
+            if proactive_work_item_ids:
+                proactive_evaluation_count += connection.execute(
+                    """DELETE FROM havre.proactive_trigger_evaluations
+                       WHERE owner_id=%s AND work_item_id=ANY(%s::uuid[])""",
+                    (owner_id, proactive_work_item_ids),
+                ).rowcount
+            if stage15_tables_exist and goal_ids:
+                goal_work_rows = connection.execute(
+                    """
+                    SELECT work_item_id,request_id
+                    FROM havre.proactive_work_items
+                    WHERE owner_id=%s
+                      AND command_payload#>>'{source_guard,projection_kind}'='goal'
+                      AND (command_payload#>>'{source_guard,projection_id}')::uuid
+                          = ANY(%s::uuid[])
+                    """,
+                    (owner_id, goal_ids),
+                ).fetchall()
+                proactive_work_item_ids = list({
+                    *proactive_work_item_ids,
+                    *(row["work_item_id"] for row in goal_work_rows),
+                })
+                proactive_request_ids = list({
+                    *proactive_request_ids,
+                    *(
+                        row["request_id"]
+                        for row in goal_work_rows
+                        if row["request_id"] is not None
+                    ),
+                })
+                claim_request_rows = connection.execute(
+                    """
+                    SELECT DISTINCT request_id
+                    FROM havre.proactive_fusion_claims
+                    WHERE owner_id=%s AND goal_id=ANY(%s::uuid[])
+                    """,
+                    (owner_id, goal_ids),
+                ).fetchall()
+                proactive_request_ids = list({
+                    *proactive_request_ids,
+                    *(row["request_id"] for row in claim_request_rows),
+                })
+                request_ids.update(proactive_request_ids)
+                proactive_evaluation_count += connection.execute(
+                    """
+                    DELETE FROM havre.proactive_trigger_evaluations
+                    WHERE owner_id=%s AND work_item_id=ANY(%s::uuid[])
+                    RETURNING 1
+                    """,
+                    (owner_id, proactive_work_item_ids),
+                ).rowcount
 
             context_rows = connection.execute(
                 """
@@ -2110,6 +2837,98 @@ class PostgresRepository:
                 (owner_id, request_id_list, source_event_id),
             ).fetchall()
             terminal_event_ids = [row["event_id"] for row in terminal_event_rows]
+            web_push_event_ids = [source_event_id, *terminal_event_ids]
+            web_push_attempt_count = 0
+            web_push_dispatch_count = 0
+            web_push_validation_count = 0
+            diary_source_count = 0
+            diary_revision_count = 0
+            diary_entry_count = 0
+            diary_intelligence_source_count = 0
+            diary_intelligence_run_count = 0
+            delegated_memory_update_count = 0
+            delegated_belief_update_count = 0
+            diary_review_memory_source_count = 0
+            diary_schedule_receipt_count = 0
+            diary_improvement_review_file_count = 0
+            if connection.execute(
+                "SELECT to_regclass('havre.daily_diary_entry_sources') IS NOT NULL AS present"
+            ).fetchone()["present"]:
+                diary_keys = connection.execute(
+                    """SELECT DISTINCT local_date,timezone_name
+                       FROM havre.daily_diary_entry_sources
+                       WHERE owner_id=%s AND event_id=ANY(%s::uuid[])""",
+                    (owner_id, [source_event_id, *terminal_event_ids]),
+                ).fetchall()
+                if diary_intelligence_run_ids:
+                    intelligence_keys = connection.execute(
+                        """SELECT DISTINCT local_date,timezone_name
+                           FROM havre.daily_diary_intelligence_runs
+                           WHERE owner_id=%s AND run_id=ANY(%s::uuid[]) AND run_kind='daily_review'""",
+                        (owner_id, diary_intelligence_run_ids),
+                    ).fetchall()
+                    diary_keys = list({
+                        (row["local_date"], row["timezone_name"]): row
+                        for row in [*diary_keys, *intelligence_keys]
+                    }.values())
+                for diary_key in diary_keys:
+                    parameters = (
+                        owner_id,
+                        diary_key["local_date"],
+                        diary_key["timezone_name"],
+                    )
+                    diary_source_count += connection.execute(
+                        """DELETE FROM havre.daily_diary_entry_sources
+                           WHERE owner_id=%s AND local_date=%s AND timezone_name=%s""",
+                        parameters,
+                    ).rowcount
+                    diary_revision_count += connection.execute(
+                        """DELETE FROM havre.daily_diary_entry_revisions
+                           WHERE owner_id=%s AND local_date=%s AND timezone_name=%s""",
+                        parameters,
+                    ).rowcount
+                    diary_entry_count += connection.execute(
+                        """DELETE FROM havre.daily_diary_entry_heads
+                           WHERE owner_id=%s AND local_date=%s AND timezone_name=%s""",
+                        parameters,
+                    ).rowcount
+                if diary_intelligence_run_ids:
+                    if diary_review_tables_present:
+                        diary_improvement_review_file_count = connection.execute(
+                            """DELETE FROM havre.daily_improvement_review_files
+                               WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                            (owner_id, diary_intelligence_run_ids),
+                        ).rowcount
+                        diary_schedule_receipt_count = connection.execute(
+                            """DELETE FROM havre.daily_diary_schedule_receipts
+                               WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                            (owner_id, diary_intelligence_run_ids),
+                        ).rowcount
+                        diary_review_memory_source_count = connection.execute(
+                            """DELETE FROM havre.daily_diary_review_memory_sources
+                               WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                            (owner_id, diary_intelligence_run_ids),
+                        ).rowcount
+                    delegated_memory_update_count = connection.execute(
+                        """DELETE FROM havre.owner_delegated_gpt_memory_updates
+                           WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                        (owner_id, diary_intelligence_run_ids),
+                    ).rowcount
+                    delegated_belief_update_count = connection.execute(
+                        """DELETE FROM havre.owner_delegated_gpt_belief_updates
+                           WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                        (owner_id, diary_intelligence_run_ids),
+                    ).rowcount
+                    diary_intelligence_source_count = connection.execute(
+                        """DELETE FROM havre.daily_diary_intelligence_sources
+                           WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                        (owner_id, diary_intelligence_run_ids),
+                    ).rowcount
+                    diary_intelligence_run_count = connection.execute(
+                        """DELETE FROM havre.daily_diary_intelligence_runs
+                           WHERE owner_id=%s AND run_id=ANY(%s::uuid[])""",
+                        (owner_id, diary_intelligence_run_ids),
+                    ).rowcount
             # Feedback and episode summaries are derivatives of exact raw
             # interaction Events. Remove their complete provenance-bound
             # closure before terminal/source Event deletion; immutable-table
@@ -2187,7 +3006,11 @@ class PostgresRepository:
                 SET assistant_event_id = NULL, context_pack_id = NULL,
                     inference_attempt_id = NULL, inference_response_id = NULL,
                     failure_event_id = NULL, status = 'failed',
-                    error_code = 'source_erasure_propagated'
+                    error_code = 'source_erasure_propagated',
+                    completed_at = COALESCE(
+                        completed_at,
+                        statement_timestamp()
+                    )
                 WHERE owner_id = %s AND request_id = ANY(%s::uuid[])
                 RETURNING 1
                 """,
@@ -2286,6 +3109,194 @@ class PostgresRepository:
                 """,
                 (owner_id, scene_ids, terminal_event_ids),
             )
+            if connection.execute(
+                "SELECT to_regclass('havre.web_push_dispatches') IS NOT NULL AS present"
+            ).fetchone()["present"]:
+                if connection.execute(
+                    "SELECT to_regclass('havre.web_push_real_device_validations') IS NOT NULL AS present"
+                ).fetchone()["present"]:
+                    web_push_validation_count = connection.execute(
+                        """DELETE FROM havre.web_push_real_device_validations
+                           WHERE owner_id=%s AND assistant_event_id=ANY(%s::uuid[])
+                           RETURNING 1""",
+                        (owner_id, web_push_event_ids),
+                    ).rowcount
+                web_push_attempt_count = connection.execute(
+                    """DELETE FROM havre.web_push_delivery_attempts
+                       WHERE owner_id=%s AND assistant_event_id=ANY(%s::uuid[])
+                       RETURNING 1""",
+                    (owner_id, web_push_event_ids),
+                ).rowcount
+                web_push_dispatch_count = connection.execute(
+                    """DELETE FROM havre.web_push_dispatches
+                       WHERE owner_id=%s AND assistant_event_id=ANY(%s::uuid[])
+                       RETURNING 1""",
+                    (owner_id, web_push_event_ids),
+                ).rowcount
+            commitment_delivery_count = 0
+            commitment_fusion_claim_count = 0
+            goal_transition_evidence_count = 0
+            commitment_projection_count = 0
+            commitment_authorization_count = 0
+            interaction_activity_lease_count = 0
+            if stage15_tables_exist:
+                authorization_ids = [
+                    row["authorization_id"]
+                    for row in connection.execute(
+                        """
+                        SELECT DISTINCT authorization_id
+                        FROM havre.commitment_projections
+                        WHERE owner_id=%s AND goal_id=ANY(%s::uuid[])
+                        """,
+                        (owner_id, goal_ids),
+                    ).fetchall()
+                ]
+                commitment_delivery_count = connection.execute(
+                    """
+                    DELETE FROM havre.commitment_reminder_deliveries
+                    WHERE owner_id=%s AND (
+                      goal_id=ANY(%s::uuid[])
+                      OR work_item_id=ANY(%s::uuid[])
+                    ) RETURNING 1
+                    """,
+                    (owner_id, goal_ids, proactive_work_item_ids),
+                ).rowcount
+                commitment_fusion_claim_count = connection.execute(
+                    """
+                    DELETE FROM havre.proactive_fusion_claims
+                    WHERE owner_id=%s AND (
+                      goal_id=ANY(%s::uuid[])
+                      OR work_item_id=ANY(%s::uuid[])
+                    ) RETURNING 1
+                    """,
+                    (owner_id, goal_ids, proactive_work_item_ids),
+                ).rowcount
+                goal_transition_evidence_count = connection.execute(
+                    """
+                    DELETE FROM havre.goal_transition_evidence
+                    WHERE owner_id=%s AND (
+                      goal_id=ANY(%s::uuid[]) OR source_event_id=%s
+                    ) RETURNING 1
+                    """,
+                    (owner_id, goal_ids, source_event_id),
+                ).rowcount
+                commitment_projection_count = connection.execute(
+                    """
+                    DELETE FROM havre.commitment_projections
+                    WHERE owner_id=%s AND goal_id=ANY(%s::uuid[])
+                    RETURNING 1
+                    """,
+                    (owner_id, goal_ids),
+                ).rowcount
+                commitment_authorization_count = connection.execute(
+                    """
+                    DELETE FROM havre.commitment_field_authorizations auth
+                    WHERE auth.owner_id=%s
+                      AND auth.authorization_id=ANY(%s::uuid[])
+                      AND NOT EXISTS (
+                        SELECT 1 FROM havre.commitment_projections projection
+                        WHERE projection.owner_id=auth.owner_id
+                          AND projection.authorization_id=auth.authorization_id
+                      )
+                    RETURNING 1
+                    """,
+                    (owner_id, authorization_ids),
+                ).rowcount
+                interaction_activity_lease_count = connection.execute(
+                    """
+                    DELETE FROM havre.interaction_activity_leases
+                    WHERE owner_id=%s AND request_id=ANY(%s::uuid[])
+                    RETURNING 1
+                    """,
+                    (owner_id, request_id_list),
+                ).rowcount
+            proactive_proposal_ids = [
+                row["proposal_id"]
+                for row in connection.execute(
+                    """SELECT proposal_id FROM havre.proactive_proposals
+                       WHERE owner_id=%s AND request_id=ANY(%s::uuid[])""",
+                    (owner_id, proactive_request_ids),
+                ).fetchall()
+            ]
+            proactive_trigger_ids = [
+                row["trigger_id"]
+                for row in connection.execute(
+                    """SELECT trigger_id FROM havre.proactive_triggers
+                       WHERE owner_id=%s AND request_id=ANY(%s::uuid[])""",
+                    (owner_id, proactive_request_ids),
+                ).fetchall()
+            ]
+            proactive_owner_action_count = connection.execute(
+                """DELETE FROM havre.proactive_owner_actions
+                   WHERE owner_id=%s AND proposal_id=ANY(%s::uuid[])
+                   RETURNING 1""",
+                (owner_id, proactive_proposal_ids),
+            ).rowcount
+            proactive_inbox_count = connection.execute(
+                """DELETE FROM havre.proactive_inbox_messages
+                   WHERE owner_id=%s AND proposal_id=ANY(%s::uuid[])
+                   RETURNING 1""",
+                (owner_id, proactive_proposal_ids),
+            ).rowcount
+            proactive_delivery_count = connection.execute(
+                """DELETE FROM havre.proactive_delivery_attempts
+                   WHERE owner_id=%s AND proposal_id=ANY(%s::uuid[])
+                   RETURNING 1""",
+                (owner_id, proactive_proposal_ids),
+            ).rowcount
+            proactive_rendering_count = connection.execute(
+                """DELETE FROM havre.rendered_proactive_messages
+                   WHERE owner_id=%s AND proposal_id=ANY(%s::uuid[])
+                   RETURNING 1""",
+                (owner_id, proactive_proposal_ids),
+            ).rowcount
+            proactive_context_count = connection.execute(
+                """DELETE FROM havre.proactive_context_packs
+                   WHERE owner_id=%s AND proposal_id=ANY(%s::uuid[])
+                   RETURNING 1""",
+                (owner_id, proactive_proposal_ids),
+            ).rowcount
+            proactive_decision_count = connection.execute(
+                """DELETE FROM havre.interruption_decisions
+                   WHERE owner_id=%s AND proposal_id=ANY(%s::uuid[])
+                   RETURNING 1""",
+                (owner_id, proactive_proposal_ids),
+            ).rowcount
+            proactive_lifecycle_count = connection.execute(
+                """DELETE FROM havre.proactive_lifecycle_events
+                   WHERE owner_id=%s AND (
+                     proposal_id=ANY(%s::uuid[])
+                     OR artifact_id=ANY(%s::uuid[])
+                   ) RETURNING 1""",
+                (owner_id, proactive_proposal_ids, proactive_trigger_ids),
+            ).rowcount
+            if continuation_table_exists:
+                continuation_run_count = connection.execute(
+                    """DELETE FROM havre.owner_conversation_continuation_runs
+                       WHERE owner_id=%s AND continuation_run_id=ANY(%s::uuid[])
+                       RETURNING 1""",
+                    (owner_id, [row["continuation_run_id"] for row in continuation_rows]),
+                ).rowcount
+            proactive_work_count = connection.execute(
+                """DELETE FROM havre.proactive_work_items
+                   WHERE owner_id=%s AND (
+                     work_item_id=ANY(%s::uuid[])
+                     OR request_id=ANY(%s::uuid[])
+                   ) RETURNING 1""",
+                (owner_id, proactive_work_item_ids, proactive_request_ids),
+            ).rowcount
+            proactive_proposal_count = connection.execute(
+                """DELETE FROM havre.proactive_proposals
+                   WHERE owner_id=%s AND proposal_id=ANY(%s::uuid[])
+                   RETURNING 1""",
+                (owner_id, proactive_proposal_ids),
+            ).rowcount
+            proactive_trigger_count = connection.execute(
+                """DELETE FROM havre.proactive_triggers
+                   WHERE owner_id=%s AND trigger_id=ANY(%s::uuid[])
+                   RETURNING 1""",
+                (owner_id, proactive_trigger_ids),
+            ).rowcount
             scene_session_count = connection.execute(
                 """
                 DELETE FROM havre.scene_sessions
@@ -2464,6 +3475,21 @@ class PostgresRepository:
                 """,
                 (owner_id, belief_ids),
             ).rowcount
+            owner_chat_goal_action_count = 0
+            owner_chat_goal_plan_run_count = 0
+            if connection.execute(
+                "SELECT to_regclass('havre.owner_chat_goal_plan_runs') IS NOT NULL AS present"
+            ).fetchone()["present"]:
+                owner_chat_goal_action_count = connection.execute(
+                    """DELETE FROM havre.owner_chat_goal_actions
+                       WHERE owner_id=%s AND source_event_id=%s""",
+                    (owner_id, source_event_id),
+                ).rowcount
+                owner_chat_goal_plan_run_count = connection.execute(
+                    """DELETE FROM havre.owner_chat_goal_plan_runs
+                       WHERE owner_id=%s AND source_event_id=%s""",
+                    (owner_id, source_event_id),
+                ).rowcount
             goal_count = connection.execute(
                 """
                 DELETE FROM havre.goals
@@ -2532,6 +3558,39 @@ class PostgresRepository:
                 "offline_artifact_manifests": stage7_manifest_count,
                 "life_context_observations": context_observation_count,
                 "context_source_health_records": context_health_count,
+                "daily_diary_entry_sources": diary_source_count,
+                "daily_diary_entry_revisions": diary_revision_count,
+                "daily_diary_entries": diary_entry_count,
+                "daily_diary_intelligence_sources": diary_intelligence_source_count,
+                "daily_diary_intelligence_runs": diary_intelligence_run_count,
+                "owner_delegated_gpt_memory_updates": delegated_memory_update_count,
+                "owner_delegated_gpt_belief_updates": delegated_belief_update_count,
+                "owner_chat_goal_actions": owner_chat_goal_action_count,
+                "owner_chat_goal_plan_runs": owner_chat_goal_plan_run_count,
+                "daily_diary_review_memory_sources": diary_review_memory_source_count,
+                "daily_diary_schedule_receipts": diary_schedule_receipt_count,
+                "daily_improvement_review_files": diary_improvement_review_file_count,
+                "web_push_delivery_attempts": web_push_attempt_count,
+                "web_push_dispatches": web_push_dispatch_count,
+                "web_push_real_device_validations": web_push_validation_count,
+                "proactive_trigger_evaluations": proactive_evaluation_count,
+                "proactive_work_items": proactive_work_count,
+                "proactive_triggers": proactive_trigger_count,
+                "proactive_proposals": proactive_proposal_count,
+                "proactive_interruption_decisions": proactive_decision_count,
+                "proactive_context_packs": proactive_context_count,
+                "proactive_rendered_messages": proactive_rendering_count,
+                "proactive_delivery_attempts": proactive_delivery_count,
+                "proactive_inbox_messages": proactive_inbox_count,
+                "proactive_lifecycle_events": proactive_lifecycle_count,
+                "proactive_owner_actions": proactive_owner_action_count,
+                "owner_conversation_continuation_runs": continuation_run_count,
+                "commitment_reminder_deliveries": commitment_delivery_count,
+                "proactive_fusion_claims": commitment_fusion_claim_count,
+                "goal_transition_evidence": goal_transition_evidence_count,
+                "commitment_projections": commitment_projection_count,
+                "commitment_field_authorizations": commitment_authorization_count,
+                "interaction_activity_leases": interaction_activity_lease_count,
             }
 
     def create_belief_revision(
@@ -3404,13 +4463,14 @@ class PostgresRepository:
         priority: GoalPriority = GoalPriority.NORMAL,
         next_action: str | None = None,
         review_at: datetime | None = None,
+        _connection=None,
     ) -> Goal:
         source = EvidenceRef(
             source_kind=EvidenceSourceKind.EVENT,
             source_id=source_event_id,
             relation=EvidenceRelation.SUPPORTS,
         )
-        with self.pool.connection() as connection, connection.transaction():
+        with (nullcontext(_connection) if _connection is not None else self.pool.connection()) as connection, connection.transaction():
             row = self._load_stage4_evidence(
                 connection, owner_id=owner_id, evidence=(source,)
             )[0]
@@ -3477,8 +4537,13 @@ class PostgresRepository:
         status: GoalStatus | None = None,
         next_action: str | None | GoalFieldUnset = GOAL_FIELD_UNSET,
         review_at: datetime | None | GoalFieldUnset = GOAL_FIELD_UNSET,
+        source_event_id: UUID | None = None,
     ) -> Goal:
         with self.pool.connection() as connection, connection.transaction():
+            connection.execute(
+                "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                (f"proactive-owner:{owner_id}",),
+            )
             current = connection.execute(
                 """
                 SELECT goal.*, event.session_id, event.request_id, event.trace_id
@@ -3497,6 +4562,18 @@ class PostgresRepository:
                 raise ValueError("goal revision precondition failed")
             if current["status"] in {"completed", "abandoned"}:
                 raise ValueError("closed goal cannot be updated")
+            source_row = None
+            if source_event_id is not None:
+                source_row = self._load_stage4_evidence(
+                    connection,
+                    owner_id=owner_id,
+                    evidence=(EvidenceRef(
+                        source_kind=EvidenceSourceKind.EVENT,
+                        source_id=source_event_id,
+                        relation=EvidenceRelation.SUPPORTS,
+                    ),),
+                )[0]
+            next_policy = self._policy_from_row(current)
             next_status = status or GoalStatus(current["status"])
             next_goal = {
                 "title": title if title is not None else current["title"],
@@ -3533,7 +4610,7 @@ class PostgresRepository:
                 review_at=next_goal["review_at"],
                 revision=expected_revision + 1,
                 last_event_id=lifecycle_event_id,
-                data_policy=self._policy_from_row(current),
+                data_policy=next_policy,
                 created_at=current["created_at"],
             )
             projection_material = goal.projection_material()
@@ -3545,7 +4622,7 @@ class PostgresRepository:
                 request_id=current["request_id"],
                 trace_id=current["trace_id"],
                 causation_event_id=current["last_event_id"],
-                data_policy=self._policy_from_row(current),
+                data_policy=next_policy,
                 payload=GoalLifecyclePayload(
                     goal_id=goal_id,
                     goal_revision=expected_revision + 1,
@@ -3590,6 +4667,68 @@ class PostgresRepository:
             ).fetchone()
             if updated is None:
                 raise ValueError("goal revision precondition failed")
+            if next_status in {GoalStatus.COMPLETED, GoalStatus.ABANDONED}:
+                fusion_table_exists = connection.execute(
+                    "SELECT to_regclass('havre.proactive_fusion_claims') "
+                    "IS NOT NULL AS present"
+                ).fetchone()["present"]
+                if fusion_table_exists:
+                    connection.execute(
+                        """
+                        UPDATE havre.proactive_fusion_claims
+                        SET status='cancelled',reason='goal_no_longer_active',
+                            resolved_at=statement_timestamp()
+                        WHERE owner_id=%s AND goal_id=%s AND status='claimed'
+                        """,
+                        (owner_id,goal_id),
+                    )
+                connection.execute(
+                    """
+                    UPDATE havre.proactive_work_items
+                    SET status='cancelled',last_error_code='goal_no_longer_active',
+                        completed_at=statement_timestamp(),lease_owner=NULL,
+                        lease_expires_at=NULL
+                    WHERE owner_id=%s
+                      AND status IN ('pending','retryable_failed','leased')
+                      AND command_payload#>>'{source_guard,projection_kind}'='goal'
+                      AND command_payload#>>'{source_guard,projection_id}'=%s
+                    """,
+                    (owner_id,str(goal_id)),
+                )
+            if source_event_id is not None:
+                inserted_evidence = connection.execute(
+                    """
+                    INSERT INTO havre.goal_transition_evidence (
+                        transition_evidence_id,owner_id,goal_id,goal_revision,
+                        lifecycle_event_id,lifecycle_event_content_hash,
+                        lifecycle_session_id,lifecycle_request_id,lifecycle_trace_id,
+                        source_event_id,source_event_content_hash,
+                        source_session_id,source_request_id,source_trace_id,relation,
+                        content_hash
+                    )
+                    SELECT %s,%s,%s,%s,lifecycle.event_id,lifecycle.content_hash,
+                           lifecycle.session_id,lifecycle.request_id,lifecycle.trace_id,
+                           source.event_id,source.content_hash,
+                           source.session_id,source.request_id,source.trace_id,
+                           'owner_reported_completion','sha256:' || repeat('0',64)
+                    FROM havre.events lifecycle,havre.events source
+                    WHERE lifecycle.owner_id=%s AND lifecycle.event_id=%s
+                      AND source.owner_id=%s AND source.event_id=%s
+                    RETURNING transition_evidence_id
+                    """,
+                    (
+                        uuid7(),owner_id,goal_id,goal.revision,
+                        owner_id,lifecycle_event.event_id,
+                        owner_id,source_event_id,
+                    ),
+                ).fetchone()
+                if inserted_evidence is None:
+                    raise ValueError("goal transition evidence could not be recorded")
+            from companion.persistence.commitment_projection import refresh_commitment_projection
+            refresh_commitment_projection(
+                connection, owner_id=owner_id, goal=goal,
+                previous_revision=expected_revision,
+            )
             return goal.model_copy(update={"updated_at": updated["updated_at"]})
 
     def record_goal_progress(
@@ -3771,13 +4910,20 @@ class PostgresRepository:
         session_id: UUID,
         exclude_event_id: UUID,
         maximum_privacy_class: PrivacyClass,
-        limit: int = 24,
+        limit: int = 16,
+        include_cross_session_fallback: bool = False,
+        continuous_chat: bool = False,
+        as_of: datetime | None = None,
     ) -> tuple[ConversationHistoryItem, ...]:
-        """Return recent raw message Events for one open conversation.
+        """Return bounded raw Events under the caller's conversation boundary.
 
-        The current Event is excluded explicitly. Selection is owner/session
-        qualified, privacy-filtered before bytes leave PostgreSQL, and returned
-        in exact durable order for ContextPack admission.
+        The current session is the short-term working context. Cross-session raw
+        fallback is allowed only when the caller detected an explicit reference to
+        prior conversation and the current session has no earlier message. Durable
+        Memory and episode summaries remain the normal cross-session mechanism
+        for API/CLI sessions. The Daily Companion Web surface is explicitly one
+        continuous Chat across devices: its working history uses Web Events only,
+        still owner-qualified and bounded by the current privacy class.
         """
         allowed = [
             value.value
@@ -3786,6 +4932,7 @@ class PostgresRepository:
             <= PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
         ]
         with self.pool.connection() as connection:
+            bounded_limit = max(1, min(limit, 100))
             rows = connection.execute(
                 """
                 SELECT * FROM (
@@ -3793,16 +4940,54 @@ class PostgresRepository:
                          privacy_class,memory_eligible,training_eligible,
                          cloud_eligible,policy_version,policy_revision_id,
                          policy_decision_source,policy_authorization_ref,recorded_at
-                  FROM havre.events
-                  WHERE owner_id=%s AND session_id=%s AND event_id<>%s
+                  FROM havre.events AS event
+                  WHERE owner_id=%s
+                    AND (session_id=%s OR (%s AND (
+                      %s OR (cloud_eligible AND EXISTS (
+                        SELECT 1 FROM havre.route_decisions routed
+                        JOIN havre.interaction_requests interaction
+                          ON interaction.owner_id=routed.owner_id
+                         AND interaction.request_id=routed.request_id
+                        WHERE routed.owner_id=event.owner_id
+                          AND routed.request_id=event.request_id
+                          AND routed.execution_environment='cloud'
+                          AND routed.selected_provider_id='openai-codex-chatgpt'
+                          AND interaction.status='completed'
+                          AND interaction.request_kind='interaction'
+                      ))
+                    )))
+                    AND (NOT %s OR COALESCE(payload->>'channel',payload#>>'{delivery,channel}')='web')
+                    AND event_id<>%s
+                    AND (%s::timestamptz IS NULL OR recorded_at<%s)
                     AND event_type IN ('USER_MESSAGE','ASSISTANT_MESSAGE')
                     AND privacy_class = ANY(%s::text[])
                   ORDER BY recorded_at DESC,event_id DESC LIMIT %s
                 ) recent
                 ORDER BY recorded_at,event_id
                 """,
-                (owner_id,session_id,exclude_event_id,allowed,max(1,min(limit,100))),
+                (owner_id,session_id,continuous_chat,
+                 maximum_privacy_class is PrivacyClass.LOCAL_ONLY,
+                 continuous_chat,exclude_event_id,as_of,as_of,allowed,bounded_limit),
             ).fetchall()
+            if not rows and include_cross_session_fallback and not continuous_chat:
+                rows = connection.execute(
+                    """
+                    SELECT * FROM (
+                      SELECT event_id,owner_id,session_id,request_id,event_type,payload,
+                             privacy_class,memory_eligible,training_eligible,
+                             cloud_eligible,policy_version,policy_revision_id,
+                             policy_decision_source,policy_authorization_ref,recorded_at
+                      FROM havre.events
+                      WHERE owner_id=%s AND session_id<>%s AND event_id<>%s
+                        AND (%s::timestamptz IS NULL OR recorded_at<%s)
+                        AND event_type IN ('USER_MESSAGE','ASSISTANT_MESSAGE')
+                        AND privacy_class = ANY(%s::text[])
+                      ORDER BY recorded_at DESC,event_id DESC LIMIT %s
+                    ) recent
+                    ORDER BY recorded_at,event_id
+                    """,
+                    (owner_id,session_id,exclude_event_id,as_of,as_of,allowed,min(6,bounded_limit)),
+                ).fetchall()
         result: list[ConversationHistoryItem] = []
         for row in rows:
             parts = row["payload"].get("content_parts", []) if row["payload"] else []
@@ -3830,9 +5015,10 @@ class PostgresRepository:
         maximum_privacy_class: PrivacyClass,
         as_of: datetime | None = None,
     ) -> tuple[PersonalContextItem, ...]:
-        """Select small, evidence-qualified Stage 4 context without a model.
+        """Select small, evidence-qualified personal context locally.
 
-        Beliefs and goals require meaningful lexical overlap. The latest
+        Beliefs and goals use the configured local semantic/lexical gate (or
+        historical lexical baseline when no semantic encoder is configured). The latest
         non-expired Current State may be included without being promoted into a
         durable belief. The Context Builder independently rechecks owner and
         privacy before prompt admission.
@@ -3844,15 +5030,37 @@ class PostgresRepository:
             for token in re.findall(r"[^\W_]+", query_text.casefold())
             if len(token) >= 3
         }
+        relevance_scores: dict[str, float | None] = {}
+
+        def rank_relevance(values: list[str]) -> None:
+            unique = list(dict.fromkeys(values))
+            if not unique:
+                return
+            if self.memory_encoder is None:
+                for value in unique:
+                    other = {t for t in re.findall(r"[^\W_]+", value.casefold()) if len(t) >= 3}
+                    shared = meaningful.intersection(other)
+                    relevance_scores[value] = len(shared) / max(1, len(meaningful)) if shared else None
+                return
+            from companion.memory.lexical import overlap
+            vectors = self.memory_encoder.embed_many([query_text, *unique])
+            for value, vector in zip(unique, vectors[1:], strict=True):
+                semantic = sum(a * b for a, b in zip(vectors[0], vector, strict=True))
+                lexical = overlap(query_text, value)
+                relevance_scores[value] = (
+                    .70 * semantic + .15 * lexical
+                    if semantic >= .45 or (semantic >= .20 and lexical >= .25)
+                    else None
+                )
         items: list[PersonalContextItem] = []
         with self.pool.connection() as connection:
             preference = connection.execute(
                 """
                 SELECT revision, response_length
                 FROM havre.communication_preference_revisions
-                WHERE owner_id=%s ORDER BY revision DESC LIMIT 1
+                WHERE owner_id=%s AND created_at<=%s ORDER BY revision DESC LIMIT 1
                 """,
-                (owner_id,),
+                (owner_id, instant),
             ).fetchone()
         if preference is not None:
             preference_policy = DataPolicy.owner_default(
@@ -3880,15 +5088,169 @@ class PostgresRepository:
                         data_policy=preference_policy,
                     )
                 )
+        # Explicit corrections about how HAVRE should answer are short-term
+        # conversation instructions, not durable beliefs or training labels.
+        # Admit them with exact source provenance so the model does not have to
+        # infer a negative preference from an old conversational turn.
+        with self.pool.connection() as connection:
+            instruction_rows = connection.execute(
+                """
+                SELECT event_id,payload,privacy_class,memory_eligible,
+                       training_eligible,cloud_eligible,policy_version,
+                       policy_revision_id,policy_decision_source,
+                       policy_authorization_ref,recorded_at
+                FROM havre.events
+                WHERE owner_id=%s AND event_type='USER_MESSAGE'
+                  AND recorded_at<=%s AND recorded_at>=%s-interval '30 days'
+                ORDER BY recorded_at DESC,event_id DESC LIMIT 120
+                """,
+                (owner_id, instant, instant),
+            ).fetchall()
+        seen_phrases: set[str] = set()
+        for row in instruction_rows:
+            parts = row["payload"].get("content_parts", []) if row["payload"] else []
+            source_text = "\n".join(
+                str(part.get("text", ""))
+                for part in parts
+                if isinstance(part, dict) and part.get("type") == "text"
+            ).strip()
+            match = re.search(
+                r"(?:别|不要)(?:再)?(?:说|用|回复|讲)\s*[：:]?\s*[“”‘’\"']?"
+                r"(.{2,48}?)[“”‘’\"']?(?:啦|了|哦|啊|呀)?(?:[。！？!?\n]|$)",
+                source_text,
+            )
+            if match is None:
+                continue
+            phrase = match.group(1).strip(" \t\r\n。！？!?，,：:；;‘’“”\"'")
+            if len(phrase) < 2 or phrase in seen_phrases:
+                continue
+            policy = self._policy_from_row(row)
+            if (
+                PRIVACY_RESTRICTION_ORDER[policy.privacy_class]
+                > PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
+            ):
+                continue
+            seen_phrases.add(phrase)
+            items.append(
+                PersonalContextItem(
+                    owner_id=owner_id,
+                    section_id=f"owner-response-instruction-{row['event_id']}",
+                    section_type="owner_wording_correction",
+                    content_text=(
+                        "The owner explicitly rejected wording or framing used in "
+                        "the immediately preceding assistant reply. Do not quote, "
+                        "restate, paraphrase, explain, or acknowledge the rejected "
+                        "wording. Apply the correction silently and respond naturally."
+                    ),
+                    priority=99,
+                    source_refs=(f"event/{row['event_id']}",),
+                    data_policy=policy,
+                )
+            )
+            if len(seen_phrases) >= 5:
+                break
+
+        with self.pool.connection() as connection:
+            feedback_rows = connection.execute(
+                """
+                SELECT head.feedback_id,revision.revision,revision.rating,
+                       revision.reason_text,revision.privacy_class,
+                       revision.training_eligible,event.memory_eligible,
+                       event.cloud_eligible,event.policy_version,
+                       event.policy_revision_id,event.policy_decision_source,
+                       event.policy_authorization_ref,revision.created_at
+                FROM havre.response_feedback_heads head
+                JOIN havre.response_feedback_revisions revision
+                  ON revision.owner_id=head.owner_id
+                 AND revision.feedback_id=head.feedback_id
+                 AND revision.revision=head.current_revision
+                JOIN havre.events event
+                  ON event.owner_id=head.owner_id
+                 AND event.event_id=head.assistant_event_id
+                WHERE head.owner_id=%s AND revision.rating<>'helpful'
+                  AND revision.reason_text IS NOT NULL
+                  AND revision.created_at<=%s
+                  AND revision.created_at>=%s-interval '30 days'
+                ORDER BY revision.created_at DESC LIMIT 5
+                """,
+                (owner_id, instant, instant),
+            ).fetchall()
+        for row in feedback_rows:
+            policy = self._policy_from_row(row)
+            if (
+                PRIVACY_RESTRICTION_ORDER[policy.privacy_class]
+                > PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
+            ):
+                continue
+            items.append(
+                PersonalContextItem(
+                    owner_id=owner_id,
+                    section_id=f"owner-feedback-{row['feedback_id']}-{row['revision']}",
+                    section_type="owner_response_instruction",
+                    content_text=(
+                        "Recent owner feedback on a specific HAVRE reply: "
+                        f"{row['reason_text']}. Apply the useful correction when "
+                        "relevant without mentioning feedback records."
+                    ),
+                    priority=98,
+                    source_refs=(
+                        f"response-feedback/{row['feedback_id']}@{row['revision']}",
+                    ),
+                    data_policy=policy,
+                )
+            )
+        # Daily quality flags and improvement suggestions are review artifacts,
+        # not standing chat instructions. Keep their source policies and review
+        # files intact; the owner decides which improvements Codex implements.
         with self.pool.connection() as connection:
             episodes = connection.execute(
                 """
                 SELECT * FROM havre.conversation_episodes
-                WHERE owner_id=%s AND memory_eligible=true
+                WHERE owner_id=%s AND memory_eligible=true AND ended_at<=%s
+                  AND created_at<=%s
                 ORDER BY ended_at DESC LIMIT 20
                 """,
-                (owner_id,),
+                (owner_id, instant, instant),
             ).fetchall()
+        beliefs = self.list_belief_snapshots(
+            owner_id=owner_id, known_as_of=instant, valid_at=instant,
+            include_inactive=False,
+        )
+        goals = [goal for goal in self.list_goals(owner_id=owner_id, include_inactive=False)
+                 if goal["updated_at"] <= instant]
+        episodes = [episode for episode in episodes if (
+            PRIVACY_RESTRICTION_ORDER[PrivacyClass(episode["privacy_class"])]
+            <= PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
+        )]
+        beliefs = [snapshot for snapshot in beliefs if (
+            PRIVACY_RESTRICTION_ORDER[snapshot.revision.data_policy.privacy_class]
+            <= PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
+        )]
+        goals = [goal for goal in goals if (
+            PRIVACY_RESTRICTION_ORDER[PrivacyClass(goal["privacy_class"])]
+            <= PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
+        )]
+
+        def goal_query_text(goal: dict[str, Any]) -> str:
+            return " ".join(value for value in (goal["title"], goal["why"], goal["next_action"]) if value)
+
+        # One local encoder batch and one query vector serve every domain.
+        # Qualify privacy before encoding; keep no cross-request text cache.
+        rank_relevance([episode["summary_text"] for episode in episodes]
+                       + [snapshot.revision.statement for snapshot in beliefs]
+                       + [goal_query_text(goal) for goal in goals])
+        episodes = sorted(
+            (episode for episode in episodes if relevance_scores[episode["summary_text"]] is not None),
+            key=lambda episode: (-relevance_scores[episode["summary_text"]], -episode["ended_at"].timestamp(), str(episode["episode_id"])),
+        )[:3]
+        beliefs = sorted(
+            (snapshot for snapshot in beliefs if relevance_scores[snapshot.revision.statement] is not None),
+            key=lambda snapshot: (-relevance_scores[snapshot.revision.statement], str(snapshot.revision.belief_id)),
+        )[:3]
+        goals = sorted(
+            (goal for goal in goals if relevance_scores[goal_query_text(goal)] is not None),
+            key=lambda goal: (-relevance_scores[goal_query_text(goal)], -goal["updated_at"].timestamp(), str(goal["goal_id"])),
+        )[:3]
         for episode in episodes:
             policy = self._policy_from_row(episode)
             if (
@@ -3897,16 +5259,6 @@ class PostgresRepository:
             ):
                 continue
             summary = episode["summary_text"]
-            summary_tokens = {
-                token for token in re.findall(r"[^\W_]+", summary.casefold())
-                if len(token) >= 3
-            }
-            recall_word = any(
-                marker in query_text.casefold()
-                for marker in ("remember", "recall", "记得", "之前", "那次")
-            )
-            if not recall_word and not meaningful.intersection(summary_tokens):
-                continue
             items.append(
                 PersonalContextItem(
                     owner_id=owner_id,
@@ -3925,12 +5277,6 @@ class PostgresRepository:
             )
             if sum(item.section_type == "episodic_memory" for item in items) >= 3:
                 break
-        beliefs = self.list_belief_snapshots(
-            owner_id=owner_id,
-            known_as_of=instant,
-            valid_at=instant,
-            include_inactive=False,
-        )
         for snapshot in beliefs:
             revision = snapshot.revision
             if (
@@ -3938,15 +5284,13 @@ class PostgresRepository:
                 > PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
             ):
                 continue
-            tokens = {
-                token
-                for token in re.findall(r"[^\W_]+", revision.statement.casefold())
-                if len(token) >= 3
-            }
-            if not meaningful.intersection(tokens):
-                continue
+            review_label = (
+                "owner-authorized GPT grounded confidence"
+                if revision.confidence_method == "owner-delegated-gpt-v1"
+                else "owner-reviewed confidence"
+            )
             text = (
-                f"Qualified belief (owner-reviewed confidence {revision.confidence:.2f}; "
+                f"Qualified belief ({review_label} {revision.confidence:.2f}; "
                 f"{len(snapshot.supporting_evidence)} supporting and "
                 f"{len(snapshot.counter_evidence)} counter-evidence sources): "
                 f"{revision.statement}"
@@ -3973,24 +5317,12 @@ class PostgresRepository:
             )
             if sum(item.section_type == "user_belief" for item in items) >= 3:
                 break
-        for goal in self.list_goals(owner_id=owner_id, include_inactive=False):
+        for goal in goals:
             policy = self._policy_from_row(goal)
             if (
                 PRIVACY_RESTRICTION_ORDER[policy.privacy_class]
                 > PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
             ):
-                continue
-            goal_text = " ".join(
-                value
-                for value in (goal["title"], goal["why"], goal["next_action"])
-                if value
-            )
-            tokens = {
-                token
-                for token in re.findall(r"[^\W_]+", goal_text.casefold())
-                if len(token) >= 3
-            }
-            if not meaningful.intersection(tokens):
                 continue
             content = (
                 f"Active {goal['track'].replace('_', ' ')} goal: {goal['title']}. "
@@ -4034,6 +5366,213 @@ class PostgresRepository:
                 )
             )
         return tuple(items)
+
+    def prepare_manual_cloud_disclosure(
+        self,
+        *,
+        owner_id: UUID,
+        disclosure_id: UUID,
+        source_assistant_event_id: UUID,
+        policy_revision_id: UUID,
+        selected_source_refs: tuple[str, ...],
+        selected_content_hash: str,
+        authorization_ref: str,
+        data_boundary: str,
+    ) -> dict[str, Any]:
+        material = {
+            "schema_version": 1,
+            "owner_id": str(owner_id),
+            "disclosure_id": str(disclosure_id),
+            "source_assistant_event_id": str(source_assistant_event_id),
+            "provider_id": "deepseek-cloud",
+            "authorization_ref": authorization_ref,
+            "data_boundary": data_boundary,
+            "policy_revision_id": str(policy_revision_id),
+            "selected_source_refs": list(selected_source_refs),
+            "selected_content_hash": selected_content_hash,
+        }
+        with self.pool.connection() as connection, connection.transaction():
+            row = connection.execute(
+                """
+                INSERT INTO havre.manual_cloud_disclosures (
+                  owner_id,disclosure_id,source_assistant_event_id,provider_id,
+                  authorization_ref,data_boundary,policy_revision_id,
+                  selected_source_refs,selected_content_hash,status,content_hash
+                ) VALUES (%s,%s,%s,'deepseek-cloud',%s,%s,%s,%s,%s,'prepared',%s)
+                ON CONFLICT (owner_id,disclosure_id) DO NOTHING
+                RETURNING *
+                """,
+                (
+                    owner_id, disclosure_id, source_assistant_event_id,
+                    authorization_ref, data_boundary, policy_revision_id,
+                    Jsonb(list(selected_source_refs)), selected_content_hash,
+                    content_hash(material),
+                ),
+            ).fetchone()
+            if row is None:
+                row = connection.execute(
+                    """SELECT * FROM havre.manual_cloud_disclosures
+                       WHERE owner_id=%s AND disclosure_id=%s""",
+                    (owner_id, disclosure_id),
+                ).fetchone()
+        assert row is not None
+        expected = {
+            "source_assistant_event_id": source_assistant_event_id,
+            "authorization_ref": authorization_ref,
+            "data_boundary": data_boundary,
+            "policy_revision_id": policy_revision_id,
+            "selected_source_refs": list(selected_source_refs),
+            "selected_content_hash": selected_content_hash,
+            "content_hash": content_hash(material),
+        }
+        if any(row[key] != value for key, value in expected.items()):
+            raise ValueError("manual cloud disclosure idempotency conflict")
+        return dict(row)
+
+    def manual_cloud_context_prepared(
+        self,
+        *,
+        owner_id: UUID,
+        disclosure_id: UUID,
+        source_assistant_event_id: UUID,
+        policy_revision_id: UUID,
+        selected_source_refs: tuple[str, ...],
+        selected_content_hash: str,
+    ) -> bool:
+        with self.pool.connection() as connection:
+            row = connection.execute(
+                """
+                SELECT true AS prepared
+                FROM havre.manual_cloud_disclosures
+                WHERE owner_id=%s AND disclosure_id=%s AND status='prepared'
+                  AND source_assistant_event_id=%s AND policy_revision_id=%s
+                  AND selected_source_refs=%s AND selected_content_hash=%s
+                """,
+                (
+                    owner_id, disclosure_id, source_assistant_event_id,
+                    policy_revision_id, Jsonb(list(selected_source_refs)),
+                    selected_content_hash,
+                ),
+            ).fetchone()
+        return row is not None
+
+
+    def bind_manual_cloud_disclosure(
+        self,
+        *,
+        owner_id: UUID,
+        disclosure_id: UUID,
+        inference_request: InferenceRequest,
+    ) -> dict[str, Any]:
+        binding = inference_request.metadata.get("cloud_request_binding_hash")
+        if not isinstance(binding, str):
+            raise ValueError("manual cloud request lacks a binding hash")
+        with self.pool.connection() as connection, connection.transaction():
+            row = connection.execute(
+                """
+                UPDATE havre.manual_cloud_disclosures
+                SET status='bound',inference_request_id=%s,request_binding_hash=%s,
+                    bound_at=clock_timestamp()
+                WHERE owner_id=%s AND disclosure_id=%s AND status='prepared'
+                  AND policy_revision_id=%s
+                RETURNING *
+                """,
+                (
+                    inference_request.inference_request_id, binding,
+                    owner_id, disclosure_id,
+                    inference_request.constraints.effective_data_policy.policy_revision_id,
+                ),
+            ).fetchone()
+        if row is None:
+            raise ValueError("manual cloud disclosure is not prepared for this request")
+        return dict(row)
+
+    def manual_cloud_request_permitted(
+        self, *, owner_id: UUID, request: InferenceRequest
+    ) -> bool:
+        disclosure_id = request.metadata.get("cloud_disclosure_id")
+        binding = request.metadata.get("cloud_request_binding_hash")
+        if not isinstance(disclosure_id, str) or not isinstance(binding, str):
+            return False
+        with self.pool.connection() as connection:
+            row = connection.execute(
+                """
+                SELECT true AS permitted
+                FROM havre.manual_cloud_disclosures
+                WHERE owner_id=%s AND disclosure_id=%s AND status='bound'
+                  AND inference_request_id=%s AND request_binding_hash=%s
+                  AND policy_revision_id=%s
+                  AND authorization_ref=%s AND data_boundary=%s
+                """,
+                (
+                    owner_id, disclosure_id, request.inference_request_id, binding,
+                    request.constraints.effective_data_policy.policy_revision_id,
+                    request.metadata.get("cloud_authorization_ref"),
+                    request.metadata.get("cloud_data_boundary"),
+                ),
+            ).fetchone()
+        return row is not None
+
+    def finish_manual_cloud_disclosure(
+        self,
+        *,
+        owner_id: UUID,
+        disclosure_id: UUID,
+        result_assistant_event_id: UUID | None = None,
+        error_code: str | None = None,
+    ) -> dict[str, Any]:
+        if (result_assistant_event_id is None) == (error_code is None):
+            raise ValueError("manual cloud disclosure requires exactly one terminal outcome")
+        status = "sent" if result_assistant_event_id is not None else "failed"
+        with self.pool.connection() as connection, connection.transaction():
+            row = connection.execute(
+                """
+                UPDATE havre.manual_cloud_disclosures
+                SET status=%s,result_assistant_event_id=%s,error_code=%s,
+                    completed_at=clock_timestamp()
+                WHERE owner_id=%s AND disclosure_id=%s AND status='bound'
+                RETURNING *
+                """,
+                (
+                    status, result_assistant_event_id, error_code,
+                    owner_id, disclosure_id,
+                ),
+            ).fetchone()
+        if row is None:
+            raise ValueError("manual cloud disclosure has no bound request to finish")
+        return dict(row)
+
+    def revoke_manual_cloud_disclosure(
+        self, *, owner_id: UUID, disclosure_id: UUID
+    ) -> dict[str, Any]:
+        with self.pool.connection() as connection, connection.transaction():
+            row = connection.execute(
+                """
+                UPDATE havre.manual_cloud_disclosures
+                SET status='revoked',revoked_at=clock_timestamp()
+                WHERE owner_id=%s AND disclosure_id=%s AND status='prepared'
+                RETURNING *
+                """,
+                (owner_id, disclosure_id),
+            ).fetchone()
+        if row is None:
+            raise ValueError("only a prepared disclosure can be revoked")
+        return dict(row)
+
+    def list_manual_cloud_disclosures(
+        self, *, owner_id: UUID, limit: int = 50
+    ) -> tuple[dict[str, Any], ...]:
+        with self.pool.connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM havre.manual_cloud_disclosures
+                WHERE owner_id=%s ORDER BY created_at DESC,disclosure_id DESC
+                LIMIT %s
+                """,
+                (owner_id, max(1, min(limit, 200))),
+            ).fetchall()
+        return tuple(dict(row) for row in rows)
+
 
     def audit_provenance_integrity(self) -> list[dict[str, Any]]:
         """Return any source-side provenance violations for periodic auditing."""
@@ -4092,11 +5631,20 @@ class PostgresRepository:
                 if daily_learning_exists
                 else ""
             )
+            stage15_exists = connection.execute(
+                "SELECT to_regclass('havre.stage15_commitment_integrity_violations') "
+                "IS NOT NULL AS present"
+            ).fetchone()["present"]
+            stage15_union = (
+                " UNION ALL SELECT * FROM havre.stage15_commitment_integrity_violations"
+                if stage15_exists
+                else ""
+            )
             return connection.execute(
                 "SELECT * FROM havre.provenance_integrity_violations "
                 "UNION ALL SELECT * FROM havre.stage4_required_provenance_violations"
                 f"{stage5_union}{stage6_union}{stage7_union}{stage8_union}"
-                f"{stage12_union}{daily_learning_union} "
+                f"{stage12_union}{daily_learning_union}{stage15_union} "
                 "ORDER BY owner_id, provenance_edge_id"
             ).fetchall()
 

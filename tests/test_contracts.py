@@ -32,6 +32,7 @@ from mlsys.contracts.inference import InferenceConstraints, ProviderCapabilities
 from mlsys.serving import DeterministicLocalProvider, ProviderPolicyError, Stage1Router
 from services.api.app import create_app
 from services.api.cli import demo_idempotency_key, run_local_chat_loop
+from services.api.settings import Settings
 from scripts.export_contract_schemas import CONTRACTS
 
 
@@ -193,8 +194,15 @@ class EventAndContextTests(unittest.TestCase):
             identity=self.identity,
             user_event=self.event,
         )
-        self.assertEqual([s.section_id for s in pack.sections], ["identity", "current-user-input"])
-        self.assertEqual(pack.sections[1].source_refs, (f"event/{self.event.event_id}",))
+        self.assertCountEqual(
+            [s.section_id for s in pack.sections],
+            ["identity", "owner-experience-first-v3-short-turns", "current-user-input"],
+        )
+        current_input = next(
+            section for section in pack.sections
+            if section.section_type == "current_user_input"
+        )
+        self.assertEqual(current_input.source_refs, (f"event/{self.event.event_id}",))
         self.assertEqual(pack.effective_data_policy.privacy_class, PrivacyClass.LOCAL_ONLY)
         self.assertFalse(pack.effective_data_policy.cloud_eligible)
         self.assertLessEqual(
@@ -334,7 +342,7 @@ class ProviderTests(unittest.IsolatedAsyncioTestCase):
 
 class ApiContractTests(unittest.TestCase):
     def test_openapi_exposes_stage4_user_model_state_and_goal_lifecycle(self) -> None:
-        app = create_app()
+        app = create_app(Settings.from_env(require_owner_api_token=False))
         paths = app.openapi()["paths"]
         self.assertEqual(app.version, __version__)
         self.assertIn("/v1/interactions", paths)

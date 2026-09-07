@@ -32,8 +32,11 @@
           "type": "number"
         },
         "confidence_method": {
-          "const": "owner-reviewed-v1",
           "default": "owner-reviewed-v1",
+          "enum": [
+            "owner-reviewed-v1",
+            "owner-delegated-gpt-v1"
+          ],
           "title": "Confidence Method",
           "type": "string"
         },

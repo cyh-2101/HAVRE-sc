@@ -1,8 +1,8 @@
 # ML Systems Design and Contracts
 
-Status: **Stage 6/7 second acceptance corrections technically verified at execution-source snapshot `sha256:8ba8b94632ae181c2966acc3d6c498d8f7a63337d2e8558629b47dd440386f9c`; pending Product Owner reacceptance**
+Status: **Stage 6/7 second acceptance corrections are technically verified at execution-source snapshot `sha256:8ba8b94632ae181c2966acc3d6c498d8f7a63337d2e8558629b47dd440386f9c`; ADR-0030's Stage 14B dual Replyer is implemented with current routing, isolation, lineage, failure, and persistence evidence, while practical conversational usefulness remains unproven**
 
-Related decisions: [ADR-0005](adr/0005-provider-neutral-inference.md), [ADR-0006](adr/0006-w3c-trace-context.md), [ADR-0007](adr/0007-canonical-datasets-and-lineage.md), [ADR-0010](adr/0010-evaluation-gated-releases.md), [ADR-0011](adr/0011-data-handling-policy.md), [ADR-0012](adr/0012-temporal-belief-model.md), [ADR-0013](adr/0013-scene-session-domain-object.md), [ADR-0014](adr/0014-governed-behavior-hierarchy.md), [ADR-0015](adr/0015-outcome-aware-evaluation.md), [ADR-0016](adr/0016-governed-core-authorizes-proactive-outreach.md), [ADR-0017](adr/0017-interruption-policy-and-user-control.md), [ADR-0018](adr/0018-provider-neutral-private-delivery.md), [ADR-0019](adr/0019-provider-neutral-ambient-life-context.md), [ADR-0020](adr/0020-experience-memory-lifecycle.md), and [ADR-0022](adr/0022-core-governed-response-delivery.md)
+Related decisions: [ADR-0005](adr/0005-provider-neutral-inference.md), [ADR-0006](adr/0006-w3c-trace-context.md), [ADR-0007](adr/0007-canonical-datasets-and-lineage.md), [ADR-0010](adr/0010-evaluation-gated-releases.md), [ADR-0011](adr/0011-data-handling-policy.md), [ADR-0012](adr/0012-temporal-belief-model.md), [ADR-0013](adr/0013-scene-session-domain-object.md), [ADR-0014](adr/0014-governed-behavior-hierarchy.md), [ADR-0015](adr/0015-outcome-aware-evaluation.md), [ADR-0016](adr/0016-governed-core-authorizes-proactive-outreach.md), [ADR-0017](adr/0017-interruption-policy-and-user-control.md), [ADR-0018](adr/0018-provider-neutral-private-delivery.md), [ADR-0019](adr/0019-provider-neutral-ambient-life-context.md), [ADR-0020](adr/0020-experience-memory-lifecycle.md), [ADR-0022](adr/0022-core-governed-response-delivery.md), [ADR-0029](adr/0029-default-chatgpt-codex-reply-provider.md), and [ADR-0030](adr/0030-data-policy-driven-dual-replyer-routing.md)
 
 ## 1. Responsibility boundary
 
@@ -88,6 +88,37 @@ class ModelProvider(Protocol):
 Provider adapters are stateless with respect to Companion identity. Authentication and endpoints come from runtime configuration; secrets never enter `InferenceRequest`, events, or traces.
 
 Stage 3's OpenAI-compatible adapter accepts plain HTTP only on loopback, ignores proxy environment variables, refuses redirects, and requires a typed process-bound runtime attestation before it may report self-hosted lineage or open a generate/stream HTTP request. The expensive construction check binds checked-in manifest bytes, runtime state, PID/start time, executable path/hash, exact arguments, model path/size/hash, loopback and disabled logging/Web UI. Each interaction then cheaply rechecks PID/start time/executable/arguments plus the live llama.cpp build and loaded alias. A missing or mismatched attestation fails closed; self-hosted ProviderVersion and normalized response lineage require its ID/hash. The adapter disables model thinking by default, reconciles ordered SSE into the typed terminal response, and converts provider failures into content-safe typed errors. The router independently checks capability freshness, privacy, streaming support, output limit, and combined input/output context capacity before dispatch.
+
+The Strong Cloud Brain checkpoint adds an experiment-only DeepSeek adapter
+without changing this port. It is disabled by default, reads authentication only
+from `DEEPSEEK_API_KEY`, ignores proxy environment variables, refuses redirects,
+checks the live model alias, and emits content-safe typed failures. Because the
+provider does not expose a verifiable immutable revision, lineage records the
+alias rather than a stronger configured label. It requires the exact milestone
+authorization, a verified `PUBLIC_SYNTHETIC` fixture hash, and an allowlisted
+canonical request hash before HTTP; the binding covers canonical messages,
+source references, policy, generation settings, alias, and thinking mode.
+`LOCAL_ONLY`, private, unknown, or owner-default data fails closed. Thinking is a
+request mode, but provider reasoning content is never retained or emitted. This
+adapter is not registered in daily routing and establishes no cloud-data policy
+for owner content.
+
+ADR-0029 adds an owner-local Codex CLI adapter for daily cloud-eligible
+PUBLIC/NORMAL companion responses. It receives the canonical request over stdin
+inside an empty ephemeral read-only workspace, accepts only the final agent
+message, exposes no tools, and requires an exact owner authorization/data
+boundary/request-hash binding. PRIVATE, HIGHLY_PRIVATE, LOCAL_ONLY, and every
+cloud-ineligible request fail inside the cloud adapter even if an upstream
+Router is defective.
+
+ADR-0030 implements a two-provider daily composition without widening that cloud
+adapter. The second branch is the exact attested Stage 3 Qwen3-8B Q4_K_M model on
+loopback llama.cpp with null HAVRE adapter identity. The effective ContextPack
+selects one provider: cloud-eligible PUBLIC/NORMAL uses authenticated owner-local
+Codex CLI GPT-5.6-sol; cloud-ineligible PUBLIC/NORMAL and every PRIVATE,
+HIGHLY_PRIVATE, or LOCAL_ONLY pack use the exact unadapted local Qwen3-8B. Both
+branches continue through the same provider-neutral inference, Core response
+policy, and durable Event path.
 
 ### `ProviderCapabilities`
 
@@ -278,6 +309,20 @@ conversation and mode selection, warm/firm judgment, repair, opinions,
 identity/relationship continuity, natural use of legitimately supplied Memory,
 and long-form quality. The initial policy is deliberately high precision and
 does not claim exhaustive semantic safety or memory entailment.
+
+The bounded conversation-continuation planner is a separate inference use, not a
+second Replyer turn. It receives one already-completed eligible owner/assistant
+pair and returns strict structured send/no-send evidence. New receipts use the
+isolated no-tools GPT-5.6-sol provider at fixed high effort only after explicit
+owner authorization and only for PUBLIC/NORMAL cloud-eligible source turns.
+Historical local receipts retain their original Qwen binding. The first receipt
+is due after one minute; a second request may be made
+only after Core proves the first proposal was visibly delivered and 30 minutes
+have elapsed. Deterministic post-inference gates reject generic confirmation,
+default coaching, unsupported personal history, and guessed facts. Neither model
+can enqueue or deliver; Proactive Core rechecks owner arrival, active
+conversation, preference revision, category/global budgets, privacy, expiry,
+deduplication, and the hard breaker.
 
 ### Streaming events
 
@@ -834,6 +879,38 @@ Eligibility is evaluated before scoring:
 
 The Router consumes policy; it does not define privacy. The Context Builder and Router both fail closed when policy cannot be resolved.
 
+ADR-0030's first daily dual route is a deterministic selection policy, not a
+quality/cost ranker and not an inference-failure fallback:
+
+1. cloud-eligible PUBLIC/NORMAL selects the approved Codex/GPT provider;
+2. cloud-ineligible PUBLIC/NORMAL and PRIVATE/HIGHLY_PRIVATE/LOCAL_ONLY select
+   the exact attested unadapted local Qwen provider;
+3. Codex authorization and request binding apply only after the cloud branch is
+   selected and never appear on the local request;
+4. local unavailability or overflow of the authorized llama.cpp runtime profile's
+   8,192-token total-context cap produces a typed failure and zero cloud calls;
+5. GPT unavailability produces a typed failure and does not silently invoke
+   local inference;
+6. idempotent replay retains the original selected route and cannot create a
+   second model call.
+
+ADR-0036's later delayed-continuation authorization is a separate, exact-purpose
+cloud use after the ordinary reply has completed. It does not relax this Router:
+only a source turn already proven GPT-routed, PUBLIC/NORMAL, and cloud-eligible
+may create a new continuation receipt. The request is rebound to the isolated
+Codex provider at fixed high effort, contains only the exact completed pair plus
+the first delivered beat when planning beat two, and has no tools or web access.
+Failure remains on that route; PRIVATE or local-only content is never substituted,
+and Qwen is used only to finish receipts created under the earlier local
+authorization.
+
+The 8,192 value is a configured and authorized serving-profile boundary, not a
+claim about Qwen3-8B's intrinsic model capacity. The route uses the completed
+pack's effective policy. A lower-class current message does not authorize more
+restrictive admitted history for cloud use, and the compiler may not omit
+required stricter material merely to choose GPT. No automatic semantic
+classifier is part of this routing contract.
+
 Stage 1 may have one eligible provider and still emit a route decision. Stage 6 introduces comparative routing. Quality estimates are not claims until calibrated against evaluation data.
 
 ## 10. Caching contract
@@ -1246,6 +1323,75 @@ Deployment promotes a manifest; it does not assemble floating components at runt
 - Stage 11 may activate user-initiated voice and individually approved iPhone ContextSource capabilities behind the same contracts and mobile OS limits.
 - Stage 12A may activate Windows coarse context and Calendar one capability at a time; Stage 12B may add location, mobility, wearables, richer sensors, and Edge context only after separate minimization/usefulness review.
 - Every adapter has conformance, consent/revocation, health/freshness/missingness, privacy, offline replay, retention, erasure, and source-replacement tests before activation.
+
+### Stage 14B dual Replyer implementation boundary
+
+- The implemented GPT branch sends only cloud-eligible PUBLIC/NORMAL ContextPacks
+  to the authenticated owner-local, isolated, no-tools Codex CLI GPT-5.6-sol
+  provider and returns the captured final response through Core and the Event
+  Store.
+- The implemented local branch sends cloud-ineligible PUBLIC/NORMAL and every
+  PRIVATE/HIGHLY_PRIVATE/LOCAL_ONLY ContextPack to the exact unadapted Qwen3-8B.
+  It remains candidate/unpromoted and requires exact model/runtime attestation
+  plus null adapter fields.
+- The two branches use the same ResponsePlan, retrieval, ContextPack, inference,
+  Core, assistant Event, feedback, episode, provenance, and erasure pipeline.
+  Selection consumes effective DataPolicy only: there is no sensitivity
+  classifier and no silent cross-provider failure fallback.
+- ADR-0031 configures the GPT branch at `medium` reasoning effort and binds that
+  value into the request hash. Provider and binder settings must match or the
+  request fails before execution. The same Context compiler may admit zero to
+  three relevant owner-authorized behavior examples from the exact first-20
+  bank; these are prompt examples, never model weights, Memory, or training data.
+- Technical probes now cover the complete privacy/cloud truth table, exact
+  selected and excluded routes, provider-specific binding, negative provider
+  call counts, local context overflow, both real synthetic branches, typed
+  no-assistant-Event failures, idempotent replay, Web route truthfulness,
+  zero-skip PostgreSQL regression, and a clean provenance audit.
+- The former Strong Brain/Strong UX selection is retired from daily use; its
+  guarded legacy endpoint is not a third Replyer or a routing input.
+- A current GPT probe observed 11,824 prompt tokens and the earlier GPT-only probe
+  observed 10,818. They are individual usage observations, not fixed overhead or
+  immutable-model capacity evidence. Neither transport evidence nor the local
+  route's successful probe proves practical conversational usefulness.
+
+### Stage 15 commitment context and proactive boundary
+
+- `LOCAL_ONLY` schedule ingestion and Goal state stay on the local route. Only
+  one source-hash-bound, owner-authorized five-field projection is eligible for
+  the ordinary GPT branch; it is not Memory or training data.
+- Completion matching and reminder selection are deterministic Core services,
+  not foundation-model authority. A model may naturally include an already due
+  claimed reminder in a suitable reply, but the database records delivery only
+  after exact task inclusion is proven.
+- Source-scoped queue replacement, stale-source cancellation, hard interruption
+  breaker, and future privileged erasure closure execute below the provider
+  boundary. No provider may select an erasure source, rewrite sent history, or
+  infer outreach permission from silence or model preference.
+
+### Owner-delegated Diary intelligence boundary
+
+- ADR-0037 adds the independent `memory_intelligence` GPT-high purpose after each
+  eligible completed turn. It shares the exact-source validation/ledger, not the
+  daily schedule, and cannot generate Diary or contact side effects.
+- A pinned owner-local MiniLM ONNX encoder supplies 384-dimensional embeddings;
+  `retrieval-r2-hybrid-v1` and ContextBuilder both check versioned admission rules.
+  The legacy encoder/profile remain available for frozen evidence. No chat is
+  uploaded for embedding, and older source records are not deleted by ranking.
+
+- Ordinary replies remain at the configured medium Codex effort. Diary intelligence
+  owns a separate high-effort provider instance, request purpose, serving-config
+  version, and request-binding hash.
+- The partition happens before request construction. The canonical model input
+  contains only eligible GPT-routed PUBLIC/NORMAL day Events. Private/local content
+  and IDs stay outside the model input and are available only through the local API.
+- Strict JSON validation, exact source quotes, user-role and memory-eligibility
+  checks, and a conservative durable-statement filter precede all writes.
+- A fixed quality enum may influence later Context through code-owned instructions;
+  provider prose is never executable configuration.
+- Source erasure treats a daily inference run as one mixed derivation unit and closes
+  over its Diary, delegated Memory, delegated beliefs, embeddings, lifecycle records,
+  and provenance.
 
 Required contract tests include:
 

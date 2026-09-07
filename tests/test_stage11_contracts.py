@@ -57,7 +57,7 @@ class Stage11NativeClientContracts(unittest.TestCase):
         self.assertNotIn("9202", client)
 
     def test_backend_exposes_existing_inbox_projection_route(self) -> None:
-        source = (ROOT / "services/api/app.py").read_text()
+        source = (ROOT / "services/api/app.py").read_text(encoding="utf-8")
         self.assertIn('@app.get("/v1/proactive/inbox")', source)
         self.assertIn("runtime.proactive_store.list_pending_inbox", source)
         self.assertIn('@app.get("/v1/mobile/enrollment")', source)
@@ -218,7 +218,7 @@ class Stage11PostgresIntegrationTests(unittest.TestCase):
     def test_http_inbox_projection_returns_exact_existing_delivery(self) -> None:
         assert DATABASE_URL is not None
         result = self._execute(self.store, f"stage11-http-{uuid.uuid4()}")
-        settings = Settings.from_env().model_copy(update={
+        settings = Settings.from_env(require_owner_api_token=False).model_copy(update={
             "database_url": DATABASE_URL,
             "owner_id": self.owner,
             "provider_id": "deterministic-local",

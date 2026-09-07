@@ -10,7 +10,36 @@ from companion.context.models import (
     PersonalContextItem,
     TokenBudget,
 )
+from companion.context.examples import (
+    OWNER_EXAMPLE_AUTHORIZATION_REF,
+    OWNER_EXAMPLE_BANK_VERSION,
+    OWNER_EXAMPLE_CASE_IDS,
+    OWNER_EXAMPLE_SELECTION_VERSION,
+    BehaviorExampleMessage,
+    OwnerBehaviorExample,
+    OwnerExampleBank,
+    load_owner_example_bank,
+)
 from companion.context.strategies import ControlledContextStrategy, ContextStrategyResult
+from companion.context.response_plan import (
+    ResponseObligation,
+    ResponsePlan,
+    ResponsePlanV1,
+    ResponsePlanV2,
+    ResponsePlanner,
+    parse_response_plan_json,
+    render_response_plan,
+)
+from companion.context.presentation import (
+    BEHAVIOR_EXAMPLE_GUIDANCE,
+    CONTEXT_PRESENTATION_VERSION,
+    MEMORY_USE_GUIDANCE,
+    behavior_examples_overhead_text,
+    memory_evidence_overhead_text,
+    personal_context_overhead_text,
+    render_memory_evidence,
+    render_inference_messages,
+)
 
 __all__ = [
     "ContextBudgetExceeded",
@@ -21,6 +50,29 @@ __all__ = [
     "ConversationHistoryItem",
     "PersonalContextItem",
     "TokenBudget",
+    "OWNER_EXAMPLE_AUTHORIZATION_REF",
+    "OWNER_EXAMPLE_BANK_VERSION",
+    "OWNER_EXAMPLE_CASE_IDS",
+    "OWNER_EXAMPLE_SELECTION_VERSION",
+    "BehaviorExampleMessage",
+    "OwnerBehaviorExample",
+    "OwnerExampleBank",
+    "load_owner_example_bank",
     "ControlledContextStrategy",
     "ContextStrategyResult",
+    "ResponseObligation",
+    "ResponsePlan",
+    "ResponsePlanV1",
+    "ResponsePlanV2",
+    "ResponsePlanner",
+    "parse_response_plan_json",
+    "render_response_plan",
+    "BEHAVIOR_EXAMPLE_GUIDANCE",
+    "CONTEXT_PRESENTATION_VERSION",
+    "MEMORY_USE_GUIDANCE",
+    "behavior_examples_overhead_text",
+    "memory_evidence_overhead_text",
+    "personal_context_overhead_text",
+    "render_memory_evidence",
+    "render_inference_messages",
 ]

@@ -134,7 +134,9 @@ class InferenceRequest(StrictModel):
     inference_request_id: UUID = Field(default_factory=uuid7)
     request_id: UUID
     trace_id: str = Field(pattern=r"^[0-9a-f]{32}$")
-    purpose: Literal["companion_response"] = "companion_response"
+    purpose: Literal[
+        "companion_response", "diary_intelligence", "owner_chat_goal_plan", "memory_intelligence"
+    ] = "companion_response"
     brain_role: Literal["personal"] = "personal"
     model_target_logical_profile: Literal["personal-balanced"] = "personal-balanced"
     messages: tuple[InferenceMessage, ...] = Field(min_length=1)
@@ -185,11 +187,27 @@ class TokenUsage(StrictModel):
     output_tokens: int = Field(ge=0)
     total_tokens: int = Field(ge=0)
     token_count_source: Literal["provider", "estimator"]
+    prompt_cache_hit_tokens: int | None = Field(default=None, ge=0)
+    prompt_cache_miss_tokens: int | None = Field(default=None, ge=0)
+    reasoning_tokens: int | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def validate_total(self) -> "TokenUsage":
         if self.total_tokens != self.prompt_tokens + self.output_tokens:
             raise ValueError("total_tokens must equal prompt_tokens plus output_tokens")
+        if (self.prompt_cache_hit_tokens is None) != (
+            self.prompt_cache_miss_tokens is None
+        ):
+            raise ValueError("prompt cache hit and miss usage must appear together")
+        if (
+            self.prompt_cache_hit_tokens is not None
+            and self.prompt_cache_miss_tokens is not None
+            and self.prompt_cache_hit_tokens + self.prompt_cache_miss_tokens
+            > self.prompt_tokens
+        ):
+            raise ValueError("prompt cache token detail exceeds prompt token usage")
+        if self.reasoning_tokens is not None and self.reasoning_tokens > self.output_tokens:
+            raise ValueError("reasoning token detail exceeds output token usage")
         return self
 
 
@@ -357,6 +375,7 @@ def validate_inference_response_lineage(
     expected_provider_id: str,
     expected_provider_class: ProviderClass,
     expected_model_version_id: str,
+    expected_adapter_version_id: str | None,
     expected_provider_adapter_version_id: str,
 ) -> InferenceResponse:
     """Independently bind normalized provider output to its exact routed input."""
@@ -374,6 +393,8 @@ def validate_inference_response_lineage(
         mismatches.append("provider_class")
     if response.versions.model_version_id != expected_model_version_id:
         mismatches.append("model_version_id")
+    if response.versions.adapter_version_id != expected_adapter_version_id:
+        mismatches.append("adapter_version_id")
     if (
         response.versions.provider_adapter_version_id
         != expected_provider_adapter_version_id
@@ -403,6 +424,7 @@ class RouteDecision(StrictModel):
     router_version: Literal[
         "stage1-single-provider-router-v1",
         "single-provider-router-v2",
+        "privacy-class-router-v1",
     ] = "single-provider-router-v2"
     selected_provider_id: str = Field(min_length=1, max_length=200)
     selected_model_version_id: str = Field(min_length=1, max_length=500)
@@ -413,5 +435,8 @@ class RouteDecision(StrictModel):
     reason: Literal[
         "only_eligible_stage1_provider",
         "only_eligible_configured_provider",
+        "public_normal_cloud_default",
+        "cloud_ineligible_local_route",
+        "restricted_data_local_route",
     ] = "only_eligible_configured_provider"
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

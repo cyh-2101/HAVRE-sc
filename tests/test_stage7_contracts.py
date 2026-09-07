@@ -16,6 +16,7 @@ from companion.offline import (
 from companion.policy import DataPolicy, PrivacyClass
 from scripts.export_contract_schemas import CONTRACTS
 from services.api.app import create_app
+from services.api.settings import Settings
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -70,7 +71,9 @@ class Stage7LifecycleContractTests(unittest.TestCase):
             "canonical-dataset-snapshot-v1", "offline-artifact-manifest-v1",
         }
         self.assertTrue(expected.issubset(CONTRACTS))
-        paths = create_app().openapi()["paths"]
+        paths = create_app(
+            Settings.from_env(require_owner_api_token=False)
+        ).openapi()["paths"]
         for path in (
             "/v1/offline/jobs", "/v1/offline/jobs/run-once",
             "/v1/offline/datasets/rebuild",

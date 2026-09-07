@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from companion.hashing import content_hash
 from companion.goals.models import GoalProjectionMaterial
 from companion.ids import uuid7
-from companion.policy import DataPolicy
+from companion.policy import DataPolicy, PrivacyClass
 from companion.policy.response import ResponsePolicyDecision
 
 
@@ -85,7 +85,9 @@ class ProactiveAssistantMessagePayload(StrictModel):
     proactive_context_pack_id: UUID
     rendering_id: UUID
     delivery_attempt_id: UUID
-    renderer_version: Literal["proactive-template-v1"] = "proactive-template-v1"
+    renderer_version: Literal[
+        "proactive-template-v1", "proactive-natural-template-v2"
+    ] = "proactive-natural-template-v2"
     delivery: DeliveryRecord
     simulation_only: Literal[True] = True
     external_delivery_authorized: Literal[False] = False
@@ -321,10 +323,10 @@ class InteractionFailurePayload(StrictModel):
 
     status: Literal["failed"] = "failed"
     failure_stage: Literal[
-        "capability_check", "routing", "version_check", "inference"
+        "context_build", "capability_check", "routing", "version_check", "inference"
     ] = "inference"
     inference_request_id: UUID | None = None
-    context_pack_id: UUID
+    context_pack_id: UUID | None = None
     route_decision_id: UUID | None = None
     failure_code: str = Field(min_length=1, max_length=100)
     retryable: bool
@@ -332,6 +334,21 @@ class InteractionFailurePayload(StrictModel):
 
     @model_validator(mode="after")
     def validate_stage_lineage(self) -> "InteractionFailurePayload":
+        if self.failure_stage == "context_build":
+            if any(
+                value is not None
+                for value in (
+                    self.context_pack_id,
+                    self.inference_request_id,
+                    self.route_decision_id,
+                )
+            ):
+                raise ValueError(
+                    "context-build failures cannot claim context, route, or inference lineage"
+                )
+            return self
+        if self.context_pack_id is None:
+            raise ValueError("post-context failure stages require a ContextPack identifier")
         routed = self.failure_stage in {"version_check", "inference"}
         has_inference = self.inference_request_id is not None
         has_route = self.route_decision_id is not None

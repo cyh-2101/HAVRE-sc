@@ -240,9 +240,18 @@
           "type": "number"
         },
         "lexical": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
-          "title": "Lexical",
-          "type": "null"
+          "title": "Lexical"
         },
         "recency": {
           "maximum": 1,
@@ -330,7 +339,8 @@
         "policy_version": {
           "enum": [
             "retrieval-selection-legacy-ungated-v1",
-            "retrieval-selection-context-safe-v1"
+            "retrieval-selection-context-safe-v1",
+            "retrieval-selection-hybrid-v1"
           ],
           "title": "Policy Version",
           "type": "string"

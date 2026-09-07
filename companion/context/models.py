@@ -31,6 +31,7 @@ class ContextSection(StrictModel):
     section_id: str
     section_type: Literal[
         "identity",
+        "response_plan",
         "episodic_memory",
         "semantic_memory",
         "pattern_memory",
@@ -39,6 +40,12 @@ class ContextSection(StrictModel):
         "goal",
         "current_state",
         "communication_preference",
+        "owner_response_instruction",
+        "owner_wording_correction",
+        "owner_fact_correction",
+        "current_time",
+        "behavior_example",
+        "calendar_availability",
         "conversation_user_message",
         "conversation_assistant_message",
         "current_user_input",
@@ -53,6 +60,8 @@ class ContextSection(StrictModel):
         "retrieved_relevant",
         "selected_active_personal_context",
         "selected_conversation_history",
+        "selected_behavior_example",
+        "required_runtime_context",
         "required_current_request",
     ]
     truncation: None = None
@@ -68,9 +77,17 @@ class ContextPack(StrictModel):
     builder_version: Literal[
         "context-builder-v3", "context-builder-v4", "context-builder-v5",
         "context-builder-v6",
-        "context-builder-v7", "context-builder-v8",
+        "context-builder-v7", "context-builder-v8", "context-builder-v9",
+        "context-builder-v10",
+        "context-builder-v11",
+        "context-builder-v12",
+        "context-builder-v13",
+        "context-builder-v14",
+        "context-builder-v15",
+        "context-builder-v16",
+        "context-builder-v17",
     ] = (
-        "context-builder-v8"
+        "context-builder-v17"
     )
     constitution_version_id: str
     identity_version_id: str
@@ -98,13 +115,19 @@ class PersonalContextItem(StrictModel):
     section_id: str = Field(min_length=1, max_length=300)
     section_type: Literal[
         "user_belief", "goal", "current_state", "communication_preference",
-        "episodic_memory"
+        "owner_response_instruction", "episodic_memory", "semantic_memory",
+        "owner_wording_correction",
+        "owner_fact_correction",
+        "pattern_memory", "progress_memory", "calendar_availability"
     ]
     content_text: str = Field(min_length=1, max_length=20_000)
     priority: int = Field(ge=0, le=99)
     source_refs: tuple[str, ...] = Field(min_length=1)
     data_policy: DataPolicy
-    selector_version: Literal["stage4-personal-context-selector-v1"] = (
+    selector_version: Literal[
+        "stage4-personal-context-selector-v1",
+        "stage12a-calendar-context-selector-v1",
+    ] = (
         "stage4-personal-context-selector-v1"
     )
 
@@ -118,3 +141,8 @@ class ConversationHistoryItem(StrictModel):
     content_text: str = Field(min_length=1, max_length=100_000)
     recorded_at: datetime
     data_policy: DataPolicy
+    selector_version: str | None = None
+
+    @property
+    def source_refs(self) -> tuple[str, ...]:
+        return (f"event/{self.event_id}", *((f"context-selector/{self.selector_version}",) if self.selector_version else ()))

@@ -1,6 +1,64 @@
 # HAVRE Roadmap
 
-Status: **Stage 6/7 accepted; Stage 8 technically accepted without promotion; Stage 9 closed at the candidate-only boundary; Stage 10 complete; Stage 11 at an implementation checkpoint but not exited; Stage 12A at a disabled implementation checkpoint; the owner-authorized daily Web chat/episode/feedback foundation is active for local use; Stage 9B and Stage 12B remain unauthorized**
+## Owner-approved short conversational turns (2026-09-06)
+
+The owner approved brief default turns with optional “再说点”, while preserving
+complete requested work, recall and Goal behavior. The [verified implementation](SHORT_TURNS_REVIEW_2026-09-06.md)
+extends ADR-0033's adaptive conversation behavior: new instructions and PWA v17
+are loaded owner-locally, with 922 tests passing, zero skips, 13/13 context budgets
+and unchanged targeted source sets. No Context architecture, model, training or
+proactive authority expansion is introduced. Naturalness remains owner-use
+validation rather than a sentence-count score. No new Stage, commit or push.
+
+## Targeted recall after accepted Context A/B (2026-09-06)
+
+The owner retained the production architecture and authorized a bounded repair of
+S03/S04 source/entity ambiguity, regression tests and a small owner blind review.
+The [local implementation and verification](TARGETED_RECALL_REVIEW_2026-09-06.md)
+retain both same-name source alternatives without relaxing global thresholds;
+909 tests pass with zero skips. The eight-pair owner packet is ready, with choices
+pending and training eligibility false. New cloud semantic verification requires
+the exact-payload/cost authorization requested after automatic approval rejection.
+No architecture switch, new Stage, production restart, training, promotion, commit
+or push is included in this follow-up.
+
+## Bounded Context A/B after the accepted checkpoint (2026-09-06)
+
+The owner accepted the fresh review as a stable checkpoint and limited the next
+work to a fixed-model blind context comparison, recall stress cases, necessary
+fixes, tests, review and local commit, without push or training. The
+[completed experiment](CONTEXT_AB_EXPERIMENT_2026-09-06.md) records Simple 12 / Full 8 /
+tie 1 / unresolved 11 on 32 real cases. After detecting date and word-boundary
+corruption in experimental deidentification, all 80 real answers and 80 reviews
+were rerun with unchanged targets and audited final provider inputs; earlier real
+analyses are invalidated diagnostics. Simple share is 56.3%, its family-clustered
+95% interval is 42.9%–65.9%, and order agreement is 65.6%, below the frozen gate.
+All eight repeat consensus labels change, including two direct arm reversals.
+No global winner or production context policy is adopted. Twelve constructed
+stress cases remain separate evidence, including unresolved source-admission gaps.
+Final verification is 824 primary plus 62 pinned-Torch tests, zero skips.
+The runtime baseline below stays active; this experiment adds no Stage authority,
+model promotion, new service or architecture mandate. Stop after the local commit.
+
+## Owner-authorized evolution after the fresh review (2026-09-06)
+
+The owner explicitly authorized a fresh evidence-led reassessment, justified
+architecture changes, implementation, additive migration, validation, independent
+review and local commits without push. This task is not limited by earlier Stage
+labels. [ADR-0039](adr/0039-personal-context-engine-and-evidence-compiler.md) records
+its durable direction: personal history and identity persist independently of the
+Brain, with shared evidence compilation and governed delivery.
+
+The implemented slice addresses concrete-history admission, lifetime raw recall,
+owner correction/retraction continuity, cross-path identity, delayed-source
+freshness and explainable Memory UI. The
+[review/checkpoint](PERSONAL_CONTEXT_ENGINE_REVIEW_2026-09-06.md) records exit
+measurements separately from long-term owner usefulness. New data disclosure,
+sensing, trust boundaries, recurring services, training and model promotion remain
+separate decisions. Existing stage entries below remain historical evidence and
+roadmap dependencies, not permission to override these owner limits.
+
+Status: **Stage 6/7 accepted; Stage 8 technically accepted without promotion; Stage 9 closed at the candidate-only boundary; Stage 10 complete; Stage 11 at an implementation checkpoint but not exited; Stage 12A at a disabled implementation checkpoint; daily Web chat/episode/feedback is active; ADR-0026 retires Seed 9201 from default use; ADR-0027 authorizes Stage 13A-C conversation-intelligence implementation and candidate evidence; ADR-0028 implements the PUBLIC-only Stage 14A MCP pilot; ADR-0029/0030's Stage 14B DataPolicy-driven GPT/unadapted-Qwen dual route is technically verified and active owner-locally while its Practical Utility Gate remains open; Stage 13D local-model promotion, private-data cloud admission, Stage 9B, and Stage 12B remain separate owner gates**
 
 Authority: [`MASTER_PLAN.md`](../MASTER_PLAN.md)
 
@@ -375,7 +433,7 @@ A complete Web/inbox Reach Out fixture records trigger → proposal → four-way
 
 ### Implementation checkpoint
 
-The initial candidate and first correction candidate were rejected after acceptance review reproduced concurrency bypass, missing required paths, and stale preference execution. Additive `0021` supplies the required controls/workers; additive `0022` supplies an authoritative preference head and resolves it under the same owner lock as preference saving before every new execution. External delivery remains structurally false. Current evidence is in [`STAGE67_SECOND_ACCEPTANCE_CORRECTION_CHECKPOINT.md`](STAGE67_SECOND_ACCEPTANCE_CORRECTION_CHECKPOINT.md).
+The initial candidate and first correction candidate were rejected after acceptance review reproduced concurrency bypass, missing required paths, and stale preference execution. Additive `0021` supplies the required controls/workers; additive `0022` supplies an authoritative preference head and resolves it under the same owner lock as preference saving before every new execution. The later accepted Daily Companion delivery amendment is recorded in ADR-0023. ADR-0024 and additive `0049`-`0050` now activate a bounded owner-local automatic evaluator: only explicit time-bound reminders, exact current active Goal review times, and exact current planned Scene start times may enqueue work. Memory, beliefs, Current State, Calendar/Life Context, ordinary conversation, and silence cannot independently trigger. Execution rechecks current Goal/Scene projections; Interruption Policy remains the only send authority. Owner preference revision 15 enables Reach Out with no cooldown/quiet hours and separately authorizes only the four-field generic Push envelope for LOCAL_ONLY messages. Current evidence is in [`STAGE67_SECOND_ACCEPTANCE_CORRECTION_CHECKPOINT.md`](STAGE67_SECOND_ACCEPTANCE_CORRECTION_CHECKPOINT.md), [`PRIVATE_CROSS_DEVICE_WEB_PUSH_CHECKPOINT.md`](PRIVATE_CROSS_DEVICE_WEB_PUSH_CHECKPOINT.md), and [`AUTOMATIC_PROACTIVE_REACH_OUT_CHECKPOINT.md`](AUTOMATIC_PROACTIVE_REACH_OUT_CHECKPOINT.md).
 
 ## 9. Stage 7 — Reflection + Consolidation + Offline Data Pipeline
 
@@ -541,6 +599,29 @@ are in
 The acceptance does not authorize v8, private training data, candidate status,
 registry/serving/daily-use changes, deployment, or broader context activation.
 
+On 2026-08-26 the Product Owner separately authorized one focused relevant-Memory-
+use milestone. The permanent system correction introduced Context Builder v9 and a
+versioned provider-facing Memory presentation, then replayed frozen 9201/9202/v7.
+A small PUBLIC synthetic continuation from immutable rejected v7 produced
+unregistered seed 9801. Post-plan unseen semantic review found a narrow 25/32 focused
+result versus v7 24/32, but the representative AI/self-learning callback still
+distorted the evidence into an accusation. The system correction is retained; 9801
+is not behaviorally accepted or available for daily use, all prior lifecycle states
+and the 9201 binding remain unchanged, and no further training is authorized. See
+[RELEVANT_MEMORY_USE_MILESTONE_CHECKPOINT.md](RELEVANT_MEMORY_USE_MILESTONE_CHECKPOINT.md).
+
+The Product Owner then authorized one Strong Cloud Brain ceiling experiment,
+not a candidate or deployment change. A default-disabled `deepseek-v4-pro`
+adapter ran only PUBLIC synthetic fixtures behind the unchanged ModelProvider,
+Context, and Core boundaries. Independent 32-case same-prompt review scored
+thinking/high 28/32 versus the best local 22/32, showing a material
+model/inference-compute ceiling; it still fabricated familiarity once and was
+weaker than 9201 on casual chat. The conditional 80-case run remains an absolute
+regression because its local frozen system prompts are not exact. No training,
+status, registry, binding, routing, serving, promotion, deployment, or Stage 9B
+change occurred. See
+[STRONG_CLOUD_BRAIN_CEILING_CHECKPOINT.md](STRONG_CLOUD_BRAIN_CEILING_CHECKPOINT.md).
+
 ### Permanent daily-use and personalization feedback loop
 
 On 2026-08-22 the Product Owner authorized the provider-neutral daily computer
@@ -567,6 +648,26 @@ No saved rating, edit, episode summary, Memory suggestion, or runtime preference
 automatically becomes training data. No online weight update is permitted.
 Seed 9201 may be used only as the current local development candidate/integration
 fixture; this does not change its lifecycle status.
+
+On 2026-09-02 ADR-0026 superseded the preceding default-use clause. Seed 9201 is
+retained only as immutable historical candidate evidence and is no longer the
+owner-local daily binding. The exact unadapted Qwen3-8B Stage 3 candidate began
+as the temporary no-adapter diagnostic baseline, not an accepted replacement.
+ADR-0030 now separately authorizes that exact artifact as the owner-local route
+for non-GPT-eligible and stricter daily ContextPacks without promoting it.
+Bounded Response Plan, relevance-gated Memory Broker, Replyer/Core separation, offline
+proposal review, and same-prompt local candidate comparison are authorized.
+Hash-pinned official candidate downloads into the ignored owner-local runtime are
+also authorized. Raw private-chat cloud review, driver changes, training, Stage 9B,
+other automatic routing, promotion, and deployment remain separately gated.
+
+The first same-prompt comparison completed against the exact official Qwen3-14B
+Q4_K_M candidate. It loaded at the fixed 8,192-token context and completed all 39
+PUBLIC synthetic requests without truncation. It materially improved conditional
+uncertainty and relevant-Memory use over the 8B baseline, but is not promoted:
+explicit decision-making and evidence-backed local-model hardware guidance remain
+release blockers. The next bounded step is one targeted orchestration correction
+and a full ContextPack/Core A/B before any owner promotion decision.
 
 The local daily Web checkpoint uses the existing Core/API/Event Store and
 provides durability-gated streamed rendering, conversation history, per-response
@@ -660,7 +761,332 @@ iPhone is a new entrance to the same identity, event store, memory, scene, Proac
 
 The first Windows/Calendar capability and any later hybrid routing provide measured benefit and never let convenience silently broaden private context access. No higher-precision source is adopted unless it outperforms the minimum-sufficient baseline on an approved usefulness/privacy trade-off.
 
-## 15. Recommended clarifications to the Master Plan
+## 15. Stage 13 — Conversation Intelligence + Local Replyer Selection
+
+Status: **Authorized and in progress under ADR-0027. Stage 13A-C are reversible,
+local, candidate-only work. Stage 13D requires an explicit Product Owner decision.**
+
+Stage 13 is independent of deferred Stage 11 native evidence and Stage 12 sensing.
+It improves the already-active reactive conversation path and does not activate a
+new context source, channel, or training path.
+
+The acceptance standard is the owner-visible
+[`STAGE13_PRACTICAL_UTILITY_GATE.md`](STAGE13_PRACTICAL_UTILITY_GATE.md):
+HAVRE must reduce the owner's effort and produce a result the owner would actually
+use. Passing tests, model size, benchmark averages, and natural prose cannot
+substitute for that outcome.
+
+### Stage 13A — Turn Contract and evidence path
+
+- Build the deterministic, hash-bound Turn Contract before durable Memory
+  retrieval.
+- Preserve every distinct current-turn obligation and distinguish “define
+  criteria” from “recommend one now.”
+- Persist an explicit empty retrieval result when the Memory Gate is `none`; permit
+  actual retrieval only for `possible|required`.
+- Keep historical contract versions replayable and bind plan/gate versions into
+  inference evidence.
+- Preserve input, retrieval/gate, ContextPack, provider messages, raw completion,
+  Core decision, delivered response, and review provenance as separate evidence.
+
+Exit evidence: focused contract and application-boundary tests, generated schema
+equality, complete PostgreSQL-backed regression with zero database skips,
+provenance audit, and no unresolved P1/P2 contract or privacy defect.
+
+### Stage 13B — Memory Broker and Context Compiler
+
+The 2026-09-04 owner-authorized Memory repair adds the pinned local semantic
+encoder, source-gated hybrid admission, recorded conversation times, and bounded
+explicit past-conversation recall. See ADR-0037 and
+[`REALTIME_MEMORY_EXPERIENCE_CHECKPOINT.md`](REALTIME_MEMORY_EXPERIENCE_CHECKPOINT.md).
+This does not activate model training or Stage 13D promotion.
+
+- Keep working dialogue, reviewed Episodes, confirmed communication preferences,
+  and long-term Memory as separate evidence classes.
+- Query long-term Memory only through the Turn Contract gate; record exclusions and
+  never convert retrieval into a forced callback.
+- Make the provider-facing Context the smallest complete form that preserves fixed
+  Identity, current-turn precedence, source truth, and required obligations.
+- Measure each presentation or budget change as one causal variable against the
+  frozen suite.
+- Treat the active session as working dialogue; use bounded raw cross-session
+  fallback only for an explicit prior-conversation reference. Use reviewed
+  Episodes and long-term Memory for ordinary cross-session continuity.
+- ADR-0031 adds an owner-authorized, source-bound behavior-example class separate
+  from Memory. ADR-0035's explicit owner-local implementation authorization
+  extends eligibility to the exact OA70 cases 1-70, with deterministic relevance
+  selection and a maximum of three examples per turn. All 70 are calibration,
+  not independent holdout evidence.
+
+Exit evidence: identical-turn relevant/irrelevant/absent/stale/partial
+counterfactuals, final-request inspection, budget accounting, current-precedence
+and fabricated-familiarity hard gates, plus long-context continuity.
+
+### Stage 13C — Replyer comparison and full-stack A/B
+
+- Keep the exact Qwen3-8B base as a diagnostic comparison control. ADR-0030 also
+  permits this same unadapted artifact as a narrow owner-local privacy Replyer;
+  that operational use does not promote it or establish candidate quality.
+- Retain Qwen3-14B Q4_K_M as a rejected comparison control; do not spend a
+  full-stack integration arm on it while raw hard failures remain.
+- Evaluate the exact pinned Qwen3.6-35B-A3B Q4_K_M artifact first through the
+  existing isolated llama.cpp boundary. Add FreeToken only as a separate
+  speed/runtime arm if raw 35B quality passes and measured speed is the remaining
+  bottleneck.
+- Record exact artifact/runtime and measured RAM/VRAM/latency evidence;
+  advertised parameter counts or throughput are insufficient.
+- Score repeated raw Replyer output separately from full ContextPack/Core delivered
+  output. Preserve regressions rather than selecting one favorable generation.
+- Use the Codex development agent as an external engineering loop over
+  authorized evidence, never as promotion authority. ADR-0029 separately uses
+  an isolated no-tools GPT-5.6-sol process as the daily Replyer; it is not the
+  development workspace session and cannot approve its own output.
+- The active GPT arm uses explicit medium reasoning effort and authoritative
+  owner-local message time. Measure latency and owner utility before increasing
+  effort; model size or effort is not a utility proxy.
+
+Exit evidence: repeated frozen PUBLIC arms, full ContextPack/Core A/B, hard-gate
+results under the Practical Utility Gate, latency/resource evidence, calibrated
+semantic review, and one concrete recommendation to the owner. Stage 13C may
+reject all candidates.
+
+### Stage 13D — Owner acceptance and promotion gate
+
+- Run a blinded owner comparison on representative conversations.
+- Review remaining quality, latency, privacy, and operational tradeoffs.
+- Stop for explicit owner selection before any local-model lifecycle promotion,
+  broader default binding, deployment, routing-policy expansion, or personalized
+  release. ADR-0029 and ADR-0030 are narrow owner-local operational bindings,
+  not Stage 13D promotion decisions.
+
+Training is not a Stage 13 shortcut. A later Stage 9B may be proposed only if
+Stage 13 evidence isolates a narrow trainable residual and the owner separately
+authorizes data, training, evaluation, and promotion gates.
+
+## 16. Stage 14 — ChatGPT-hosted Companion Surface
+
+Status: **Stage 14A is implemented under ADR-0028. ADR-0029/0030's Stage 14B
+DataPolicy-driven dual route is technically verified and active owner-locally:
+cloud-eligible PUBLIC/NORMAL uses GPT-5.6-sol and non-GPT-eligible or stricter
+ContextPacks use the exact unadapted Qwen3-8B. Its Practical Utility Gate remains
+open. Private-data cloud admission remains a separate gate. ADR-0035 separately
+activates only source-guarded relationship follow-ups under the existing Core;
+broader model-selected proactive contact remains gated.**
+
+This stage tests the shortest practical path to a companion the owner will
+actually use: ChatGPT desktop supplies a strong host model while HAVRE supplies
+its persistent approved Identity and deterministic Turn Contract. Stage 14A
+tests that combination outside HAVRE through MCP. Stage 14B uses a separately
+bounded Codex CLI `ModelProvider` so the final response returns through Core and
+the Event Store.
+
+### Stage 14A — PUBLIC identity and current-turn pilot
+
+- Run a local official-SDK STDIO MCP server registered on the owner-controlled
+  ChatGPT desktop/Codex host.
+- Expose only approved PUBLIC Identity and planning over the current message
+  already visible to ChatGPT.
+- Mark every tool read-only, idempotent, non-destructive, and closed-world.
+- Include explicit structured proof that no HAVRE private history, durable
+  write, or OA70 material is involved.
+- Evaluate real owner-visible usefulness: retained use, correction/restatement
+  burden, complete understanding, fabricated familiarity, and comparison with
+  ordinary ChatGPT.
+
+Exit evidence: protocol tests including real STDIO subprocess transport, exact
+dependency/config evidence, complete repository regression, and an owner
+decision based on representative conversations. Passing transport tests closes
+implementation but not the usefulness gate.
+
+### Stage 14B — Governed continuity bridge
+
+ADR-0029 authorizes one automatic GPT-5.6-sol call for each ordinary eligible
+owner-local chat message. The provider receives the canonical ContextPack through
+stdin in an isolated ephemeral no-tools Codex run, returns only the final agent
+message, and remains behind the existing request binding, Core response policy,
+and durable Event path. The daily UI has one routing policy rather than a separate
+Strong Brain action.
+
+ADR-0030 extends only the owner-local execution route:
+
+- cloud-eligible PUBLIC/NORMAL selects GPT-5.6-sol;
+- cloud-ineligible PUBLIC/NORMAL selects the exact local Qwen3-8B;
+- PRIVATE/HIGHLY_PRIVATE/LOCAL_ONLY selects the same local Qwen3-8B with no
+  HAVRE adapter.
+
+The route consumes the effective ContextPack policy and cannot drop required
+stricter evidence, reinterpret privacy, or use cloud after a local failure. The
+first version performs no silent cross-provider failure retry. LOCAL_ONLY remains
+cloud-ineligible, and the automatic route remains local for PRIVATE and
+HIGHLY_PRIVATE even when a separate policy could permit a separately governed
+cloud use.
+
+The prior ADR-0029 exit evidence covered only its GPT branch. ADR-0030's current
+technical implementation now has a versioned multi-provider RouteDecision,
+provider-specific binding, the full privacy/cloud truth table, exact no-adapter
+local attestation, an evidenced budget and boundary failure against the configured
+8,192-token llama.cpp runtime profile, Core/Event integration for both branches,
+negative no-cloud call proof, Web route/control evidence, and real synthetic GPT
+and local probes. Verification passed 633/633 primary plus 62/62 pinned Torch
+tests (695/695 combined), all with zero skips, and a disposable-database
+provenance audit returned `[]`. The owner-local runtime is active at migration
+`0053`. This closes the technical activation evidence; repeated owner use remains
+the separate Practical Utility Gate and has not been manufactured from tests. The
+current evidence checklist is
+[`STAGE14B_DUAL_PROVIDER_ROUTING_CHECKPOINT.md`](STAGE14B_DUAL_PROVIDER_ROUTING_CHECKPOINT.md).
+OA70, training, tools, automatic classification, and automatic Memory writes
+remain outside this authorization.
+
+### Stage 14C — Proactive language realization
+
+The governing design is `deterministic trigger and interruption authority -> GPT
+draft -> Core acceptance/rejection -> durable send`. GPT may make an already
+authorized reminder sound natural, but it may not decide that silence, Memory,
+emotion, or inferred need grants permission to contact the owner. A second model
+may produce offline critique/proposals; it cannot be the sole send authority or
+silently edit Identity, policy, or Memory. Activation requires its own failure,
+latency, privacy, idempotency, fallback, and owner-burden evidence. ADR-0035's
+owner-local implementation activates one narrow `relationship_follow_up`
+category from exact eligible conversation/Memory evidence. It remains bounded by
+the current preference revision, one-per-24-hour category budget, quiet hours,
+stop subjects, expiry, deduplication, and Core delivery; it does not activate
+general model-owned contact authority.
+
+## 17. Stage 15 — Owner Commitments + Practical Reach Out
+
+Status: **Stage 15A, the bounded Stage 15B commitment loop, and ADR-0035's
+experience-first extension are implemented and owner-locally active by explicit
+owner task direction. ADR-0036's bounded relational initiative is technically
+verified and owner-locally active behind the global and friendly-check-in
+controls; formal ADR-0032/0035/0036 acceptance remains pending. The current
+projection is 48 active plus two abandoned LOCAL_ONLY Goals, 50 exact five-field
+commitment projections, and 127 v2 pending reminders. Four historical legacy
+items succeeded and all 130 remaining legacy items are durably cancelled. An
+exact rerun creates no Goal, source interaction, reminder, or cancellation.
+Migration 0059 adds fixed 05:00 daily review, explicit chat Goal receipts, and
+source-guarded relationship follow-ups. Migration 0060 adds exact-turn local
+continuation receipts; migrations 0061-0062 add the owner-authorized one-minute,
+then delivery-relative 30-minute two-beat cadence. Repeated owner use remains the subjective
+quality gate. This does not activate a general Calendar trigger or ungoverned
+model-owned outreach.**
+
+### Stage 15A — Manual owner schedule import
+
+- verify one exact owner-selected source document and a separately reviewed,
+  gitignored schedule plan;
+- represent each confirmed, tentative, conditional, or TBA commitment as a
+  durable source-bound reality Goal rather than an unstructured prompt;
+- schedule multiple owner-selected contacts against the exact current Goal;
+- use three sparse policies: ordinary work at 3/1 days, large work at 7/3/1
+  days, and exams at 7/3/1 days with supportive day-before wording;
+- keep tentative status visible and keep TBA/conditional items reminder-free;
+- cancel older queued contacts automatically when the Goal is no longer the
+  current active projection;
+- retain Core permission, budget, stop, snooze, duplicate, expiry, privacy, and
+  delivery checks on every contact.
+
+Technical evidence: exact source hash; initial 50/134 apply and corrected
+50/131 dry-run counts;
+source-only local Qwen routing; focused and full zero-skip PostgreSQL regression;
+provenance audit; owner-database readback of source Events, Goals, queued work
+and policy; four due-now local inbox items plus one correction; and exact rerun
+idempotency. Repeated owner observation and formal ADR-0032 review remain open.
+Exact evidence is in
+[`STAGE15_OWNER_COURSE_SCHEDULE_CHECKPOINT.md`](STAGE15_OWNER_COURSE_SCHEDULE_CHECKPOINT.md).
+
+### Stage 15B — Bounded update, completion, fusion, and erasure closure
+
+- expose only course name, task name, deadline, completion state, and reminder
+  history to ordinary cloud-eligible conversation under the exact owner
+  authorization; keep the `LOCAL_ONLY` source and private Goal fields out;
+- resolve only a unique explicit owner completion report, preserve exact Event
+  and Goal-transition evidence, cancel stale reminders, and ask one
+  clarification when resolution is ambiguous;
+- fuse a due reminder into a suitable active conversation only when Core can
+  prove actual inclusion, otherwise preserve the governed Web-inbox path;
+- insert a reviewed replacement queue generation before cancelling the exact
+  source snapshot's legacy pending/retryable generation; never rewrite sent
+  history and fail if a legacy item is leased;
+- extend future privileged source erasure so an explicitly selected source
+  Event closes its derived Goals, projections, transition evidence, reminder
+  deliveries, fusion claims, and proactive queue artifacts. No real source was
+  selected or erased during activation, and raw Event deletion remains a
+  separate privileged phase.
+
+Later course-source revisions may still add a review UI for changed/TBA dates
+or source replacement. Scraping Canvas, Campuswire, email, or course sites is
+not authorized.
+
+### Stage 15C — Experience-first daily review and relational continuity
+
+- run the owner-local Diary review once after 05:00 for the interval from the
+  previous local 05:00 to this local 05:00, never from a GET request;
+- generate eligible GPT-chat Memory/User Model updates after completed turns in
+  an independent GPT-high background queue; private/local candidates still need
+  owner review, and routine chat need not create a durable record;
+- admit only GPT-routed PUBLIC/NORMAL current-day Events, bounded eligible prior
+  context, and bounded current eligible Memory to the high-effort review;
+- ignore greetings, acknowledgements, governance/status mechanics, and other
+  transactional流水 rather than turning them into a Diary;
+- write only evidence-ID-bound improvement suggestions under the owner review
+  root; never let the review edit code, Identity, values, or policy;
+- create Goals/reminders only after explicit owner language and a durable action
+  receipt; ordinary relationship conversation is not a task extractor;
+- allow conversation/Memory to support a `relationship_follow_up` proposal while
+  keeping current preference, stop, quiet-hour, budget, deduplication, expiry,
+  and delivery authority in Core;
+- present technical records as friendly Memory, User Model, hierarchical Goal,
+  and first-person Diary views; keep private/local transcript content in the
+  local collapsed detail only;
+- extend exact-source erasure through the daily review, generated file, explicit
+  Goal/reminder, and proactive derivatives without selecting a source itself.
+
+Technical evidence is recorded in
+[`EXPERIENCE_FIRST_DAILY_REVIEW_CHECKPOINT.md`](EXPERIENCE_FIRST_DAILY_REVIEW_CHECKPOINT.md).
+The first real 05:00 run completed after correcting provider enum drift and adding
+persisted retry backoff. Physical-iPhone presentation, repeated usefulness, and
+formal ADR-0035 acceptance remain open.
+
+### Stage 15D — Bounded relational initiative
+
+- permit a first delayed continuation exactly one minute after an exact eligible
+  GPT-routed PUBLIC/NORMAL talk turn, cancel it on any newer owner message, expire
+  it 15 minutes later, and plan new receipts with isolated GPT-5.6-sol at fixed
+  high effort under the separate owner authorization; existing local receipts
+  keep their original Qwen route;
+- only after the first delayed line was actually visible, permit one final second
+  beat exactly 30 minutes later; cancel on a newer owner message and never create
+  a third beat for that source turn;
+- allow the first reply itself to contain a question, while requiring the delayed
+  line to be distinct; downgrade generic confirmation, unsupported mind-reading,
+  default recovery coaching, fabricated personal history, guessed concrete facts,
+  or pure restatement to no-action even when the planner proposes a send;
+- send at most one or two short sentences, allow no-action, and forbid default
+  analysis, tasks, urgency, non-response language, dependency cues, or invented
+  shared history;
+- give in-conversation continuation its own two-per-24-hour category budget;
+  separately count only delivered cold relationship touches since the latest ordinary owner
+  message, wait at least 24 hours before the second and 72 hours before the third,
+  then pause after three until a new ordinary owner message;
+- keep Goal reminders independent, fill only otherwise-empty authorized Goal days
+  with at most one stable hash-derived daytime slot across all eligible Goals,
+  prefer the nearest deadline, and defer all standalone delivery while a
+  conversation is active;
+- expose separate nontechnical owner controls for important reminders and friendly
+  check-ins instead of one combined switch;
+- preserve exact turn/provider/proactive provenance and extend explicit-source
+  erasure through the new receipt and queue item.
+
+Technical evidence is recorded in
+[`BOUNDED_RELATIONAL_INITIATIVE_CHECKPOINT.md`](BOUNDED_RELATIONAL_INITIATIVE_CHECKPOINT.md).
+Fresh and in-place migration through 0063, direct SQL attacks, timing/cadence,
+reply races, active-chat deferral, two-beat erasure, daily Goal stability, complete
+split-environment regression, exact GPT-high/local-legacy provider receipts, and
+provenance checks pass. Production is ready at 0063 with live API/worker, no
+backfilled GPT receipt, and PWA v11 idle-chat refresh. Repeated owner experience
+and formal ADR-0036 acceptance remain open.
+
+## 18. Recommended clarifications to the Master Plan
 
 These are proposed interpretations, not unilateral edits to product authority:
 
@@ -677,7 +1103,7 @@ These are proposed interpretations, not unilateral edits to product authority:
 11. **Add Ambient Life Context without moving sensors earlier.** Contracts are reviewed now; Stage 6 uses only synthetic/manual observations, Stage 11 may add individually approved iPhone/voice capabilities, and Stage 12 activates Windows/Calendar before considering richer location/wearable context.
 12. **Make Experience distinct from Memory.** Events remain append-preserved source history under retention/erasure; Memory requires versioned promotion and supports temporal validity, contradiction, archival, reconsolidation, regeneration, and deletion propagation.
 
-## 16. Current stop condition
+## 19. Current stop condition
 
 Stage 6 remains simulation-only and Stage 7 remains proposal-only. Stage 8
 technical acceptance is complete without promotion. On 2026-08-21 the Product
@@ -702,3 +1128,56 @@ deferred without a Mac. **Stop
 before general Stage 12B, location/wearables/other richer sensing, Stage 9B, adapter
 promotion/deployment, user-derived training, automatic Memory mutation,
 governance changes, or any personalized production release.**
+
+Stage 13A-C may continue within ADR-0027 using reversible local code, PUBLIC
+synthetic evidence, and candidate-only model runs. ADR-0029 and ADR-0030
+separately authorize the owner-local daily dual Replyer; the 8B privacy route is
+not a local-candidate promotion. **Stop at Stage 13D before promoting a local
+model or changing model lifecycle state, and also stop before private external
+disclosure, broader routing-policy expansion, driver/system changes, training,
+deployment, or any Identity/privacy/governance change.**
+
+Stage 14A remains the PUBLIC read-only MCP control. Stage 14B is active only as
+ADR-0029/0030's owner-local policy route with no GPT tools and with Core/Event
+capture. ADR-0035 additionally authorizes the exact owner-only OA70 cases 1-70
+runtime bank and one Core-governed source-guarded relationship category. **Stop
+before automatic PRIVATE/HIGHLY_PRIVATE/LOCAL_ONLY cloud admission, automatic
+classification, silent cross-provider failure fallback, OA70 training/tuning or
+public release, proactive delivery outside the exact governed categories,
+automatic Memory mutation outside the authorized GPT-source delegation, or
+provider-controlled Identity/policy changes.**
+
+The owner's explicit Stage 15 task directions authorize the exact selected Fall
+2026 schedule snapshot, its five-field projection, deterministic Goal-bound
+reminder generation, bounded completion/fusion behavior, ADR-0035's
+experience-first daily review and relationship paths, and a future source-erasure
+closure only when the owner explicitly names the source Event. Formal
+ADR-0032/0035/0036 acceptance remains pending. **Stop
+before general Calendar-to-outreach activation, course-site scraping,
+relational expansion beyond ADR-0036's exact reviewed cadence/categories,
+ungoverned GPT-selected cadence or contact, non-explicit completion inference, any actual
+source erasure without a newly specified source Event, or any unreviewed
+schedule-source replacement.**
+
+ADR-0033's practical companion correction is implemented by explicit task
+direction on the owner-local runtime. ADR-0034 additionally implements the exact
+new owner authorization for high-effort GPT Diary synthesis, source-quoted automatic
+Memory/User Model updates from eligible GPT-routed chats, and the enumerated paired
+device review writes. ADR-0035 fixes Diary review at 05:00, adds bounded prior
+context and manual improvement files, explicit chat Goal planning, friendly
+Memory/Goal presentation, the all-70 owner-only runtime bank, and source-guarded
+relationship follow-ups. Private/local chat remains excluded from GPT synthesis
+and automatic understanding. The first real 05:00 run completed after a bounded
+provider-enum/retry correction. Formal ADR acceptance, repeated owner-use quality
+evidence, and physical iPhone validation remain open.
+**Stop before any broader automatic Memory/User Model mutation, private cloud
+disclosure, paired-device administration or erasure authority, automatic
+code/Identity/policy changes, or treating a browser-width contract as
+physical-iPhone acceptance.**
+### September 6 audit-driven quality follow-through
+
+The owner accepted the September 5 real-runtime audit and explicitly authorized
+continuous implementation, validation, local commits and UX work without a gate
+after each Priority. ADR-0038 scopes the correctness/continuity slice; it does not
+activate another Stage, weaken private-data policy or authorize model promotion.
+See DAILY_COMPANION_QUALITY_CHECKPOINT_2026-09-06.md for actual evidence and limits.

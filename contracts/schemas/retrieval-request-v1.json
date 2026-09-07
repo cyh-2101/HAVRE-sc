@@ -127,7 +127,8 @@
       "enum": [
         "retrieval-r0-recency-v1",
         "retrieval-r1-vector-v1",
-        "retrieval-r1-vector-gated-v2"
+        "retrieval-r1-vector-gated-v2",
+        "retrieval-r2-hybrid-v1"
       ],
       "title": "Algorithm Version",
       "type": "string"

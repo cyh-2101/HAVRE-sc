@@ -47,6 +47,14 @@ from mlsys.serving.runtime_attestation import (
 )
 
 
+def llama_context_tokens_per_slot(profile: dict[str, Any]) -> int:
+    """Pinned llama --ctx-size is total KV capacity across --parallel slots."""
+    total, slots = profile["context_tokens"], profile["parallel_slots"]
+    if type(total) is not int or type(slots) is not int or slots < 1 or total < slots:
+        raise ValueError("llama context and parallel slots must be positive integers")
+    return total // slots
+
+
 _SAFE_MESSAGES = {
     "invalid_request": "The self-hosted provider rejected the inference request.",
     "unsupported_capability": "The self-hosted provider does not support a required capability.",
@@ -261,6 +269,7 @@ class OpenAICompatibleProvider:
                 expected_provider_id=self.provider_id,
                 expected_provider_class=self.provider_class,
                 expected_model_version_id=self.model_version_id,
+                expected_adapter_version_id=self.adapter_version_id,
                 expected_provider_adapter_version_id=self.provider_adapter_version_id,
             )
         except ProviderInferenceError:
@@ -299,6 +308,10 @@ class OpenAICompatibleProvider:
                 timeout=request.constraints.timeout_ms / 1000,
             ) as response:
                 self._reject_redirect(request, response)
+                if response.status_code >= 400:
+                    # A streaming Response has no readable JSON until its error
+                    # body is consumed. Keep only the existing safe typed error.
+                    await response.aread()
                 self._raise_for_status(request, response)
                 response_started_to_provider = True
 
@@ -434,6 +447,7 @@ class OpenAICompatibleProvider:
                     expected_provider_id=self.provider_id,
                     expected_provider_class=self.provider_class,
                     expected_model_version_id=self.model_version_id,
+                    expected_adapter_version_id=self.adapter_version_id,
                     expected_provider_adapter_version_id=(
                         self.provider_adapter_version_id
                     ),

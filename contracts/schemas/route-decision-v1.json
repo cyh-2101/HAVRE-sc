@@ -42,7 +42,10 @@
       "default": "only_eligible_configured_provider",
       "enum": [
         "only_eligible_stage1_provider",
-        "only_eligible_configured_provider"
+        "only_eligible_configured_provider",
+        "public_normal_cloud_default",
+        "cloud_ineligible_local_route",
+        "restricted_data_local_route"
       ],
       "title": "Reason",
       "type": "string"
@@ -61,7 +64,8 @@
       "default": "single-provider-router-v2",
       "enum": [
         "stage1-single-provider-router-v1",
-        "single-provider-router-v2"
+        "single-provider-router-v2",
+        "privacy-class-router-v1"
       ],
       "title": "Router Version",
       "type": "string"

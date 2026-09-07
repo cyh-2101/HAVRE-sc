@@ -217,8 +217,8 @@ the live build and alias check.
 Windows Device Guard still blocks the MSYS PostgreSQL executable, and the run
 did not disable or weaken that policy. Ubuntu 26.04 already exposed signed
 PostgreSQL 18.4 and pgvector 0.8.1 packages. They were downloaded and extracted
-without administrator installation under `<owner-home>/.local/opt/havre-pg18`.
-The dedicated cluster `<owner-home>/.local/share/havre/postgres18-stage3` bound
+without administrator installation under `/home/OWNER/.local/opt/havre-pg18`.
+The dedicated cluster `/home/OWNER/.local/share/havre/postgres18-stage3` bound
 only to `127.0.0.1:55432`. Before any database was created, checks established:
 
 - PostgreSQL `18.4 (Ubuntu 18.4-0ubuntu0.26.04.1)`;
@@ -297,11 +297,11 @@ were:
 
 ```powershell
 # User-local WSL packages; no Windows service or policy change.
-wsl.exe -d Ubuntu -- mkdir -p <owner-home>/.local/opt/havre-pg18/packages <owner-home>/.local/opt/havre-pg18/root <owner-home>/.local/share/havre/postgres18-stage3-socket
-wsl.exe -d Ubuntu --cd <owner-home>/.local/opt/havre-pg18/packages -- apt-get download postgresql-18=18.4-0ubuntu0.26.04.1 postgresql-client-18=18.4-0ubuntu0.26.04.1 postgresql-18-pgvector=0.8.1-2 liburing2=2.14-1
-wsl.exe -d Ubuntu -- bash -lc 'for deb in <owner-home>/.local/opt/havre-pg18/packages/*.deb; do dpkg-deb -x "$deb" <owner-home>/.local/opt/havre-pg18/root; done'
-wsl.exe -d Ubuntu -- env LD_LIBRARY_PATH=<owner-home>/.local/opt/havre-pg18/root/usr/lib/x86_64-linux-gnu <owner-home>/.local/opt/havre-pg18/root/usr/lib/postgresql/18/bin/initdb --pgdata=<owner-home>/.local/share/havre/postgres18-stage3 --username=postgres --auth=trust --encoding=UTF8 --no-locale
-wsl.exe -d Ubuntu -- env LD_LIBRARY_PATH=<owner-home>/.local/opt/havre-pg18/root/usr/lib/x86_64-linux-gnu <owner-home>/.local/opt/havre-pg18/root/usr/lib/postgresql/18/bin/pg_ctl -D <owner-home>/.local/share/havre/postgres18-stage3 -l <owner-home>/.local/share/havre/postgres18-stage3.log -o "-p 55432 -h 127.0.0.1 -k <owner-home>/.local/share/havre/postgres18-stage3-socket" -w start
+wsl.exe -d Ubuntu -- mkdir -p /home/OWNER/.local/opt/havre-pg18/packages /home/OWNER/.local/opt/havre-pg18/root /home/OWNER/.local/share/havre/postgres18-stage3-socket
+wsl.exe -d Ubuntu --cd /home/OWNER/.local/opt/havre-pg18/packages -- apt-get download postgresql-18=18.4-0ubuntu0.26.04.1 postgresql-client-18=18.4-0ubuntu0.26.04.1 postgresql-18-pgvector=0.8.1-2 liburing2=2.14-1
+wsl.exe -d Ubuntu -- bash -lc 'for deb in /home/OWNER/.local/opt/havre-pg18/packages/*.deb; do dpkg-deb -x "$deb" /home/OWNER/.local/opt/havre-pg18/root; done'
+wsl.exe -d Ubuntu -- env LD_LIBRARY_PATH=/home/OWNER/.local/opt/havre-pg18/root/usr/lib/x86_64-linux-gnu /home/OWNER/.local/opt/havre-pg18/root/usr/lib/postgresql/18/bin/initdb --pgdata=/home/OWNER/.local/share/havre/postgres18-stage3 --username=postgres --auth=trust --encoding=UTF8 --no-locale
+wsl.exe -d Ubuntu -- env LD_LIBRARY_PATH=/home/OWNER/.local/opt/havre-pg18/root/usr/lib/x86_64-linux-gnu /home/OWNER/.local/opt/havre-pg18/root/usr/lib/postgresql/18/bin/pg_ctl -D /home/OWNER/.local/share/havre/postgres18-stage3 -l /home/OWNER/.local/share/havre/postgres18-stage3.log -o "-p 55432 -h 127.0.0.1 -k /home/OWNER/.local/share/havre/postgres18-stage3-socket" -w start
 
 $env:HAVRE_DATABASE_URL = 'postgresql://postgres@127.0.0.1:55432/havre_s3corr_fresh_20260814'
 .\.venv\Scripts\python.exe -m services.api.cli migrate
@@ -319,7 +319,7 @@ $env:HAVRE_SELF_HOSTED_BASE_URL = 'http://127.0.0.1:8080'
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start_stage3_local_serving.ps1 -ReadyTimeoutSeconds 180
 .\.venv\Scripts\python.exe -m services.api.cli demo 'Give me one grounded sentence about completing careful verification work.' --privacy LOCAL_ONLY --idempotency-key stage3-correction-local-only-real-20260814
 .\.venv\Scripts\python.exe -m services.api.cli audit-provenance
-.\.venv\Scripts\python.exe -m services.api.cli benchmark-inference --output-directory <repo>\var\benchmarks\stage3-correction-20260814-final-9a43713e
+.\.venv\Scripts\python.exe -m services.api.cli benchmark-inference --output-directory C:\HAVRE\var\benchmarks\stage3-correction-20260814-final-9a43713e
 ```
 
 ## Remaining limitations

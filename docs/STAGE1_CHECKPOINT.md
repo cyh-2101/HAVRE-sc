@@ -11,7 +11,7 @@ The original evidence below remains valid as an infrastructure run. The later re
 One synthetic `PRIVATE` request was submitted through the live FastAPI endpoint with a W3C `traceparent` and an idempotency key. The API returned HTTP 201 only after the assistant event and its evidence were committed.
 
 ```text
-request_id:             019ff712-4354-7ab5-a492-894941065b9d
+<private identifier omitted>
 trace_id:               8f92f3577b34da6a3ce929d0e0e47361
 incoming parent span:   10f067aa0ba902b7
 request root span:      74d7eb94ac72ddfe

@@ -1,8 +1,26 @@
 # Database Design
 
-Status: **Stage 6/7 second acceptance corrections technically verified at execution-source snapshot `sha256:8ba8b94632ae181c2966acc3d6c498d8f7a63337d2e8558629b47dd440386f9c`; pending Product Owner reacceptance**
+## Personal-context additions (2026-09-06)
 
-Related decisions: [ADR-0002](adr/0002-postgresql-and-pgvector.md), [ADR-0003](adr/0003-append-oriented-events-and-erasure.md), [ADR-0004](adr/0004-provenance-and-derived-revisions.md), [ADR-0008](adr/0008-database-backed-worker-boundary.md), [ADR-0011](adr/0011-data-handling-policy.md), [ADR-0012](adr/0012-temporal-belief-model.md), [ADR-0013](adr/0013-scene-session-domain-object.md), [ADR-0014](adr/0014-governed-behavior-hierarchy.md), [ADR-0016](adr/0016-governed-core-authorizes-proactive-outreach.md), [ADR-0017](adr/0017-interruption-policy-and-user-control.md), [ADR-0018](adr/0018-provider-neutral-private-delivery.md), [ADR-0019](adr/0019-provider-neutral-ambient-life-context.md), and [ADR-0020](adr/0020-experience-memory-lifecycle.md)
+Migrations 0069 and 0070 add a rebuildable GIN expression index over existing
+eligible PUBLIC/NORMAL raw Event text, using versioned ASCII/CJK search terms.
+0070 is an additive two-character ASCII correction; 0069's applied bytes remain
+immutable. Owner/time/route, completion and erasure/revocation guards remain in
+queries. Private local history uses existing owner/time access paths; large-scale
+private-index performance remains unverified. There is no second canonical text
+store or new graph database.
+
+Migration 0071 adds a BEFORE INSERT trigger on Current State publication. Its
+owner-scoped advisory transaction lock is shared with delayed delivery, covering
+both application writers and direct SQL. Memory/Belief head locks and post-lock
+time checks reject stale queued evidence without creating a visible message.
+These are additive changes; no raw source or historical migration is rewritten.
+Fresh and populated upgrade evidence is in the
+[Personal Context Engine review](PERSONAL_CONTEXT_ENGINE_REVIEW_2026-09-06.md).
+
+Status: **Durable database boundaries are accepted through ADR-0030. Migrations 0052-0055 protect ordinary interaction and the owner-directed Stage 15 commitment loop. Migrations 0057-0059 implement source-separated Diary intelligence, delegated-update provenance, fixed daily review, explicit chat Goal receipts, and relationship follow-up source guards. Migrations 0060-0063 add the preference-gated two-beat exact-turn continuation receipt, owner-authorized GPT-high provider binding, legacy-local compatibility, and erasure closure; formal ADR-0032/0034/0035/0036 acceptance remains pending.**
+
+Related decisions: [ADR-0002](adr/0002-postgresql-and-pgvector.md), [ADR-0003](adr/0003-append-oriented-events-and-erasure.md), [ADR-0004](adr/0004-provenance-and-derived-revisions.md), [ADR-0008](adr/0008-database-backed-worker-boundary.md), [ADR-0011](adr/0011-data-handling-policy.md), [ADR-0012](adr/0012-temporal-belief-model.md), [ADR-0013](adr/0013-scene-session-domain-object.md), [ADR-0014](adr/0014-governed-behavior-hierarchy.md), [ADR-0016](adr/0016-governed-core-authorizes-proactive-outreach.md), [ADR-0017](adr/0017-interruption-policy-and-user-control.md), [ADR-0018](adr/0018-provider-neutral-private-delivery.md), [ADR-0019](adr/0019-provider-neutral-ambient-life-context.md), [ADR-0020](adr/0020-experience-memory-lifecycle.md), [ADR-0022](adr/0022-core-governed-response-delivery.md), and [ADR-0030](adr/0030-data-policy-driven-dual-replyer-routing.md)
 
 ## 1. Purpose
 
@@ -672,6 +690,105 @@ Erasure is a privileged workflow, not ordinary application deletion:
 
 The Stage 2 online subset closes source-event derivatives across jobs and every candidate status; memory revisions, heads, embeddings, and provenance; retrieval candidate and exclusion snapshots, including both an exclusion's `memory_id` and its retained canonical `duplicate_of_memory_id`; ContextPack sections; route/inference records; and affected assistant events. It runs even when no accepted memory exists. Affected request-ledger rows remain as content-free failed records. Raw source deletion, backups, external processors, and receipt policy remain separate owner-governed work. The erasure transaction uses a local flag accepted only from a member of the `havre_privileged_erasure` database role; it never disables immutable triggers globally.
 
+For an ordinary interaction protected by migrations `0052` and `0053`, privileged
+source erasure has exactly two request-ledger transitions. Phase A converts the
+request to a content-free failed tombstone with error
+`source_erasure_propagated`, clears assistant/failure/Context/inference pointers,
+preserves every request identity field, and preserves or establishes a non-null
+completion time. Phase B may then clear only the retained `USER_MESSAGE` pointer
+immediately before that source Event is deleted. Both phases require the database
+role and transaction-local erasure flag; every broader terminal mutation remains
+rejected.
+
+For Stage 15, `commitment_field_authorizations` records the exact source hash
+and five-field declassification decision; `commitment_projections` binds those
+fields to one exact Goal revision and source Event; and
+`goal_transition_evidence`, `proactive_fusion_claims`, and
+`commitment_reminder_deliveries` preserve completion, conversation-fusion, and
+delivery lineage. `stage15_commitment_integrity_violations` participates in the
+provenance audit. Migration `0055` adds the reverse-closure FK indexes.
+
+When a future privileged request explicitly selects a source Event, the same
+transaction removes Goals created from that Event or reached through its
+completion evidence, then deletes affected reminder deliveries, fusion claims,
+transition evidence, projections, orphan authorizations, interaction leases,
+and proactive queue artifacts in FK-safe order. This closure does not authorize
+source selection; raw source deletion and backup replay remain separately
+governed. Normal operation remains append-oriented, including source-scoped
+queue generation replacement as durable `cancelled` rows rather than rewrites.
+
+**ADR-0037 extension (0064-0067):** the existing embedding table preserves both
+historical 64-dimensional and exact-source 384-dimensional local semantic vectors.
+Registered dimension/hash guards and non-null hybrid admission bindings are
+database-enforced. `realtime_memory_jobs` binds each job to its completed eligible
+GPT source pair and fences retries/leases/completion. The shared intelligence ledger
+now distinguishes daily and real-time runs; real-time effects cannot create Diary,
+review-file, or follow-up content. Source erasure includes the jobs and derived
+runs. `window_start_hour` preserves old run semantics; Diary v6 source guards use
+the owner's 05:00 boundary. See ADR-0037 for the authorization and limits.
+
+Diary intelligence adds immutable owner-qualified runs, exact run-source membership,
+an optional Diary-revision run link, and exact delegated Memory/belief mapping rows.
+A partial unique index makes successful source sets idempotent while retaining failed
+runs for diagnosis and permitting retry. Migration 0058 is additive because 0057 had
+already been exercised on a disposable database; it replaces only the source guard
+function and adds mapping INSERT guards without changing historical migration bytes.
+
+The source guard reconstructs the exact owner-local date and content hash and permits
+cloud_summary only for a completed cloud route selected as openai-codex-chatgpt with
+PUBLIC/NORMAL cloud-eligible policy. Delegated mapping guards additionally require
+the exact completed high-effort run, owner USER_MESSAGE source, lifecycle Event,
+active head, Product Owner authorization reference, and typed provenance edge.
+Direct SQL cannot relabel a private Event or attach an arbitrary Memory/belief to a
+Diary run.
+
+Selecting one source Event for privileged erasure resolves every Diary run containing
+that Event. The closure then removes every delegated Memory and belief created by
+those affected runs, even when a different eligible Event in the same daily run was
+the immediate quote source. This conservative run-level closure prevents a mixed
+daily synthesis from surviving after one of its inputs is erased. Source selection
+itself remains outside the Diary/provider path and requires a new exact owner request.
+
+Migration `0059_experience_first_daily_review.sql` adds owner/date schedule
+receipts for the 05:00 lease, bounded prior-Event and Memory source membership,
+exact generated-review-file receipts, explicit chat Goal plan/action receipts,
+and `memory`/`conversation` proactive source kinds. A generated Markdown review
+is inside the configured owner review root and is deleted with the same
+source-erasure transaction's materialization step. An explicit chat Goal and its
+guarded reminders are likewise discoverable from the source Event and cannot
+survive its authorized closure. No table or worker chooses a source for erasure.
+
+Migration `0060_owner_conversation_continuation.sql` adds one immutable,
+owner-qualified receipt per exact assistant Event. A trigger reconstructs the
+USER_MESSAGE/ASSISTANT_MESSAGE pair, hashes, session, request/causation chain,
+completed GPT cloud route, PUBLIC/NORMAL cloud eligibility, 30-second lower
+bound, and 15-minute upper bound. Terminal provider evidence is constrained to
+the exact local provider with no reasoning-effort field. Pending, leased,
+retryable, and terminal transitions are guarded at the database boundary.
+Privileged exact-source erasure deletes the receipt and any referenced proactive
+work before raw Event removal; ordinary operation never chooses an erasure source.
+
+Migration `0061_two_beat_conversation_continuation.sql` adds immutable
+`beat_index` and owner-qualified parent-run lineage. The unique key permits only
+beats one and two for one exact assistant Event. Beat one must use the exact
+assistant-plus-one-minute / plus-16-minute window. Beat two must reference the
+matching completed first run and an actually delivered first proactive proposal;
+its window is exactly visible-at-plus-30 / plus-45 minutes. Migration
+`0062_correct_continuation_delivery_guard.sql` append-corrects the guard to the
+proactive work table's real `succeeded` terminal state without rewriting 0061.
+Source erasure collects both work IDs before deleting the parent/child receipts,
+so neither queue item can survive the selected source.
+
+Migration `0063_owner_authorized_gpt_conversation_continuation.sql` adds the
+separate owner authorization for new delayed calls. A terminal new receipt must
+name `openai-codex-chatgpt`, exact `gpt-5.6-sol`, the isolated Codex
+adapter and high-effort serving configuration, and `reasoning_effort=high`.
+Existing legacy and two-beat local authorizations still require the self-hosted
+provider and null reasoning effort. The beat-two parent must use the same
+authorization, preventing one chain from switching providers after delivery.
+Source privacy, exact hashes, route, timing, cancellation, delivery, budget, and
+erasure guards are unchanged.
+
 Migration `0004` grants `havre_privileged_erasure` to `CURRENT_USER` solely so the present single-user local acceptance environment can exercise erasure. Before any real deployment, database access must be split into at least migrator, ordinary application, and privileged erasure roles. The application role must not inherit erasure authority, and the local acceptance grant must not be copied unchanged into production.
 
 Backups need a documented expiry and restore-time deletion replay mechanism; otherwise “delete everything” is false after restoration.
@@ -697,6 +814,20 @@ Canonical source experience is append-preserved and retained by default because 
 - schema migration ledger
 
 `interaction_requests.request_fingerprint` binds each owner-scoped idempotency key to the canonical semantic ingress fields. A key reused with different content or privacy semantics fails with a typed conflict. Rows created before this invariant are marked `legacy:<request_id>` and fail closed on replay.
+
+Migrations `0052_interaction_lineage_guards.sql` and
+`0053_interaction_erasure_lineage_correction.sql` make the request ledger the
+canonical ordinary-interaction terminal pointer. A new interaction is born only
+as `processing` with all Event, Context, attempt, response, error, and completion
+pointers null; the committed `USER_MESSAGE` is then adopted during processing.
+Completion must adopt one exact same-owner/request/session/trace ContextPack, its
+selected RouteDecision, one completed inference attempt/response with exact
+provider/model/adapter lineage, and one Core-policy-bound `ASSISTANT_MESSAGE`.
+Failure must instead adopt one exact `INTERACTION_FAILED` Event plus only the
+Context and failed-attempt lineage required by its failure phase. Success and
+failure pointers cannot coexist, duplicate terminal Events cannot be adopted, and
+a completed or failed row cannot later clear, swap, or mutate its lineage outside
+the exact privileged erasure transition above.
 
 The Product Owner limited Stage 1 implementation to the synchronous permanent vertical slice. `background_jobs` and a worker executable remain architecturally reserved but inactive until an approved later capability has durable work to schedule.
 

@@ -1868,7 +1868,7 @@ class Stage12WindowsPostgresTests(unittest.TestCase):
 
     def test_api_uses_same_signed_ingest_boundary(self) -> None:
         source, capability, consent = fixture_bundle(self.owner)
-        settings = Settings.from_env().model_copy(update={
+        settings = Settings.from_env(require_owner_api_token=False).model_copy(update={
             "database_url": DATABASE_URL,
             "owner_id": self.owner,
             "provider_id": "deterministic-local",

@@ -54,6 +54,7 @@ from mlsys.serving import (
     attest_active_runtime,
 )
 from services.api.settings import Settings
+from mlsys.serving.openai_compatible import llama_context_tokens_per_slot
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -421,8 +422,8 @@ def build_live_benchmark_inputs(
         weights_format=str(model_artifact["weights_format"]),
         precision="quantized GGUF",
         quantization=str(model_artifact["quantization"]),
-        context_limit=int(profile["context_tokens"]),
-        max_output_tokens=min(4096, int(profile["context_tokens"])),
+        context_limit=llama_context_tokens_per_slot(profile),
+        max_output_tokens=min(4096, llama_context_tokens_per_slot(profile)),
         license_identifier=str(license_value["identifier"]),
         license_notes=f"Source repository: {license_value['source_repository']}",
         code_revision=code_revision,
@@ -495,8 +496,8 @@ def build_live_benchmark_inputs(
         provider_adapter_version_id=provider_adapter_version_id,
         model_artifact_hash=model_hash,
         api_key=settings.self_hosted_api_key,
-        max_context_tokens=int(profile["context_tokens"]),
-        max_output_tokens=min(4096, int(profile["context_tokens"])),
+        max_context_tokens=llama_context_tokens_per_slot(profile),
+        max_output_tokens=min(4096, llama_context_tokens_per_slot(profile)),
         health_path=str(engine_api["health_path"]),
         version_path="/props",
         completions_path=str(engine_api["chat_completions_path"]),

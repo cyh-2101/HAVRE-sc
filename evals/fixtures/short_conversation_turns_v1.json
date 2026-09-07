@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "purpose": "Owner-approved short-turn product regression; qualitative expectations, no automatic semantic score",
+  "policy": {
+    "privacy_class": "PUBLIC",
+    "origin": "constructed, not owner transcript",
+    "training_eligible": false
+  },
+  "review_status": "model_generation_and_owner_preference_not_measured",
+  "cases": [
+    {
+      "id": "C01",
+      "category": "casual",
+      "messages": [
+        {
+          "role": "user",
+          "content": "今天去看了个小展，最后那个房间特别好看。"
+        }
+      ],
+      "review_expectations": [
+        "自然接住一个具体细节，不默认分析或建议",
+        "通常一两句，不强制提问"
+      ]
+    },
+    {
+      "id": "C02",
+      "category": "say_more",
+      "messages": [
+        {
+          "role": "user",
+          "content": "展厅最后那间全是蓝色的。"
+        },
+        {
+          "role": "assistant",
+          "content": "听着像一下走进水底了。"
+        },
+        {
+          "role": "user",
+          "content": "再说点"
+        }
+      ],
+      "review_expectations": [
+        "顺着蓝色展厅继续一小步，不复述上一句",
+        "不虚构自己去过、不启动连发循环"
+      ]
+    },
+    {
+      "id": "C03",
+      "category": "correction",
+      "messages": [
+        {
+          "role": "user",
+          "content": "昨晚和阿岚去的展。"
+        },
+        {
+          "role": "assistant",
+          "content": "是阿明陪你去的那个？"
+        },
+        {
+          "role": "user",
+          "content": "不是阿明，是阿岚。"
+        }
+      ],
+      "review_expectations": [
+        "简短承认串人，采用阿岚",
+        "后续不重复错误身份"
+      ]
+    },
+    {
+      "id": "C04",
+      "category": "ambiguity",
+      "messages": [
+        {
+          "role": "user",
+          "content": "我有两个朋友叫林青，一个是同事，一个在乐队里。"
+        },
+        {
+          "role": "user",
+          "content": "林青又来找我了。"
+        }
+      ],
+      "review_expectations": [
+        "先自然确认是哪位",
+        "不替用户选择人物或虚构聊天内容"
+      ]
+    },
+    {
+      "id": "C05",
+      "category": "unknown",
+      "messages": [
+        {
+          "role": "user",
+          "content": "你记得我小学同桌的名字吗？"
+        }
+      ],
+      "review_expectations": [
+        "没有依据时承认不知道",
+        "不编造熟悉感"
+      ]
+    },
+    {
+      "id": "C06",
+      "category": "no_callback",
+      "messages": [
+        {
+          "role": "user",
+          "content": "昨天为项目烦了一整天。"
+        },
+        {
+          "role": "user",
+          "content": "先别聊昨天的了，我刚拍到一只松鼠。"
+        }
+      ],
+      "review_expectations": [
+        "只接住松鼠的新话题",
+        "不借动物话题绕回旧项目"
+      ]
+    },
+    {
+      "id": "C07",
+      "category": "detail",
+      "messages": [
+        {
+          "role": "user",
+          "content": "请详细解释 PID 各项的作用，再给一个调参例子。"
+        }
+      ],
+      "review_expectations": [
+        "完整回答各项作用和例子",
+        "无需按钮才能获得已明确要求的详细内容"
+      ]
+    },
+    {
+      "id": "C08",
+      "category": "structured",
+      "messages": [
+        {
+          "role": "user",
+          "content": "写一个 Python 函数，返回列表里第二大的不同整数，并处理不足两个值的情况。"
+        }
+      ],
+      "review_expectations": [
+        "函数和边界行为完整",
+        "不按句数或字符数截断代码"
+      ]
+    },
+    {
+      "id": "C09",
+      "category": "stop",
+      "messages": [
+        {
+          "role": "user",
+          "content": "不用接着说了，我先忙。"
+        }
+      ],
+      "review_expectations": [
+        "简短收住",
+        "不加新话题或追问"
+      ]
+    },
+    {
+      "id": "C10",
+      "category": "goal_result",
+      "messages": [
+        {
+          "role": "user",
+          "content": "我把今天要交的报告交了。"
+        }
+      ],
+      "review_expectations": [
+        "接住完成这件事，不默认制定新计划",
+        "有工具结果时准确说明，没有结果时不冒称已修改 Goal"
+      ]
+    },
+    {
+      "id": "C11",
+      "category": "cross_day",
+      "messages": [
+        {
+          "role": "user",
+          "content": "明天去做第一次陶艺课，准备捏个杯子。"
+        },
+        {
+          "role": "assistant",
+          "content": "那等你回来给我讲讲。"
+        },
+        {
+          "role": "user",
+          "content": "今天去完了，杯子歪得离谱。"
+        }
+      ],
+      "review_expectations": [
+        "准确接住陶艺杯子这件共同经历",
+        "允许轻松反应，不机械总结昨天记录"
+      ]
+    }
+  ]
+}

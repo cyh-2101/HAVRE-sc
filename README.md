@@ -8,9 +8,10 @@ ML-systems question:
 > and evidence across replaceable models without letting the model become the
 > system of record?
 
-The project is not a production-ready general assistant. Major development is
-paused at this showcase checkpoint. No new training, Stage 9B, model promotion,
-iPhone work, or broader sensing is authorized.
+The project is a research system, not a production-ready general assistant.
+This showcase is refreshed through September 7, 2026. Publication does not
+authorize new training, model promotion, or broader sensing. See
+[the current implementation and evidence](docs/CURRENT_IMPLEMENTATION.md).
 
 This repository is the sanitized, squashed public mirror of the private
 research archive. Owner data, OA material, model weights, runtime state, local
@@ -21,13 +22,13 @@ paths, and the private Git history are not included. See
 
 - A provider-neutral Companion Core with typed contracts, durable PostgreSQL
   events, immutable inference lineage, and fail-closed response delivery.
-- Human-reviewed episodic memory, pgvector retrieval, exact ContextPack
+- Source-bound memory and owner review, pgvector retrieval, exact ContextPack
   provenance, corrections/retractions, and source-erasure closure.
 - A versioned User Model with evidence-bound belief, state, and goal
   projections.
-- A local Web chat with continuous history, response feedback, owner edits,
+- A Web/PWA chat with brief turns, explicit continuation, source previews, owner edits,
   episode consolidation, and provenance-preserving delivery.
-- Self-hosted Qwen3-8B inference through a pinned llama.cpp runtime with
+- DataPolicy-driven GPT/local routing and self-hosted Qwen3-8B through llama.cpp with
   process-bound attestation.
 - Reproducible synthetic evaluation, QLoRA feasibility runs, candidate
   rejection gates, and owner-local deployment/rollback evidence.

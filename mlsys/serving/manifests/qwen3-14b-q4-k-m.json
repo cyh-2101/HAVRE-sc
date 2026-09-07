@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "manifest_id": "model-qwen3-14b-gguf-q4-k-m-530227a7",
+  "artifact_kind": "model",
+  "immutable": true,
+  "lifecycle_status": "candidate",
+  "alias": "qwen3-14b-q4-k-m",
+  "display_name": "Qwen3-14B GGUF Q4_K_M",
+  "upstream": {
+    "repository": "Qwen/Qwen3-14B-GGUF",
+    "revision": "530227a7d994db8eca5ab5ced2fb692b614357fd"
+  },
+  "artifact": {
+    "filename": "Qwen3-14B-Q4_K_M.gguf",
+    "url": "https://huggingface.co/Qwen/Qwen3-14B-GGUF/resolve/530227a7d994db8eca5ab5ced2fb692b614357fd/Qwen3-14B-Q4_K_M.gguf?download=true",
+    "size_bytes": 9001752960,
+    "sha256": "sha256:500a8806e85ee9c83f3ae08420295592451379b4f8cf2d0f41c15dffeb6b81f0",
+    "lfs_blob_id": "1805f4dd32443cb776a843d7902a385132b23ade",
+    "weights_format": "gguf",
+    "quantization": "Q4_K_M"
+  },
+  "license": {
+    "identifier": "Apache-2.0",
+    "source_repository": "Qwen/Qwen3-14B-GGUF"
+  },
+  "serving_profile": {
+    "serving_engine_manifest_id": "serving-engine-llama-cpp-b10405-win-cuda-12.4-x64",
+    "host": "127.0.0.1",
+    "port": 8082,
+    "context_tokens": 8192,
+    "parallel_slots": 1,
+    "gpu_layers": "all",
+    "gpu_layers_cli_value": 99,
+    "flash_attention": true,
+    "jinja_chat_template": true,
+    "metrics": true,
+    "request_logging": false,
+    "web_ui": false,
+    "streaming": {
+      "enabled": true,
+      "transport": "sse",
+      "content_type": "text/event-stream"
+    },
+    "adapter_request_defaults": {
+      "stream": true,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  }
+}

@@ -32,6 +32,8 @@ artifacts/
 models/
 exports/
 *.log
+/owner_improvement_reviews/*.md
+!/owner_improvement_reviews/README.md
 
 # Local database/runtime installations
 .runtime/
@@ -42,3 +44,8 @@ exports/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local handoff packages and separately held backup recovery material
+/deliverables/
+/HAVRE_GPT学习包.zip
+/HAVRE_GPT学习包/

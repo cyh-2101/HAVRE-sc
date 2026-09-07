@@ -227,4 +227,4 @@ async def run_benchmark(*, settings, fixture_path: Path, output_path: Path) -> d
         runtime.repository.persist_benchmark_report(report)
         return report
     finally:
-        runtime.close()
+        await runtime.aclose()

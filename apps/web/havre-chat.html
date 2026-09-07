@@ -1,100 +1,106 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+  <meta name="theme-color" content="#f5f1e9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="HAVRE">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/assets/havre-icon.svg">
+  <link rel="apple-touch-icon" href="/assets/havre-icon.svg">
+  <link rel="stylesheet" href="/assets/havre-app.css?v=20260906-short-turns-v17">
   <title>HAVRE</title>
-  <style>
-    :root{--bg:#f4f1eb;--paper:#fffdf8;--ink:#252925;--muted:#737970;--line:#dedbd2;--green:#385b4b;--green2:#e3ece6;--bad:#8c413b;--shadow:0 12px 35px #35483b16}
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-    button,input,textarea,select{font:inherit} button{cursor:pointer}
-    .shell{height:100vh;display:grid;grid-template-columns:250px minmax(0,1fr) 310px;gap:1px;background:var(--line)}
-    aside,main{background:var(--paper);min-height:0}.left,.right{padding:20px;overflow:auto}.brand{font:600 22px Georgia,serif;letter-spacing:.12em;color:var(--green);margin:2px 0 24px}.new{width:100%;padding:10px;border:1px solid var(--green);border-radius:10px;color:var(--green);background:transparent}.nav-title{margin:25px 0 8px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em}.conversation{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 4px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.conversation.active{color:var(--green);font-weight:650}.chat{display:flex;flex-direction:column;height:100%}.top{height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 25px}.top small{color:var(--muted);margin-left:auto}.messages{flex:1;overflow:auto;padding:28px max(24px,calc((100% - 760px)/2)) 140px}.message{margin:0 0 28px}.message.user{margin-left:15%;background:var(--green2);padding:12px 16px;border-radius:16px 16px 4px 16px}.role{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}.content{white-space:pre-wrap}.tools{display:flex;gap:7px;margin-top:9px}.icon{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:7px;padding:4px 7px}.icon:hover,.icon.selected{border-color:var(--line);background:#f4f2ec;color:var(--ink)}.composer{position:absolute;bottom:0;left:250px;right:310px;padding:18px max(24px,calc((100% - 760px)/2));background:linear-gradient(transparent,var(--paper) 22%)}.composebox{display:flex;gap:10px;align-items:flex-end;background:white;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:16px;padding:10px}.composebox textarea{border:0;outline:0;resize:none;min-height:30px;max-height:160px;flex:1;padding:6px;background:transparent}.send{border:0;background:var(--green);color:white;border-radius:10px;padding:9px 14px}.send:disabled{opacity:.5}.card{border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:12px;background:#fff}.card h3{font-size:14px;margin:0 0 8px}.card p{font-size:12px;color:var(--muted);margin:5px 0}.pill{display:inline-block;border-radius:20px;padding:3px 8px;background:var(--green2);color:var(--green);font-size:11px}.pool-item{border-top:1px solid var(--line);padding:10px 0;font-size:12px}.pool-item:first-child{border-top:0}.muted{color:var(--muted)}.modal{position:fixed;inset:0;background:#17201870;display:none;align-items:center;justify-content:center;padding:20px;z-index:5}.modal.open{display:flex}.dialog{width:min(610px,100%);max-height:90vh;overflow:auto;background:var(--paper);border-radius:18px;padding:22px;box-shadow:0 20px 70px #0004}.dialog h2{margin-top:0}.dialog textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:10px;padding:10px}.reasons{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.reason{border:1px solid var(--line);background:white;border-radius:20px;padding:5px 9px;font-size:12px}.reason.on{background:var(--green2);border-color:var(--green);color:var(--green)}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.secondary{border:1px solid var(--line);background:white;border-radius:9px;padding:8px 12px}.notice{font-size:12px;color:var(--muted);background:#f0eee7;padding:9px;border-radius:8px}.error{color:var(--bad)}
-    @media(max-width:980px){.shell{grid-template-columns:210px minmax(0,1fr)}.right{display:none}.composer{left:210px;right:0}} @media(max-width:680px){.shell{display:block}.left{display:none}.chat{height:100vh}.composer{left:0;right:0}.messages{padding:20px 15px 135px}.message.user{margin-left:8%}}
-  </style>
-  <style>
-    /* Keep the composer in normal layout so iOS Safari's changing viewport
-       cannot place it over assistant messages. */
-    html,body{height:100%;overflow:hidden}
-    .shell{height:100dvh;min-height:0}
-    .chat{min-width:0}
-    .messages{min-height:0;padding-bottom:28px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-    .composer{position:relative;inset:auto;flex:0 0 auto;padding:12px max(24px,calc((100% - 760px)/2)) max(14px,env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--paper) 16%);z-index:2}
-    .composebox textarea{font-size:16px}
-    .mobile-only,.drawer-close,.drawer-backdrop{display:none}
-    .thinking{display:inline-flex;align-items:center;gap:8px;color:var(--muted)}
-    .thinking::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.1s ease-in-out infinite}
-    @keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
-    @media(max-width:680px){
-      body{background:var(--paper);font-size:16px}
-      .shell{display:block;height:var(--app-height,100dvh);background:var(--paper)}
-      .chat{height:var(--app-height,100dvh);min-height:0}
-      .top{height:auto;min-height:56px;gap:9px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;border-bottom:1px solid var(--line);flex:0 0 auto}
-      .top strong{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .top small{min-width:0;max-width:76px;margin-left:0;overflow:hidden;text-overflow:ellipsis;font-size:11px;white-space:nowrap}
-      .mobile-only{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;flex:0 0 42px;border:0;border-radius:11px;background:transparent;color:var(--green);font-size:21px}
-      .messages{padding:18px 14px 14px;scroll-padding-bottom:16px}
-      .message{margin:0 0 22px}
-      .message.user{margin-left:10%;padding:11px 14px;border-radius:15px 15px 4px 15px}
-      .content{font-size:16px;line-height:1.62;overflow-wrap:anywhere}
-      .role{font-size:10px}
-      .tools{gap:3px;flex-wrap:wrap;align-items:center;margin-top:7px}
-      .icon{min-height:40px;padding:7px 9px}
-      .composer{padding:9px 10px calc(9px + env(safe-area-inset-bottom));background:var(--paper);border-top:1px solid var(--line)}
-      .composebox{min-width:0;padding:7px 7px 7px 11px;border-radius:15px;box-shadow:0 6px 22px #35483b18}
-      .composebox textarea{width:0;min-width:0;min-height:32px;line-height:1.45;padding:5px 1px}
-      .send{flex:0 0 auto;min-width:64px;min-height:44px;padding:8px 12px}
-      .left,.right{display:block;position:fixed;top:0;bottom:0;width:min(88vw,350px);padding:calc(18px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));z-index:20;box-shadow:0 0 45px #17201835;transition:transform .2s ease;visibility:hidden}
-      .left{left:0;transform:translateX(-105%)}
-      .right{right:0;transform:translateX(105%)}
-      .left.open,.right.open{transform:translateX(0);visibility:visible}
-      .drawer-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-      .drawer-head .brand,.drawer-head h2{margin:0}
-      .drawer-head h2{font-size:18px}
-      .drawer-close{display:inline-flex;align-items:center;justify-content:center;margin-left:auto;width:42px;height:42px;border:0;border-radius:11px;background:#f4f2ec;color:var(--ink);font-size:24px}
-      .drawer-backdrop{position:fixed;inset:0;z-index:15;background:#17201868;border:0}
-      .drawer-backdrop.open{display:block}
-      .new,.conversation,.secondary,select{min-height:44px}
-      .card{margin-bottom:10px}
-      .modal{padding:12px;padding-top:calc(12px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
-      .dialog{max-height:100%;border-radius:15px;padding:18px}
-    }
-  </style>
 </head>
 <body>
-<div class="shell">
-  <aside class="left" id="conversationDrawer"><div class="drawer-head"><div class="brand">HAVRE</div><button class="drawer-close" data-close-drawer aria-label="Close conversations">×</button></div><button class="new" id="newChat">＋ New conversation</button><div class="nav-title">Conversations</div><div id="conversations"></div></aside>
-  <main class="chat"><div class="top"><button class="mobile-only" id="openConversations" aria-label="Open conversations">☰</button><strong id="chatTitle">A quiet place to think</strong><small id="status">local · private</small><button class="mobile-only" id="openTools" aria-label="Open settings and review">•••</button></div><div class="messages" id="messages"><div class="message"><div class="role">HAVRE</div><div class="content">I'm here. What feels most present right now?</div></div></div><div class="composer"><div class="composebox"><textarea id="input" rows="1" placeholder="Message HAVRE…"></textarea><button class="send" id="send">Send</button></div></div></main>
-  <aside class="right" id="toolsDrawer">
-    <div class="drawer-head"><h2>Settings &amp; review</h2><button class="drawer-close" data-close-drawer aria-label="Close settings">×</button></div>
-    <div class="card"><h3>Response style</h3><p>Runtime preference, not a personality rewrite.</p><select id="length"><option value="brief">Brief</option><option value="balanced" selected>Balanced</option><option value="detailed">Detailed</option></select></div>
-    <div class="card"><h3>Personalization feedback</h3><p><span class="pill">saved ≠ training eligible</span></p><div id="pool"><span class="muted">No feedback yet.</span></div></div>
-    <div class="card"><h3>Memory</h3><p>Raw messages stay in history. Episode summaries and derived suggestions keep links back to those Events; review happens here, never mid-chat.</p><button class="secondary" id="loadMemory">Open Memory review</button><div id="memory"></div></div>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <button class="identity" data-page="chat" aria-label="回到聊天">
+        <span class="avatar" aria-hidden="true">H</span>
+        <span><strong>HAVRE</strong><small id="presence">在这里</small></span>
+      </button>
+      <button id="settingsButton" class="icon-button" aria-label="设置">•••</button>
+    </header>
+
+    <div id="networkBanner" class="network-banner" hidden>网络断开了。消息会留在这里，连上后再试。</div>
+    <div id="authBanner" class="network-banner" hidden>这个浏览器还没有获得 HAVRE 本机授权。</div>
+
+    <main class="pages">
+      <section id="chatPage" class="page chat-page active" aria-label="与 HAVRE 的长期聊天">
+        <div id="timeline" class="timeline" aria-live="polite">
+          <div id="historySentinel" class="history-sentinel"><button id="loadOlder" class="quiet-button">加载更早的消息</button></div>
+          <div id="emptyChat" class="empty-state" hidden>
+            <span class="avatar large">H</span>
+            <h1>我在。</h1>
+            <p>这里是我们唯一、一直延续下去的聊天。</p>
+          </div>
+        </div>
+        <button id="returnLatest" class="quiet-button return-latest" hidden>回到最新消息</button>
+        <form id="composer" class="composer" autocomplete="off">
+          <div class="conversation-controls"><button id="sayMoreButton" class="say-more-button" type="button" hidden>再说点</button></div>
+          <div class="compose-row">
+            <textarea id="messageInput" rows="1" maxlength="100000" placeholder="和 HAVRE 说点什么…" aria-label="消息"></textarea>
+            <button id="sendButton" class="send-button" type="submit" aria-label="发送">↑</button>
+          </div>
+          <div class="composer-meta">
+            <div class="route-controls"><button id="privacyMode" class="privacy-toggle" type="button" aria-pressed="false" title="正在确认本机回复引擎" disabled>仅本机</button><span id="brainLabel">正在确认回复引擎…</span></div>
+            <span id="sendState"></span>
+          </div>
+        </form>
+      </section>
+
+      <section id="diaryPage" class="page reading-page" aria-label="日记">
+        <div class="page-intro"><p class="eyebrow">DIARY</p><h1>我们一起过的日子</h1><p>按天回看那些真正发生过、值得留下的瞬间。私密聊天只在本地展开，不会交给云端整理。</p></div>
+        <div id="diaryList" class="diary-list"></div>
+        <article id="diaryDetail" class="diary-detail" hidden></article>
+      </section>
+
+      <section id="memoryPage" class="page reading-page" aria-label="HAVRE 对我的理解">
+        <div class="page-intro"><p class="eyebrow">记得</p><h1>慢慢，更了解你</h1><p>这里有我们经历过的事、我对你的理解，以及你想坚持的方向。哪里记错了，随时告诉我。</p><label class="memory-search">找一段记忆<input id="memorySearch" type="search" placeholder="一个人、一件事、一个目标…" autocomplete="off"></label><p id="memorySearchStatus" role="status"></p></div>
+        <div id="memoryContent" class="memory-content"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="主导航">
+      <button class="nav-item active" data-page="chat"><span>◌</span>聊天</button>
+      <button class="nav-item" data-page="diary"><span>◇</span>日记</button>
+      <button class="nav-item" data-page="memory"><span>○</span>记得</button>
+    </nav>
+  </div>
+
+  <aside id="settingsSheet" class="sheet" role="dialog" aria-modal="true" aria-label="设置" aria-hidden="true">
+    <button class="sheet-backdrop" data-close-sheet aria-label="关闭设置"></button>
+    <div class="sheet-panel">
+      <div class="sheet-head"><div><p class="eyebrow">SETTINGS</p><h2>设置</h2></div><button class="icon-button" data-close-sheet aria-label="关闭">×</button></div>
+      <section class="setting-group"><h3>通知</h3><p id="pushStatus">通知尚未开启</p><label>锁屏预览<select id="previewLevel"><option value="private">只显示有新消息</option><option value="detailed" disabled>显示内容（暂不可用）</option></select></label><button id="enablePush" class="primary-button">在这台设备开启通知</button></section>
+      <section class="setting-group"><h3>主动联系</h3><p>重要提醒和日常聊聊分开控制。聊天里停一分钟时，HAVRE 可以自然接一句；仍没回复，半小时后最多再接一句，然后停。更久以后的日常关心仍按原来的递增间隔克制发送。</p><label class="switch-row"><span>允许 HAVRE 主动找我</span><input id="reachOutEnabled" type="checkbox"></label><label class="switch-row"><span><strong>重要提醒</strong><small>作业、考试和你明确让我提醒的事情</small></span><input id="reachOutReminders" type="checkbox"></label><label class="switch-row"><span><strong>日常聊聊</strong><small>偶尔接着最近的话题，或因为记得的事来问问你</small><small id="reachOutFriendlyStatus">正在确认是否已经开始自然接话。</small></span><input id="reachOutFriendly" type="checkbox"></label><label>同一件事至少隔多久<select id="reachOutCooldown"><option value="">不额外限制</option><option value="3600">1 小时</option><option value="10800">3 小时</option><option value="21600">6 小时</option><option value="43200">12 小时</option><option value="86400">24 小时</option></select></label><div class="time-row"><label>不打扰时间开始<input id="quietStart" type="time"></label><label>结束<input id="quietEnd" type="time"></label></div><button id="saveReachOut" class="secondary-button">保存主动联系设置</button></section>
+      <section class="setting-group"><h3>我的设备</h3><div id="deviceList"></div><button id="addDevice" class="secondary-button">添加手机或浏览器</button></section>
+      <section class="setting-group"><h3>课程安排</h3><p id="calendarStatus">尚未读取状态</p><label class="switch-row"><span>允许参考课程安排</span><input id="calendarToggle" type="checkbox"></label></section>
+      <section class="setting-group"><h3>回复引擎</h3><p id="strongStatus">正在读取当前回复引擎。</p><button id="strongInfo" class="secondary-button">了解数据边界</button></section>
+      <section class="setting-group"><h3>我和 HAVRE</h3><button class="text-button" data-page="memory" data-close-sheet>查看 HAVRE 记得什么</button></section>
+      <section class="setting-group"><h3>添加到桌面</h3><p>Windows 可安装为桌面 PWA；iPhone 请在 Safari 的分享菜单选择“添加到主屏幕”。</p><button id="installPwa" class="secondary-button" hidden>安装 HAVRE</button></section>
+    </div>
   </aside>
-</div>
-<button class="drawer-backdrop" id="drawerBackdrop" aria-label="Close menu"></button>
-<div class="modal" id="feedbackModal"><div class="dialog"><h2 id="feedbackTitle">Tell HAVRE what felt off</h2><p class="notice">The original answer stays unchanged. Saving feedback does not make it training data.</p><div class="reasons" id="reasons"></div><label>Short reason (optional)</label><textarea id="reasonText" placeholder="What should HAVRE understand about this answer?"></textarea><label>How I think HAVRE should have said it (optional)</label><textarea id="revisionText" placeholder="Write a better version in your own words…"></textarea><div class="actions"><button class="secondary" id="cancelFeedback">Cancel</button><button class="send" id="saveFeedback">Save feedback</button></div></div></div>
-<script>
-const $=s=>document.querySelector(s), api=(u,o={})=>fetch(u,{...o,headers:{'Content-Type':'application/json',...(o.headers||{})}}).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail||r.statusText);return r.status===204?null:r.json()});
-let sessionId=localStorage.getItem('havre-session-id'), sessionClosed=false, conversationIndex=new Map(), busy=false, feedbackTarget=null, feedbackRating='unhelpful', selectedReasons=new Set();
-async function bootstrapDesktopSession(){const marker='#desktop-bootstrap=';if(!location.hash.startsWith(marker))return;const token=decodeURIComponent(location.hash.slice(marker.length));history.replaceState(null,'',location.pathname+location.search);const response=await fetch('/v1/desktop/session',{method:'POST',headers:{'X-HAVRE-Desktop-Bootstrap':token}});if(!response.ok)throw new Error('Desktop owner session bootstrap failed')}
-const reasonLabels={too_ai:'Too AI',too_long:'Too long',not_warm_enough:'Not warm enough',not_firm_enough:'Not firm enough',fabricated_memory:'Invented a memory',wrong_user_fact:'Wrong fact about me',misunderstood_intent:'Misunderstood me',wrong_mode:'Wrong Talk / Guide mode',unhelpful_advice:'Unhelpful advice',not_havre:'Not like HAVRE',other:'Other'};
-function esc(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML}
-function renderMessage(m,temporary=false){const el=document.createElement('div');el.className='message '+(m.role==='user'?'user':'');el.dataset.eventId=m.event_id||'';el.innerHTML=`<div class="role">${m.role==='user'?'You':'HAVRE'}</div><div class="content">${esc(m.content)}</div>`;if(m.role==='assistant'&&!temporary){const f=m.feedback;el.innerHTML+=`<div class="tools"><button class="icon ${f?.rating==='helpful'?'selected':''}" data-rate="helpful">👍</button><button class="icon ${f?.rating==='unhelpful'?'selected':''}" data-rate="unhelpful">👎</button><button class="icon" data-edit="1">Edit answer</button>${f?`<span class="muted">feedback saved · training ${f.training_eligible?'approved':'not eligible'}</span>`:''}</div>`;el.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>openFeedback(m,b.dataset.rate));el.querySelector('[data-edit]').onclick=()=>openFeedback(m,'mixed',true)}$('#messages').append(el);return el}
-function updateComposer(){const disabled=busy||sessionClosed;$('#send').disabled=disabled;$('#input').disabled=sessionClosed;$('#input').placeholder=sessionClosed?'This episode is closed. Start a new conversation.':'Message HAVRE…';$('#newChat').disabled=busy}
-function setDrawer(name=null){$('#conversationDrawer').classList.toggle('open',name==='conversations');$('#toolsDrawer').classList.toggle('open',name==='tools');$('#drawerBackdrop').classList.toggle('open',Boolean(name))}
-function syncViewport(){document.documentElement.style.setProperty('--app-height',`${window.visualViewport?.height||window.innerHeight}px`)}
-function resizeComposer(){const input=$('#input');input.style.height='auto';input.style.height=Math.min(input.scrollHeight,160)+'px'}
-async function loadConversations(){const items=await api('/v1/conversations');conversationIndex=new Map(items.map(x=>[x.session_id,x]));$('#conversations').innerHTML=items.map(x=>`<button class="conversation ${x.session_id===sessionId?'active':''}" data-id="${x.session_id}">${x.closed_at?'✓ ':''}${esc(x.title)}</button>`).join('');document.querySelectorAll('.conversation').forEach(b=>b.onclick=()=>{if(!busy){setDrawer();openConversation(b.dataset.id)}})}
-async function openConversation(id){sessionId=id;localStorage.setItem('havre-session-id',id);if(!conversationIndex.has(id))await loadConversations();sessionClosed=Boolean(conversationIndex.get(id)?.closed_at);updateComposer();const items=await api('/v1/conversations/'+id);$('#messages').innerHTML='';items.forEach(item=>renderMessage(item));$('#messages').scrollTop=$('#messages').scrollHeight;await loadConversations()}
-async function send(){const text=$('#input').value.trim();if(!text||busy||sessionClosed)return;busy=true;updateComposer();$('#input').value='';resizeComposer();renderMessage({role:'user',content:text},true);const assistant=renderMessage({role:'assistant',content:''},true),content=assistant.querySelector('.content');content.innerHTML='<span class="thinking">Thinking…</span>';assistant.scrollIntoView({block:'end',behavior:'smooth'});$('#status').textContent='thinking…';try{const response=await fetch('/v1/interactions/stream',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({message:text,session_id:sessionId||null,privacy_class:'NORMAL',memory_eligible:true})});if(!response.ok){const problem=await response.json().catch(()=>null);throw new Error(typeof problem?.detail==='string'?problem.detail:(problem?.detail?.message||response.statusText))}const reader=response.body.getReader(),decoder=new TextDecoder();let buf='',meta=null,started=false;while(true){const {done,value}=await reader.read();buf+=decoder.decode(value||new Uint8Array(),{stream:!done});const lines=buf.split('\n');buf=lines.pop();for(const line of lines){if(!line)continue;const e=JSON.parse(line);if(e.type==='delta'){if(!started){content.textContent='';started=true}content.textContent+=e.text;assistant.scrollIntoView({block:'end'})}if(e.type==='completed')meta=e.interaction;if(e.type==='error')throw new Error(e.message)}if(done)break}if(!meta)throw new Error('response ended before completion');sessionId=meta.session_id;localStorage.setItem('havre-session-id',sessionId);await loadConversations();await openConversation(sessionId);await loadPool()}catch(e){assistant.querySelector('.content').innerHTML=`<span class="error">${esc(e.message)}</span>`}finally{busy=false;updateComposer();$('#status').textContent='local · private'}}
-function openFeedback(m,rating,edit=false){feedbackTarget=m;feedbackRating=rating;selectedReasons=new Set(m.feedback?.reason_codes||[]);$('#feedbackTitle').textContent=edit?'Write the answer you wanted':'Tell HAVRE what felt '+(rating==='helpful'?'right':'off');$('#reasonText').value=m.feedback?.reason_text||'';$('#revisionText').value=m.feedback?.owner_revision_text||'';$('#reasons').innerHTML=Object.entries(reasonLabels).map(([k,v])=>`<button class="reason ${selectedReasons.has(k)?'on':''}" data-reason="${k}">${v}</button>`).join('');document.querySelectorAll('[data-reason]').forEach(b=>b.onclick=()=>{selectedReasons.has(b.dataset.reason)?selectedReasons.delete(b.dataset.reason):selectedReasons.add(b.dataset.reason);b.classList.toggle('on')});$('#feedbackModal').classList.add('open')}
-async function saveFeedback(){const prior=feedbackTarget.feedback;await api('/v1/feedback',{method:'POST',body:JSON.stringify({assistant_event_id:feedbackTarget.event_id,rating:feedbackRating,reason_codes:[...selectedReasons],reason_text:$('#reasonText').value||null,owner_revision_text:$('#revisionText').value||null,expected_revision:prior?.revision??0})});$('#feedbackModal').classList.remove('open');await openConversation(sessionId);await loadPool()}
-async function loadPool(){const items=await api('/v1/personalization-feedback?limit=12');$('#pool').innerHTML=items.length?items.map(x=>`<div class="pool-item"><b>${esc(x.rating)}</b> · ${esc(x.reason_codes.join(', ')||'no label')}<br><span class="muted">rev ${x.revision} · ${x.status} · training not eligible${x.owner_revision_text?' · owner edit saved':''}</span>${x.status==='saved'?`<div><button class="icon" data-review-feedback="${x.feedback_id}" data-revision="${x.revision}">Classify</button></div>`:''}</div>`).join(''):'<span class="muted">No feedback yet.</span>';document.querySelectorAll('[data-review-feedback]').forEach(b=>b.onclick=()=>reviewFeedback(b.dataset.reviewFeedback,Number(b.dataset.revision)))}
-async function reviewFeedback(id,revision){const attribution=prompt('Issue source: personality_communication, memory_grounding_truthfulness, memory_retrieval, core_policy, mode_selection, reasoning_understanding, other_system, mixed, or unclassified','unclassified');if(!attribution)return;const decision=prompt('Review decision: runtime_fix, evaluation_only, deferred, or rejected','deferred');if(!['runtime_fix','evaluation_only','deferred','rejected'].includes(decision))return alert('This daily UI deliberately does not approve training.');const notes=prompt('Review note (optional)')||null;await api('/v1/personalization-feedback/'+id+'/review',{method:'POST',body:JSON.stringify({feedback_revision:revision,decision,issue_attributions:[attribution],review_notes:notes,authorization_ref:null})});loadPool()}
-async function loadMemory(){const [active,episodes,suggestions]=await Promise.all([api('/v1/memories'),api('/v1/memory/episodes'),api('/v1/memory/episode-suggestions')]);let html='<div class="nav-title">Episode summaries</div>'+ (episodes.length?episodes.map(x=>`<div class="pool-item">${esc(x.summary_text)}<br><span class="muted">${x.message_count} messages · ${x.members.length} exact Event links</span></div>`).join(''):'<p class="muted">Close a conversation to create its first summary.</p>');html+='<div class="nav-title">Suggestions to review</div>'+(suggestions.length?suggestions.map(x=>`<div class="pool-item">${esc(x.content_text)}<div class="tools"><button class="icon" data-suggestion="${x.suggestion_id}" data-decision="accepted">Accept</button><button class="icon" data-suggestion="${x.suggestion_id}" data-decision="rejected">Reject</button></div></div>`).join(''):'<p class="muted">No pending suggestions.</p>');html+='<div class="nav-title">Accepted canonical Memory</div>'+(active.length?active.map(x=>`<div class="pool-item">${esc(x.content_text)}<br><span class="muted">revision ${x.revision}</span></div>`).join(''):'<p class="muted">No accepted canonical Memory yet.</p>');$('#memory').innerHTML=html;document.querySelectorAll('[data-suggestion]').forEach(b=>b.onclick=async()=>{const reason=prompt('Why '+b.dataset.decision+' this suggestion?');if(!reason)return;await api('/v1/memory/episode-suggestions/'+b.dataset.suggestion+'/review',{method:'POST',body:JSON.stringify({decision:b.dataset.decision,reason})});loadMemory()})}
-$('#send').onclick=send;$('#input').oninput=resizeComposer;$('#input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};$('#openConversations').onclick=()=>setDrawer('conversations');$('#openTools').onclick=()=>setDrawer('tools');$('#drawerBackdrop').onclick=()=>setDrawer();document.querySelectorAll('[data-close-drawer]').forEach(b=>b.onclick=()=>setDrawer());$('#newChat').onclick=async()=>{if(busy)return;if(sessionId&&!sessionClosed){try{await api('/v1/conversations/'+sessionId+'/close',{method:'POST',body:JSON.stringify({boundary_reason:'owner_started_new_conversation'})})}catch(e){$('#status').innerHTML=`<span class="error">${esc(e.message)}</span>`;return}}sessionId=null;sessionClosed=false;localStorage.removeItem('havre-session-id');setDrawer();updateComposer();$('#messages').innerHTML='<div class="message"><div class="role">HAVRE</div><div class="content">I\'m here. What feels most present right now?</div></div>';await loadConversations();await loadMemory()};$('#cancelFeedback').onclick=()=>$('#feedbackModal').classList.remove('open');$('#saveFeedback').onclick=saveFeedback;$('#loadMemory').onclick=loadMemory;$('#length').onchange=()=>api('/v1/preferences/communication',{method:'POST',body:JSON.stringify({response_length:$('#length').value,reason:'Owner changed response length in daily chat UI'})});
-syncViewport();window.visualViewport?.addEventListener('resize',syncViewport);window.visualViewport?.addEventListener('scroll',syncViewport);
-(async()=>{try{await bootstrapDesktopSession();const p=await api('/v1/preferences/communication');if(p)$('#length').value=p.response_length;await loadConversations();if(sessionId)await openConversation(sessionId);await loadPool()}catch(e){$('#status').innerHTML=`<span class="error">${esc(e.message)}</span>`}})();
-</script>
-</body></html>
+
+  <dialog id="pairDialog" class="dialog">
+    <form method="dialog" class="dialog-card">
+      <button class="dialog-close" value="cancel" aria-label="关闭">×</button>
+      <p class="eyebrow">PAIR DEVICE</p><h2>把这台设备连到同一个 HAVRE</h2>
+      <p>在已登录的 Windows HAVRE 上生成临时代码，然后在这里填写。代码 10 分钟失效且只能用一次。</p>
+      <label>Pairing ID<input id="pairingId" autocomplete="off"></label>
+      <label>8 位代码<input id="pairingCode" inputmode="numeric" maxlength="8" autocomplete="one-time-code"></label>
+      <label>设备名称<input id="deviceName" maxlength="120" value="我的 iPhone"></label>
+      <button id="claimDevice" type="button" class="primary-button">安全绑定</button>
+      <div id="pairCreateResult" class="pair-result" hidden></div>
+      <button id="createPairCode" type="button" class="text-button">在这台已登录设备上生成代码</button>
+    </form>
+  </dialog>
+
+  <dialog id="memoryEditDialog" class="dialog" aria-labelledby="memoryEditTitle"><form method="dialog" class="dialog-card"><button class="dialog-close" value="cancel" formnovalidate aria-label="取消编辑">×</button><h2 id="memoryEditTitle">纠正这段记忆</h2><p>按你真正的意思来写。原始聊天会保留，之后会参考新的表述。</p><label>你的表述<textarea id="memoryEditText" rows="5" maxlength="2000" required></textarea></label><label id="memoryEditKindLabel" hidden>这属于<select id="memoryEditKind"><option value="preference">我的偏好与选择</option><option value="fact">我明确说过的事实</option></select></label><button value="save" class="primary-button">用这段表述</button></form></dialog>
+  <dialog id="feedbackDialog" class="dialog"><form method="dialog" class="dialog-card"><button class="dialog-close" value="cancel" aria-label="关闭反馈">×</button><h2>这条回复怎么样？</h2><div class="feedback-choices"><button value="helpful" data-rating="helpful">有帮助</button><button value="mixed" data-rating="mixed">有一点</button><button value="unhelpful" data-rating="unhelpful">没帮助</button></div><label>想补充什么？<textarea id="feedbackText" rows="3"></textarea></label><button id="saveFeedback" type="button" class="primary-button">保存反馈</button></form></dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="/assets/havre-app.js?v=20260906-short-turns-v17" defer></script>
+</body>
+</html>

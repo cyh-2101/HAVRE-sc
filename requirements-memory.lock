@@ -1,0 +1,13 @@
+# Optional offline CPU memory encoder; no runtime model downloads.
+onnxruntime==1.29.0
+tokenizers==0.23.2
+flatbuffers==25.12.19
+protobuf==7.36.1
+numpy==2.3.5
+packaging==26.3
+huggingface-hub==1.30.0
+filelock==3.32.5
+fsspec==2026.7.0
+hf-xet==1.6.0
+pyyaml==6.0.3
+tqdm==4.70.0

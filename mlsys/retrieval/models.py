@@ -20,6 +20,18 @@ CONTEXT_SAFE_MINIMUM_SEMANTIC_SIMILARITY = 0.35
 CONTEXT_SAFE_DUPLICATE_SIMILARITY_THRESHOLD = 0.70
 CONTEXT_SAFE_DUPLICATE_TOKEN_OVERLAP_THRESHOLD = 0.65
 
+HYBRID_ALGORITHM_VERSION = "retrieval-r2-hybrid-v1"
+HYBRID_SELECTION_POLICY_VERSION = "retrieval-selection-hybrid-v1"
+HYBRID_EMBEDDING_VERSION = "embedding-minilm-multilingual-int8-v1"
+
+
+def context_safety_profile(algorithm: str):
+    if algorithm == CONTEXT_SAFE_ALGORITHM_VERSION:
+        return (CONTEXT_SAFE_SELECTION_POLICY_VERSION, 0.35, 0.70, 0.65)
+    if algorithm == HYBRID_ALGORITHM_VERSION:
+        return (HYBRID_SELECTION_POLICY_VERSION, 0.20, 0.92, 0.80)
+    return None
+
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -56,6 +68,7 @@ class RetrievalRequest(StrictModel):
         "retrieval-r0-recency-v1",
         "retrieval-r1-vector-v1",
         "retrieval-r1-vector-gated-v2",
+        "retrieval-r2-hybrid-v1",
     ] = (
         "retrieval-r1-vector-gated-v2"
     )
@@ -69,7 +82,7 @@ class RetrievalRequest(StrictModel):
 
 class RetrievalScoreComponents(StrictModel):
     semantic: float | None = Field(default=None, ge=-1, le=1)
-    lexical: None = None
+    lexical: float | None = Field(default=None, ge=0, le=1)
     recency: float = Field(ge=0, le=1)
     importance: float = Field(ge=0, le=1)
     goal_relevance: None = None
@@ -104,6 +117,7 @@ class RetrievalSelectionPolicy(StrictModel):
     policy_version: Literal[
         "retrieval-selection-legacy-ungated-v1",
         "retrieval-selection-context-safe-v1",
+        "retrieval-selection-hybrid-v1",
     ]
     minimum_semantic_similarity: float | None = Field(default=None, ge=-1, le=1)
     duplicate_similarity_threshold: float | None = Field(default=None, ge=-1, le=1)
@@ -149,13 +163,11 @@ class RetrievalResult(StrictModel):
 
     @model_validator(mode="after")
     def validate_context_safety_gate(self) -> "RetrievalResult":
-        gated_algorithm = (
-            self.versions.algorithm_version == CONTEXT_SAFE_ALGORITHM_VERSION
-        )
-        gated_policy = (
-            self.selection_policy.policy_version
-            == CONTEXT_SAFE_SELECTION_POLICY_VERSION
-        )
+        profile = context_safety_profile(self.versions.algorithm_version)
+        gated_algorithm = profile is not None
+        gated_policy = self.selection_policy.policy_version != "retrieval-selection-legacy-ungated-v1"
+        if self.versions.algorithm_version == HYBRID_ALGORITHM_VERSION and self.versions.embedding_version_id != HYBRID_EMBEDDING_VERSION:
+            raise ValueError("hybrid retrieval requires the pinned semantic encoder")
         if gated_algorithm != gated_policy:
             raise ValueError(
                 "context-safe algorithm and selection policy must be paired"
@@ -167,11 +179,7 @@ class RetrievalResult(StrictModel):
             self.selection_policy.duplicate_token_overlap_threshold,
         )
         if gated_algorithm:
-            if thresholds != (
-                CONTEXT_SAFE_MINIMUM_SEMANTIC_SIMILARITY,
-                CONTEXT_SAFE_DUPLICATE_SIMILARITY_THRESHOLD,
-                CONTEXT_SAFE_DUPLICATE_TOKEN_OVERLAP_THRESHOLD,
-            ):
+            if (self.selection_policy.policy_version, *thresholds) != profile:
                 raise ValueError(
                     "context-safe selection policy thresholds do not match its version"
                 )
@@ -181,6 +189,23 @@ class RetrievalResult(StrictModel):
                     "context-safe selection policy requires a minimum semantic "
                     "similarity"
                 )
+            expected_ranks = list(range(1, len(self.candidates) + 1))
+            if [candidate.rank for candidate in self.candidates] != expected_ranks:
+                raise ValueError(
+                    "context-safe candidates must have unique contiguous rank order"
+                )
+            if any(
+                not isfinite(candidate.score)
+                for candidate in self.candidates
+            ) or any(
+                current.score < following.score
+                for current, following in zip(
+                    self.candidates, self.candidates[1:], strict=False
+                )
+            ):
+                raise ValueError(
+                    "context-safe candidates must be in finite descending score order"
+                )
             content_hashes: set[str] = set()
             for candidate in self.candidates:
                 if not candidate.context_eligible:
@@ -189,6 +214,11 @@ class RetrievalResult(StrictModel):
                         "be context eligible"
                     )
                 semantic = candidate.score_components.semantic
+                if self.versions.algorithm_version == HYBRID_ALGORITHM_VERSION and (
+                    semantic is not None and semantic < 0.45
+                    and (candidate.score_components.lexical or 0.0) < 0.25
+                ):
+                    raise ValueError("weak semantic evidence requires lexical support")
                 if (
                     semantic is None
                     or not isfinite(semantic)

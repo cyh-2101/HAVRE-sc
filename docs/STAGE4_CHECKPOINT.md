@@ -48,7 +48,7 @@ interaction.
 ## Database and upgrade evidence
 
 The acceptance run used the existing owner-controlled PostgreSQL 18.4 cluster
-at `<owner-home>/.local/share/havre/postgres18-stage3`, listening only on
+at `/home/OWNER/.local/share/havre/postgres18-stage3`, listening only on
 `127.0.0.1:55432`, with pgvector 0.8.1. It was stopped before this task and is
 restored to stopped state at handoff.
 

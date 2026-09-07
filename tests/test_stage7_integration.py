@@ -95,8 +95,7 @@ class Stage7PostgresIntegrationTests(unittest.TestCase):
             connection.execute(
                 """
                 UPDATE havre.interaction_requests
-                SET status = 'completed', user_event_id = %s,
-                    completed_at = statement_timestamp()
+                SET user_event_id = %s
                 WHERE owner_id = %s AND request_id = %s
                 """,
                 (event.event_id, cls.owner, request_id),
@@ -299,6 +298,23 @@ class Stage7PostgresIntegrationTests(unittest.TestCase):
         self.assertGreaterEqual(result["reflection_proposals"], 1)
         self.assertGreaterEqual(result["memory_lifecycle_proposals"], 1)
         self.assertGreaterEqual(result["dataset_snapshots"], 1)
+        with self.repository.pool.connection() as connection:
+            source_request = connection.execute(
+                """SELECT status,error_code,completed_at,user_event_id,
+                          assistant_event_id,failure_event_id
+                   FROM havre.interaction_requests
+                   WHERE owner_id=%s AND user_event_id=%s""",
+                (self.owner, source_event_id),
+            ).fetchone()
+        self.assertEqual(source_request["status"], "failed")
+        self.assertEqual(
+            source_request["error_code"],
+            "source_erasure_propagated",
+        )
+        self.assertIsNotNone(source_request["completed_at"])
+        self.assertEqual(source_request["user_event_id"], source_event_id)
+        self.assertIsNone(source_request["assistant_event_id"])
+        self.assertIsNone(source_request["failure_event_id"])
         rebuilt, _ = self.store.build_canonical_dataset_snapshot()
         self.assertTrue(
             all(

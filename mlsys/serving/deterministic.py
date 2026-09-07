@@ -8,6 +8,7 @@ from time import perf_counter_ns
 
 from companion.context.builder import estimate_tokens
 from companion.events import TextContentPart
+from companion.hashing import content_hash
 from companion.ids import uuid7
 from companion.policy import PrivacyClass
 from mlsys.contracts import (
@@ -26,13 +27,21 @@ from mlsys.contracts.inference import (
     VersionReferences,
 )
 
+DETERMINISTIC_ADAPTER_VERSION_ID = "deterministic-adapter-v1"
+DETERMINISTIC_ADAPTER_ARTIFACT_HASH = content_hash(
+    {
+        "artifact_kind": "deterministic_test_double",
+        "adapter_version_id": DETERMINISTIC_ADAPTER_VERSION_ID,
+    }
+)
+
 
 class DeterministicLocalProvider:
     """A versioned local model adapter, intentionally simple and non-production."""
 
     provider_id = "deterministic-local"
     model_version_id = "deterministic-companion-v1"
-    adapter_version_id = "deterministic-adapter-v1"
+    adapter_version_id = DETERMINISTIC_ADAPTER_VERSION_ID
     provider_adapter_version_id = "deterministic-provider-adapter-v1"
     tokenizer_version_id = "utf8-bytes-div4-v1"
     serving_engine = "deterministic-python"
@@ -46,8 +55,10 @@ class DeterministicLocalProvider:
     def __init__(
         self,
         *,
-        active_adapter_version_id: str | None = None,
-        active_adapter_artifact_hash: str | None = None,
+        active_adapter_version_id: str | None = DETERMINISTIC_ADAPTER_VERSION_ID,
+        active_adapter_artifact_hash: str | None = (
+            DETERMINISTIC_ADAPTER_ARTIFACT_HASH
+        ),
     ) -> None:
         if (active_adapter_version_id is None) != (
             active_adapter_artifact_hash is None
@@ -55,8 +66,7 @@ class DeterministicLocalProvider:
             raise ValueError("active adapter version and hash must appear together")
         self.active_adapter_version_id = active_adapter_version_id
         self.active_adapter_artifact_hash = active_adapter_artifact_hash
-        if active_adapter_version_id is not None:
-            self.adapter_version_id = active_adapter_version_id
+        self.adapter_version_id = active_adapter_version_id
 
     async def capabilities(self) -> ProviderCapabilities:
         return ProviderCapabilities(
@@ -143,6 +153,7 @@ class DeterministicLocalProvider:
             expected_provider_id=self.provider_id,
             expected_provider_class="local_test",
             expected_model_version_id=self.model_version_id,
+            expected_adapter_version_id=self.adapter_version_id,
             expected_provider_adapter_version_id=self.provider_adapter_version_id,
         )
 

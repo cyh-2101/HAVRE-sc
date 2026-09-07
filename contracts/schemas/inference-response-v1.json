@@ -118,10 +118,49 @@
           "title": "Output Tokens",
           "type": "integer"
         },
+        "prompt_cache_hit_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Cache Hit Tokens"
+        },
+        "prompt_cache_miss_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Cache Miss Tokens"
+        },
         "prompt_tokens": {
           "minimum": 0,
           "title": "Prompt Tokens",
           "type": "integer"
+        },
+        "reasoning_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reasoning Tokens"
         },
         "token_count_source": {
           "enum": [

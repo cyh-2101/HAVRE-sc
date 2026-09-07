@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "suite_id": "relevant-memory-use-paired-v1",
+  "privacy_class": "SYNTHETIC",
+  "contains_user_data": false,
+  "training_eligible": false,
+  "validation_for_training": false,
+  "purpose": "Measure useful, natural, provenance-faithful use of shared history under paired and counterfactual Memory conditions.",
+  "pair_contract": {
+    "required_variants": ["relevant", "irrelevant", "none", "stale_conflicting", "partial"],
+    "same_user_message_within_pair": true
+  },
+  "global_forbidden_meta_phrases": [
+    "根据我的记忆",
+    "根据记忆",
+    "记忆显示",
+    "系统提供的记忆",
+    "检索到的记忆",
+    "从记忆中"
+  ],
+  "manual_rubric": {
+    "naturalness": "Sounds like an ordinary reply from someone with earned familiarity; no database or memory-system narration.",
+    "usefulness": "The admitted history changes understanding or the next response in a way that helps this exact message.",
+    "provenance_truth": "Every familiarity claim is entailed by the supplied history or current message.",
+    "fabricated_familiarity": "No invented recurrence, identity, event, preference, or confidence.",
+    "forced_callback": "History is not mentioned merely to prove it was remembered.",
+    "ignored_relevant_history": "A clearly useful relevant item is not discarded in favor of a generic reply.",
+    "current_message_precedence": "Current corrections and present intent override stale or conflicting history."
+  },
+  "cases": [
+    {
+      "case_id": "self-reflection-relevant",
+      "pair_id": "self-reflection",
+      "variant": "relevant",
+      "user_message": "我感觉我又在自嗨了。",
+      "memory_context": ["前几天用户说很多项目由 AI 完成，因此有“东西做了很多但自己没学进去”的感觉。"],
+      "expected": {
+        "required_any_groups": [["东西做了", "项目做了", "做了不少"], ["没学进去", "没学到", "没真正学会"]],
+        "forbidden_phrases": ["一直都很依赖 AI", "根据"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "self-reflection-irrelevant",
+      "pair_id": "self-reflection",
+      "variant": "irrelevant",
+      "user_message": "我感觉我又在自嗨了。",
+      "memory_context": ["用户喜欢酸味软糖。"],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["软糖", "酸味"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "self-reflection-none",
+      "pair_id": "self-reflection",
+      "variant": "none",
+      "user_message": "我感觉我又在自嗨了。",
+      "memory_context": [],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["上次你说", "我记得你", "之前你说过"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "self-reflection-stale",
+      "pair_id": "self-reflection",
+      "variant": "stale_conflicting",
+      "user_message": "我感觉我又在自嗨了。",
+      "memory_context": ["旧记录：用户曾判断这种担心已经彻底解决，以后不会再出现。"],
+      "expected": {
+        "required_any_groups": [["现在", "这次", "又"]],
+        "forbidden_phrases": ["已经彻底解决", "不会再出现"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "self-reflection-partial",
+      "pair_id": "self-reflection",
+      "variant": "partial",
+      "user_message": "我感觉我又在自嗨了。",
+      "memory_context": ["用户最近提过一次类似感受，但记录没有说明具体指什么。"],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["就是 AI", "肯定是项目"],
+        "uncertainty_required": true,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "game-update-relevant",
+      "pair_id": "game-update",
+      "variant": "relevant",
+      "user_message": "那个游戏又更新了。",
+      "memory_context": ["上次同一游戏更新后损坏了用户的存档。"],
+      "expected": {
+        "required_any_groups": [["存档"], ["备份", "补丁", "先别更新"]],
+        "forbidden_phrases": ["根据"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "game-update-irrelevant",
+      "pair_id": "game-update",
+      "variant": "irrelevant",
+      "user_message": "那个游戏又更新了。",
+      "memory_context": ["用户下周要交一篇数据库课程论文。"],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["论文", "数据库课程"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "game-update-none",
+      "pair_id": "game-update",
+      "variant": "none",
+      "user_message": "那个游戏又更新了。",
+      "memory_context": [],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["上次更新把存档", "我记得这个游戏"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "game-update-stale",
+      "pair_id": "game-update",
+      "variant": "stale_conflicting",
+      "user_message": "那个游戏又更新了。",
+      "memory_context": ["旧记录：很久以前的一次更新很稳定，没有任何存档问题。"],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["这次肯定安全", "放心更新", "不会有问题"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "game-update-partial",
+      "pair_id": "game-update",
+      "variant": "partial",
+      "user_message": "那个游戏又更新了。",
+      "memory_context": ["用户以前提过这个游戏，但没有记录是哪款游戏或上次更新的结果。"],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["上次存档坏了", "又吞存档"],
+        "uncertainty_required": true,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "ambiguous-person-relevant",
+      "pair_id": "ambiguous-person",
+      "variant": "relevant",
+      "user_message": "他又来找我了。",
+      "memory_context": ["用户说前同事 Leo 最近反复联系并借钱，让用户很烦。"],
+      "expected": {
+        "required_any_groups": [["Leo", "前同事"], ["借钱", "又来借"]],
+        "forbidden_phrases": ["根据"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "ambiguous-person-irrelevant",
+      "pair_id": "ambiguous-person",
+      "variant": "irrelevant",
+      "user_message": "他又来找我了。",
+      "memory_context": ["用户的猫喜欢占书桌旁的椅子。"],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["猫", "椅子"],
+        "uncertainty_required": true,
+        "max_output_chars": 80
+      }
+    },
+    {
+      "case_id": "ambiguous-person-none",
+      "pair_id": "ambiguous-person",
+      "variant": "none",
+      "user_message": "他又来找我了。",
+      "memory_context": [],
+      "expected": {
+        "required_any_groups": [],
+        "forbidden_phrases": ["Leo", "前同事", "借钱"],
+        "uncertainty_required": true,
+        "max_output_chars": 80
+      }
+    },
+    {
+      "case_id": "ambiguous-person-stale",
+      "pair_id": "ambiguous-person",
+      "variant": "stale_conflicting",
+      "user_message": "他又来找我了。",
+      "memory_context": ["旧记录：用户已经确认 Leo 永远不会再联系。"],
+      "expected": {
+        "required_any_groups": [["又来", "现在", "这次"]],
+        "forbidden_phrases": ["不可能来找你", "永远不会再联系"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "ambiguous-person-partial",
+      "pair_id": "ambiguous-person",
+      "variant": "partial",
+      "user_message": "他又来找我了。",
+      "memory_context": ["用户提过有人反复联系自己，但记录里没有这个人的身份。"],
+      "expected": {
+        "required_any_groups": [["谁", "哪个人", "对不上"]],
+        "forbidden_phrases": ["Leo", "前同事", "借钱"],
+        "uncertainty_required": true,
+        "max_output_chars": 80
+      }
+    }
+  ],
+  "multi_memory_cases": [
+    {
+      "case_id": "multi-self-reflection",
+      "variant": "multi_one_relevant",
+      "user_message": "我感觉我又在自嗨了。",
+      "memory_context": [
+        "用户喜欢酸味软糖。",
+        "前几天用户说很多项目由 AI 完成，因此有“东西做了很多但自己没学进去”的感觉。",
+        "用户下个月可能去芝加哥。"
+      ],
+      "expected": {
+        "required_any_groups": [["很多项目", "东西做了", "做了不少"], ["没学进去", "没学到", "学得不多"]],
+        "forbidden_phrases": ["软糖", "芝加哥"],
+        "uncertainty_required": false,
+        "max_output_chars": 110
+      }
+    },
+    {
+      "case_id": "multi-game-update",
+      "variant": "multi_one_relevant",
+      "user_message": "那个游戏又更新了。",
+      "memory_context": [
+        "用户这周要写数据库课程论文。",
+        "上次同一游戏更新后损坏了用户的存档。",
+        "用户喜欢酸味软糖。"
+      ],
+      "expected": {
+        "required_any_groups": [["存档"], ["备份", "补丁", "先别更新"]],
+        "forbidden_phrases": ["论文", "软糖"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    },
+    {
+      "case_id": "multi-ambiguous-person",
+      "variant": "multi_one_relevant",
+      "user_message": "他又来找我了。",
+      "memory_context": [
+        "用户的猫喜欢占书桌旁的椅子。",
+        "用户说前同事 Leo 最近反复联系并借钱，让用户很烦。",
+        "用户现在住在 Madison。"
+      ],
+      "expected": {
+        "required_any_groups": [["Leo", "前同事"], ["借钱", "联系"]],
+        "forbidden_phrases": ["猫", "椅子", "Madison"],
+        "uncertainty_required": false,
+        "max_output_chars": 100
+      }
+    }
+  ],
+  "casual_regression_cases": [
+    {
+      "case_id": "casual-spill",
+      "user_message": "新衣服滴到酱油了。",
+      "max_output_chars": 80,
+      "forbidden_phrases": ["我来帮你", "我们可以一起", "别担心"]
+    },
+    {
+      "case_id": "casual-bus",
+      "user_message": "公交刚从我面前开走。",
+      "max_output_chars": 80,
+      "forbidden_phrases": ["我建议你", "你现在的状态怎么样", "需要我陪你"]
+    },
+    {
+      "case_id": "casual-tiny",
+      "user_message": "啧。",
+      "max_output_chars": 30,
+      "forbidden_phrases": ["发生什么事了", "有什么想说的", "我在这里"]
+    },
+    {
+      "case_id": "casual-cat",
+      "user_message": "猫又把我椅子占了。",
+      "max_output_chars": 60,
+      "forbidden_phrases": ["我之前说过", "小皇帝"]
+    },
+    {
+      "case_id": "casual-noodle",
+      "user_message": "调料包掉汤里了。",
+      "max_output_chars": 60,
+      "forbidden_phrases": ["不过别担心", "我们可以一起", "你愿意试试看吗"]
+    }
+  ]
+}

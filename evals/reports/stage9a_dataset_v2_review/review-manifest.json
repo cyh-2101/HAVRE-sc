@@ -25,7 +25,7 @@
   "golden_candidate_sha256": "sha256:cea161c9dd0b376074a1aa82c1714184a1d0eb372a0cf6e999026581205e56ed",
   "holdout_review_count": 96,
   "promotion_authorized": false,
-  "review_markdown": "<repo>\\docs\\reviews\\STAGE9A_DATASET_V2_PO_REVIEW.md",
+  "review_markdown": "C:\\HAVRE\\docs\\reviews\\STAGE9A_DATASET_V2_PO_REVIEW.md",
   "review_markdown_sha256": "sha256:0c73d10f41284d7392e5e64926f90da01d9704c7fcecffe1353e26f2858fef33",
   "review_source_snapshot": "sha256:87e01d045166c967f16419cb9cb41b85135459bc4eb7bd5c73c79389a953aa32",
   "review_version": "stage9a-dataset-v2-po-review-v1",

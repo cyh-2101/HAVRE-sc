@@ -46,7 +46,7 @@ from services.api.settings import Settings
 
 DATABASE_URL = os.getenv("HAVRE_TEST_DATABASE_URL")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-MIGRATION_HEAD = "0037_daily_learning_canonical_hash_guards.sql"
+MIGRATION_HEAD = "0071_current_state_delivery_freshness_lock.sql"
 HASH_A = "sha256:" + "a" * 64
 
 
@@ -235,8 +235,7 @@ class Stage10PostgresIntegrationTests(unittest.TestCase):
             connection.execute(
                 """
                 UPDATE havre.interaction_requests
-                SET status='completed', user_event_id=%s,
-                    completed_at=statement_timestamp()
+                SET user_event_id=%s
                 WHERE owner_id=%s AND request_id=%s
                 """,
                 (event.event_id, self.owner, request_id),
@@ -739,12 +738,14 @@ class Stage10PostgresIntegrationTests(unittest.TestCase):
 
     def test_health_version_metrics_and_owner_auth_are_operational(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            base = Settings.from_env().model_copy(
+            token = "stage10-test-token-" + "x" * 32
+            base = Settings.from_env(require_owner_api_token=False).model_copy(
                 update={
                     "database_url": DATABASE_URL,
                     "owner_id": self.owner,
                     "provider_id": "deterministic-local",
-                    "owner_api_token": "stage10-test-token",
+                    "owner_api_token": token,
+                    "require_owner_api_token": True,
                     "erasure_ledger_path": Path(temp) / "ledger.sqlite3",
                     "owner_export_root": Path(temp) / "exports",
                 }
@@ -763,14 +764,14 @@ class Stage10PostgresIntegrationTests(unittest.TestCase):
                 unavailable_erasure = client.post(
                     f"/v1/privacy/erasure/source-events/{uuid7()}",
                     headers={
-                        "Authorization": "Bearer stage10-test-token",
+                        "Authorization": f"Bearer {token}",
                         "X-HAVRE-Erasure-Confirm": "raw_source_and_derived",
                     },
                 )
                 self.assertEqual(unavailable_erasure.status_code, 503)
                 authorized = client.get(
                     "/metrics",
-                    headers={"Authorization": "Bearer stage10-test-token"},
+                    headers={"Authorization": f"Bearer {token}"},
                 )
                 self.assertEqual(authorized.status_code, 200, authorized.text)
                 self.assertIn("havre_http_requests_total", authorized.text)

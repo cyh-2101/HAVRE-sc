@@ -82,10 +82,10 @@ class Stage8PostgresStore:
                         connection, "judge_calibration_runs", "calibration_id",
                         calibration.calibration_id, calibration.content_hash,
                     )
-        self.validate_operational_evidence(
-            operational_evidence,
-            _connection=connection, _bundle=bundle, _artifacts=artifacts,
-        )
+            self.validate_operational_evidence(
+                operational_evidence,
+                _connection=connection, _bundle=bundle, _artifacts=artifacts,
+            )
 
     def validate_operational_evidence(
         self, evidence: Stage8OperationalEvidence | None, *,

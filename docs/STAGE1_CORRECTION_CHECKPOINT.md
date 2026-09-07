@@ -78,7 +78,7 @@ The temporary fresh verification database was removed after the run. The reusabl
 ## Corrected end-to-end run
 
 ```text
-request_id:          019ff73f-5845-7c58-a91b-21e3c512f515
+<private identifier omitted>
 trace_id:            8af4760b5366f7328825fb035979c680
 user_event_id:       019ff73f-5845-7c5b-8b1c-5e12c009c868
 assistant_event_id:  019ff73f-5855-7b1b-b2c3-316b5bb7c65e

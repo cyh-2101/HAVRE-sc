@@ -508,6 +508,7 @@
         "reason": {
           "enum": [
             "registered",
+            "owner_enabled",
             "owner_disabled",
             "lost_device",
             "key_rotated"

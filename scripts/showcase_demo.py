@@ -29,7 +29,7 @@ DEMO_DATABASE_PREFIX = "havre_showcase_"
 DEMO_SOURCE_MESSAGE = (
     "For piano practice I use a slow metronome and repeat the difficult measure."
 )
-DEMO_QUERY_MESSAGE = "What was my piano practice method with the metronome?"
+DEMO_QUERY_MESSAGE = "What was my piano practice method from last time with the metronome?"
 DEMO_OWNER_EDIT = (
     "You said a slow metronome and repeating the difficult measure helped your "
     "piano practice."

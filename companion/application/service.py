@@ -4,13 +4,25 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Callable, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from companion.context import ContextBuilder, ContextPack
+from companion.context import (
+    CONTEXT_PRESENTATION_VERSION,
+    ContextBudgetExceeded,
+    ContextBuilder,
+    ContextPack,
+    ResponsePlan,
+    ResponsePlanner,
+    parse_response_plan_json,
+    render_inference_messages,
+    ConversationHistoryItem,
+    PersonalContextItem,
+)
 from companion.events import (
     AssistantMessagePayload,
     DeliveryRecord,
@@ -24,13 +36,13 @@ from companion.identity import IdentityBundle
 from companion.memory.embedding import DeterministicEmbeddingProvider
 from companion.hashing import content_hash
 from companion.ids import uuid7
+from companion.application.lifecycle import settle_cancelled_task
 from companion.persistence.postgres import PostgresRepository
 from companion.policy import CoreResponsePolicy, DataPolicy, PrivacyClass
 from companion.policy.models import PRIVACY_RESTRICTION_ORDER
 from companion.tracing import TraceContext
 from mlsys.contracts import (
     GenerationSettings,
-    InferenceMessage,
     InferenceRequest,
     InferenceResponse,
     InferenceStreamEvent,
@@ -43,14 +55,20 @@ from mlsys.serving import (
     ProviderInferenceError,
     ProviderPolicyError,
     ProviderVersionError,
+    PrivacyClassRouter,
     Stage1Router,
 )
+from companion.commitments import CommitmentFusionClaim
+from companion.commitments.service import CommitmentBroker, commitment_data_policy
 from mlsys.retrieval.models import (
     RetrievalFilters,
     RetrievalQuery,
     RetrievalRequest,
 )
 from mlsys.retrieval.service import RetrievalService
+
+if TYPE_CHECKING:
+    from companion.product.chat_goals import ExplicitChatGoalPlanner
 
 
 logger = logging.getLogger(__name__)
@@ -70,6 +88,32 @@ class IdempotencyConflict(RuntimeError):
 
 class InferenceTimeoutError(TimeoutError):
     pass
+
+
+class ManualStrongContext(BaseModel):
+    """Exact, pre-audited selected context for one owner-triggered cloud rerun."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    disclosure_id: UUID
+    source_assistant_event_id: UUID
+    data_policy: DataPolicy
+    personal_context: tuple[PersonalContextItem, ...]
+    conversation_history: tuple[ConversationHistoryItem, ...] = Field(min_length=2)
+    selected_content_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+    def model_post_init(self, __context: object) -> None:
+        from mlsys.serving.deepseek_cloud import OWNER_MANUAL_AUTHORIZATION_REF
+
+        if (
+            self.data_policy.privacy_class is not PrivacyClass.HIGHLY_PRIVATE
+            or not self.data_policy.cloud_eligible
+            or self.data_policy.memory_eligible
+            or self.data_policy.decision_source != "owner_explicit"
+            or self.data_policy.authorization_ref != OWNER_MANUAL_AUTHORIZATION_REF
+        ):
+            raise ValueError("manual Strong context requires the exact derived policy")
+
 
 
 class InteractionCommand(BaseModel):
@@ -127,7 +171,7 @@ class InteractionResult(BaseModel):
 
 
 class InteractionService:
-    version = "interaction-orchestrator-v6"
+    version = "interaction-orchestrator-v9"
 
     def __init__(
         self,
@@ -136,11 +180,23 @@ class InteractionService:
         identity: IdentityBundle,
         repository: PostgresRepository,
         context_builder: ContextBuilder,
-        router: Stage1Router,
+        router: Stage1Router | PrivacyClassRouter,
         provider: ModelProvider,
+        providers: Mapping[str, ModelProvider] | None = None,
+        context_builders: Mapping[str, ContextBuilder] | None = None,
         retrieval_service: RetrievalService | None = None,
         response_policy: CoreResponsePolicy | None = None,
+        ambient_context_selector: Callable[..., tuple] | None = None,
+        response_planner: ResponsePlanner | None = None,
+        request_binder: Callable[[InferenceRequest], InferenceRequest] | None = None,
+        request_binders: Mapping[
+            str, Callable[[InferenceRequest], InferenceRequest]
+        ] | None = None,
         inference_timeout_ms: int = 20_000,
+        manual_strong_only: bool = False,
+        commitment_broker: CommitmentBroker | None = None,
+        chat_goal_planner: "ExplicitChatGoalPlanner | None" = None,
+        conversation_continuation_service: object | None = None,
     ) -> None:
         if inference_timeout_ms <= 0:
             raise ValueError("inference_timeout_ms must be positive")
@@ -150,7 +206,48 @@ class InteractionService:
         self.context_builder = context_builder
         self.router = router
         self.provider = provider
+        self.providers = dict(providers or {provider.provider_id: provider})
+        if provider.provider_id not in self.providers:
+            raise ValueError("primary provider is missing from the provider registry")
+        if any(
+            provider_id != configured.provider_id
+            for provider_id, configured in self.providers.items()
+        ):
+            raise ValueError("provider registry keys must match provider IDs")
+        self.context_builders = {
+            provider_id: context_builder for provider_id in self.providers
+        }
+        if context_builders is not None:
+            unknown_builders = set(context_builders) - set(self.providers)
+            if unknown_builders:
+                raise ValueError("context builder configured for an unknown provider")
+            self.context_builders.update(context_builders)
+        if isinstance(router, PrivacyClassRouter):
+            required_provider_ids = {
+                router.cloud_provider_id,
+                router.local_provider_id,
+            }
+            if not required_provider_ids.issubset(self.providers):
+                raise ValueError("privacy router providers are missing from the registry")
         self.response_policy = response_policy or CoreResponsePolicy()
+        self.ambient_context_selector = ambient_context_selector
+        self.response_planner = response_planner or ResponsePlanner(
+            semantic_memory=getattr(repository, "memory_encoder", None) is not None
+        )
+        self.request_binder = request_binder
+        self.request_binders = dict(request_binders or {})
+        if request_binder is not None:
+            if provider.provider_id in self.request_binders:
+                raise ValueError("primary provider request binder is configured twice")
+            self.request_binders[provider.provider_id] = request_binder
+        if set(self.request_binders) - set(self.providers):
+            raise ValueError("request binder configured for an unknown provider")
+        self.manual_strong_only = manual_strong_only
+        self.commitment_broker = commitment_broker
+        self.chat_goal_planner = chat_goal_planner
+        self.conversation_continuation_service = conversation_continuation_service
+        if manual_strong_only and self.request_binders:
+            raise ValueError("manual Strong path cannot use the default request binder")
         if retrieval_service is None:
             embedding_provider = DeterministicEmbeddingProvider()
             repository.register_embedding_version(embedding_provider.version)
@@ -161,15 +258,106 @@ class InteractionService:
         self.retrieval_service = retrieval_service
         self.inference_timeout_ms = inference_timeout_ms
 
-    async def interact(self, command: InteractionCommand) -> InteractionResult:
+    def _provider_id_for_policy(self, policy: DataPolicy) -> str:
+        if isinstance(self.router, PrivacyClassRouter):
+            return self.router.select_provider_id(policy=policy)
+        return self.provider.provider_id
+
+    async def interact(
+        self,
+        command: InteractionCommand,
+        *,
+        manual_strong_context: ManualStrongContext | None = None,
+    ) -> InteractionResult:
+        # HTTP frameworks use level cancellation: every await in an enclosing
+        # cancelled scope can fail again. Own the transactional work in a child
+        # and cancel it once, then drain its existing reconciliation completely.
+        task = asyncio.create_task(self._interact_owned(
+            command, manual_strong_context=manual_strong_context,
+        ))
+        try:
+            return await asyncio.shield(task)
+        except asyncio.CancelledError:
+            task.cancel()
+            await settle_cancelled_task(task)
+            raise
+
+    async def _interact_owned(
+        self,
+        command: InteractionCommand,
+        *,
+        manual_strong_context: ManualStrongContext | None = None,
+    ) -> InteractionResult:
         request_id = uuid7()
-        request_fingerprint = self._request_fingerprint(command)
+        broker = self.commitment_broker if manual_strong_context is None else None
+        fusion_claims: tuple[CommitmentFusionClaim, ...] = ()
+        try:
+            if broker is not None:
+                activity_task = asyncio.create_task(asyncio.to_thread(
+                    broker.begin_interaction_activity,
+                    request_id=request_id,
+                ))
+                try:
+                    await asyncio.shield(activity_task)
+                except asyncio.CancelledError:
+                    await settle_cancelled_task(activity_task)
+                    raise
+            return await self._interact_active(
+                command,
+                request_id=request_id,
+                manual_strong_context=manual_strong_context,
+            )
+        finally:
+            if broker is not None:
+                await asyncio.to_thread(
+                    broker.release_claims,
+                    request_id=request_id,
+                    reason="interaction_ended_without_fused_delivery",
+                )
+                await asyncio.to_thread(
+                    broker.end_interaction_activity,
+                    request_id=request_id,
+                )
+
+    async def _interact_active(
+        self,
+        command: InteractionCommand,
+        *,
+        request_id: UUID,
+        manual_strong_context: ManualStrongContext | None = None,
+    ) -> InteractionResult:
+        manual = manual_strong_context
+        if self.manual_strong_only != (manual is not None):
+            raise ValueError("Local and manual Strong interaction paths cannot be mixed")
+        if manual is not None:
+            if command.message != "请用 Strong Brain 重新想想上一条回复。":
+                raise ValueError("manual Strong interaction requires the canonical action")
+            if not self.repository.manual_cloud_context_prepared(
+                owner_id=self.owner_id,
+                disclosure_id=manual.disclosure_id,
+                source_assistant_event_id=manual.source_assistant_event_id,
+                policy_revision_id=manual.data_policy.policy_revision_id,
+                selected_source_refs=tuple(
+                    ref for item in (*manual.personal_context, *manual.conversation_history)
+                    for ref in item.source_refs
+                ),
+                selected_content_hash=manual.selected_content_hash,
+            ):
+                raise ValueError("manual Strong context does not match its prepared permit")
+            from companion.product.strong import assert_manual_context_current
+            await asyncio.to_thread(assert_manual_context_current, self.repository,
+                owner_id=self.owner_id, source_assistant_event_id=manual.source_assistant_event_id)
+        request_fingerprint = self._request_fingerprint(command, manual)
         session_id = command.session_id or uuid7()
         trace = TraceContext.from_traceparent(command.traceparent)
         trace_started_at = datetime.now(UTC)
-        policy = DataPolicy.owner_default(
-            command.privacy_class,
-            memory_eligible=command.memory_eligible,
+        policy = (
+            manual.data_policy
+            if manual is not None
+            else DataPolicy.owner_default(
+                command.privacy_class,
+                memory_eligible=command.memory_eligible,
+            )
         )
         user_event = EventEnvelope(
             event_type=EventType.USER_MESSAGE,
@@ -190,6 +378,7 @@ class InteractionService:
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None
         completion_committed = False
+        fusion_claims: tuple[CommitmentFusionClaim, ...] = ()
         inference_started = False
         failure_context: (
             tuple[ContextPack, RouteDecision, InferenceRequest, object | None] | None
@@ -206,6 +395,7 @@ class InteractionService:
                 attributes={
                     "orchestrator_version": self.version,
                     "inference_timeout_ms": self.inference_timeout_ms,
+                    "privacy_class": policy.privacy_class.value,
                 },
             ) as root_span_id:
                 with trace.span(
@@ -242,36 +432,18 @@ class InteractionService:
                         )
                     result = await self._result_for_existing(reservation.request)
                 else:
-                    with trace.span(
-                        "memory.retrieve",
-                        parent_span_id=root_span_id,
-                        attributes={
-                            "algorithm_version": "retrieval-r1-vector-gated-v2",
-                            "candidate_k": 100,
-                            "top_k": 5,
-                        },
-                    ):
-                        allowed_privacy = tuple(
-                            item
-                            for item in PrivacyClass
-                            if PRIVACY_RESTRICTION_ORDER[item]
-                            <= PRIVACY_RESTRICTION_ORDER[policy.privacy_class]
+                    completion_resolution = None
+                    if self.commitment_broker is not None and manual is None:
+                        completion_resolution = await asyncio.to_thread(
+                            self.commitment_broker.resolve_completion,
+                            user_event_id=user_event.event_id,
+                            session_id=session_id,
+                            message=command.message,
                         )
-                        retrieval_result = await asyncio.to_thread(
-                            self.retrieval_service.retrieve,
-                            RetrievalRequest(
-                                trace_id=trace.trace_id,
-                                owner_id=self.owner_id,
-                                request_id=request_id,
-                                query=RetrievalQuery(
-                                    text=command.message,
-                                    language=command.language,
-                                    event_id=user_event.event_id,
-                                ),
-                                filters=RetrievalFilters(
-                                    allowed_privacy_classes=allowed_privacy
-                                ),
-                            ),
+                    chat_goal_context = None
+                    if self.chat_goal_planner is not None and manual is None:
+                        chat_goal_context = await self.chat_goal_planner.apply(
+                            user_event=user_event, message=command.message
                         )
                     with trace.span(
                         "user_model.select_context",
@@ -280,30 +452,199 @@ class InteractionService:
                             "selector_version": "stage4-personal-context-selector-v1",
                         },
                     ):
-                        personal_context = await asyncio.to_thread(
-                            self.repository.select_personal_context,
-                            owner_id=self.owner_id,
-                            query_text=command.message,
-                            maximum_privacy_class=policy.privacy_class,
+                        if manual is not None:
+                            personal_context = manual.personal_context
+                            conversation_history = manual.conversation_history
+                        else:
+                            personal_context = await asyncio.to_thread(
+                                self.repository.select_personal_context,
+                                owner_id=self.owner_id,
+                                query_text=command.message,
+                                maximum_privacy_class=policy.privacy_class,
+                                as_of=user_event.recorded_at,
+                            )
+                            commitment_context = ()
+                            if self.commitment_broker is not None:
+                                commitment_context = await asyncio.to_thread(
+                                    self.commitment_broker.select_context,
+                                    query_text=command.message,
+                                    maximum_privacy_class=policy.privacy_class,
+                                )
+                            personal_context = (*personal_context, *commitment_context)
+                            if chat_goal_context is not None:
+                                personal_context = (*personal_context, chat_goal_context)
+                            if completion_resolution is not None and completion_resolution.status == "completed":
+                                personal_context = (*personal_context, PersonalContextItem(
+                                    owner_id=self.owner_id,
+                                    section_id=f"completion-receipt-{request_id}",
+                                    section_type="owner_response_instruction",
+                                    content_text=(
+                                        "Committed action receipt: the uniquely identified task in this "
+                                        "owner message is now completed; its pending reminders were "
+                                        "cancelled atomically. Acknowledge naturally without inventing "
+                                        "other saved actions or exposing internal identifiers."
+                                    ),
+                                    priority=99,
+                                    source_refs=(
+                                        f"event/{user_event.event_id}",
+                                        f"goal/{completion_resolution.goal_id}@{completion_resolution.goal_revision}",
+                                    ),
+                                    data_policy=policy,
+                                ))
+                            if (
+                                completion_resolution is not None
+                                and completion_resolution.status == "ambiguous"
+                                and completion_resolution.clarification_text
+                            ):
+                                clarification_policy = commitment_data_policy()
+                                personal_context = (*personal_context, PersonalContextItem(
+                                    owner_id=self.owner_id,
+                                    section_id=f"completion-clarification-{request_id}",
+                                    section_type="owner_response_instruction",
+                                    content_text=(
+                                        "Ask exactly this one minimal clarification and do not "
+                                        "claim any Goal was updated: "
+                                        + completion_resolution.clarification_text
+                                    ),
+                                    priority=99,
+                                    source_refs=(f"event/{user_event.event_id}",),
+                                    data_policy=clarification_policy,
+                                ))
+                            if self.commitment_broker is not None:
+                                fusion_claims = await asyncio.to_thread(
+                                    self.commitment_broker.claim_due_for_interaction,
+                                    request_id=request_id,
+                                    query_text=command.message,
+                                )
+                                personal_context = (
+                                    *personal_context,
+                                    *self.commitment_broker.fusion_context(fusion_claims),
+                                )
+                            if self.ambient_context_selector is not None:
+                                ambient_context = await asyncio.to_thread(
+                                    self.ambient_context_selector,
+                                    query_text=command.message,
+                                    maximum_privacy_class=policy.privacy_class,
+                                )
+                                personal_context = (*personal_context, *ambient_context)
+                            conversation_history = await asyncio.to_thread(
+                                self.repository.select_conversation_history,
+                                owner_id=self.owner_id,
+                                session_id=session_id,
+                                exclude_event_id=user_event.event_id,
+                                as_of=user_event.recorded_at,
+                                maximum_privacy_class=policy.privacy_class,
+                                include_cross_session_fallback=(
+                                    self.response_planner.refers_to_prior_context(
+                                        command.message
+                                    )
+                                ),
+                                continuous_chat=command.channel == "web",
+                            )
+                            if getattr(self.repository, "memory_encoder", None) is not None:
+                                from companion.context.recall import recalled_history
+                                conversation_history = await asyncio.to_thread(
+                                    recalled_history, self.repository,
+                                    owner_id=self.owner_id, query=command.message,
+                                    current_event=user_event, recent=conversation_history,
+                                    explicit=self.response_planner.refers_to_prior_context(command.message),
+                                    timezone_name=self.context_builder.owner_timezone or "America/Chicago",
+                                )
+                    planning_message = command.message
+                    planning_source_refs = (f"event/{user_event.event_id}",)
+                    if manual is not None:
+                        source_user_turn = next(
+                            (
+                                item for item in reversed(conversation_history)
+                                if item.role == "user"
+                            ),
+                            None,
                         )
-                        conversation_history = await asyncio.to_thread(
-                            self.repository.select_conversation_history,
+                        if source_user_turn is not None:
+                            planning_message = source_user_turn.content_text
+                            planning_source_refs = source_user_turn.source_refs
+                    with trace.span(
+                        "response.plan",
+                        parent_span_id=root_span_id,
+                        attributes={"planner_version": self.response_planner.version},
+                    ):
+                        response_plan = self.response_planner.plan(
+                            request_id=request_id,
+                            trace_id=trace.trace_id,
                             owner_id=self.owner_id,
-                            session_id=session_id,
-                            exclude_event_id=user_event.event_id,
-                            maximum_privacy_class=policy.privacy_class,
+                            message=planning_message,
+                            source_refs=planning_source_refs,
+                            conversation_history=conversation_history,
+                            personal_context=personal_context,
                         )
+                    with trace.span(
+                        "memory.retrieve",
+                        parent_span_id=root_span_id,
+                        attributes={
+                            "algorithm_version": self.retrieval_service.default_algorithm,
+                            "candidate_k": 100,
+                            "top_k": 5,
+                            "memory_need": response_plan.memory_need,
+                            "retrieval_executed": (
+                                manual is None and response_plan.memory_need != "none"
+                            ),
+                        },
+                    ):
+                        allowed_privacy = tuple(
+                            item
+                            for item in PrivacyClass
+                            if PRIVACY_RESTRICTION_ORDER[item]
+                            <= PRIVACY_RESTRICTION_ORDER[policy.privacy_class]
+                        )
+                        retrieval_method = (
+                            self.retrieval_service.retrieve_empty
+                            if manual is not None or response_plan.memory_need == "none"
+                            else self.retrieval_service.retrieve
+                        )
+                        retrieval_result = await asyncio.to_thread(
+                            retrieval_method,
+                            RetrievalRequest(
+                                algorithm_version=self.retrieval_service.default_algorithm,
+                                trace_id=trace.trace_id,
+                                owner_id=self.owner_id,
+                                request_id=request_id,
+                                query=RetrievalQuery(
+                                    text=(response_plan.memory_query or command.message),
+                                    language=command.language,
+                                    event_id=user_event.event_id,
+                                ),
+                                filters=RetrievalFilters(
+                                    allowed_privacy_classes=allowed_privacy
+                                ),
+                            ),
+                        )
+                    if manual is None:
+                        # Manual Strong uses only its exact prepared disclosure;
+                        # a later owner edit cannot authorize an additional source.
+                        from companion.context.corrections import owner_fact_corrections
+                        correction_context = await asyncio.to_thread(
+                            owner_fact_corrections, self.repository,
+                            owner_id=self.owner_id, current_event=user_event,
+                            history=conversation_history, retrieval_result=retrieval_result,
+                        )
+                        personal_context = (*personal_context, *correction_context)
+                    selected_provider_id = self._provider_id_for_policy(policy)
+                    selected_provider = self.providers[selected_provider_id]
+                    selected_context_builder = self.context_builders[
+                        selected_provider_id
+                    ]
                     with trace.span(
                         "context.build",
                         parent_span_id=root_span_id,
                         attributes={
-                            "builder_version": self.context_builder.version,
+                            "builder_version": selected_context_builder.version,
+                            "initial_provider_id": selected_provider_id,
                             "constitution_version_id": self.identity.constitution.version_id,
                             "identity_version_id": self.identity.identity.version_id,
                             "values_version_id": self.identity.values.version_id,
                         },
                     ):
-                        context_pack = self.context_builder.build(
+                        context_pack = selected_context_builder.build(
                             request_id=request_id,
                             trace_id=trace.trace_id,
                             owner_id=self.owner_id,
@@ -312,18 +653,48 @@ class InteractionService:
                             retrieval_result=retrieval_result,
                             personal_context=personal_context,
                             conversation_history=conversation_history,
+                            response_plan=response_plan,
                         )
+                        effective_provider_id = self._provider_id_for_policy(
+                            context_pack.effective_data_policy
+                        )
+                        if effective_provider_id != selected_provider_id:
+                            # The selected sections established the effective
+                            # policy. Preserve them while applying the stricter
+                            # provider budget so a restrictive item cannot be
+                            # dropped and make routing oscillate back to cloud.
+                            pre_route_context = context_pack
+                            failure_stage = "routing"
+                            selected_provider_id = effective_provider_id
+                            selected_provider = self.providers[selected_provider_id]
+                            selected_context_builder = self.context_builders[
+                                selected_provider_id
+                            ]
+                            context_pack = (
+                                selected_context_builder.rebind_selected_sections(
+                                    context_pack
+                                )
+                            )
+                            if (
+                                self._provider_id_for_policy(
+                                    context_pack.effective_data_policy
+                                )
+                                != selected_provider_id
+                            ):
+                                raise ProviderPolicyError(
+                                    "effective privacy route did not converge"
+                                )
 
                     pre_route_context = context_pack
                     failure_stage = "capability_check"
-                    capabilities = await self.provider.capabilities()
+                    capabilities = await selected_provider.capabilities()
                     failure_stage = "routing"
                     with trace.span(
                         "inference.route",
                         parent_span_id=root_span_id,
                         attributes={
                             "router_version": self.router.version,
-                            "candidate_count": 1,
+                            "candidate_count": len(self.providers),
                         },
                     ):
                         route = self.router.decide(
@@ -346,8 +717,27 @@ class InteractionService:
                         route=route,
                     )
                     failure_context = (context_pack, route, inference_request, None)
+                    if manual is not None:
+                        from mlsys.serving.deepseek_cloud import (
+                            OWNER_MANUAL_AUTHORIZATION_REF,
+                            OWNER_MANUAL_BOUNDARY,
+                        )
+
+                        inference_request = inference_request.model_copy(
+                            update={
+                                "metadata": {
+                                    **inference_request.metadata,
+                                    "cloud_authorization_ref": (
+                                        OWNER_MANUAL_AUTHORIZATION_REF
+                                    ),
+                                    "cloud_data_boundary": OWNER_MANUAL_BOUNDARY,
+                                    "cloud_disclosure_id": str(manual.disclosure_id),
+                                    "selected_content_hash": manual.selected_content_hash,
+                                }
+                            }
+                        )
                     failure_stage = "version_check"
-                    provider_version = await self.provider.version()
+                    provider_version = await selected_provider.version()
                     self._validate_provider_version(
                         provider_version, capabilities, route
                     )
@@ -372,6 +762,30 @@ class InteractionService:
                                 }
                             }
                         )
+                        if manual is not None:
+                            from mlsys.serving.deepseek_cloud import (
+                                bind_cloud_experiment_request,
+                            )
+
+                            inference_request = bind_cloud_experiment_request(
+                                inference_request,
+                                thinking="enabled",
+                                reasoning_effort="high",
+                            )
+                            await asyncio.to_thread(assert_manual_context_current, self.repository,
+                                owner_id=self.owner_id, source_assistant_event_id=manual.source_assistant_event_id)
+                            await asyncio.to_thread(
+                                self.repository.bind_manual_cloud_disclosure,
+                                owner_id=self.owner_id,
+                                disclosure_id=manual.disclosure_id,
+                                inference_request=inference_request,
+                            )
+                        else:
+                            request_binder = self.request_binders.get(
+                                route.selected_provider_id
+                            )
+                            if request_binder is not None:
+                                inference_request = request_binder(inference_request)
                         failure_context = (
                             context_pack, route, inference_request, provider_version
                         )
@@ -385,6 +799,7 @@ class InteractionService:
                                     route=route,
                                     provider_class=capabilities.provider_class,
                                     provider_version=provider_version,
+                                    provider=selected_provider,
                                 ),
                                 timeout=inference_request.constraints.timeout_ms / 1000,
                             )
@@ -452,13 +867,16 @@ class InteractionService:
                         attributes={"request_id": str(request_id)},
                     ):
                         completion_task = asyncio.create_task(asyncio.to_thread(
-                                self.repository.complete_interaction,
+                        self.repository.complete_interaction,
                                 owner_id=self.owner_id,
                                 context_pack=context_pack,
                                 route_decision=route,
+                                inference_request=inference_request,
                                 inference_response=inference_response,
+                                provider_version=provider_version,
                                 assistant_event=assistant_event,
                                 spans=list(trace.spans),
+                                fusion_claims=fusion_claims,
                             ))
                         try:
                             await asyncio.shield(completion_task)
@@ -480,6 +898,43 @@ class InteractionService:
                         traceparent=trace.traceparent(root_span_id),
                         replay=False,
                     )
+                    if (
+                        manual is None
+                        and self.conversation_continuation_service is not None
+                        and isinstance(response_plan, ResponsePlan)
+                    ):
+                        try:
+                            await asyncio.to_thread(
+                                self.conversation_continuation_service.record_candidate,
+                                user_event=user_event,
+                                assistant_event=assistant_event,
+                                response_plan=response_plan,
+                                user_message=command.message,
+                                assistant_message="\n".join(policy_result.output_parts),
+                                selected_provider_id=route.selected_provider_id,
+                                execution_environment=route.execution_environment,
+                            )
+                        except Exception as continuation_error:
+                            logger.warning(
+                                "continuation_candidate_record_failed request_id=%s "
+                                "error_type=%s",
+                                request_id,
+                                type(continuation_error).__name__,
+                            )
+                    if manual is not None:
+                        disclosure_task = asyncio.create_task(asyncio.to_thread(
+                            self.repository.finish_manual_cloud_disclosure,
+                            owner_id=self.owner_id,
+                            disclosure_id=manual.disclosure_id,
+                            result_assistant_event_id=assistant_event.event_id,
+                        ))
+                        try:
+                            await asyncio.shield(disclosure_task)
+                        except asyncio.CancelledError as error:
+                            # A delivered assistant Event and its outbound disclosure
+                            # must reach the same terminal truth before cancellation.
+                            await disclosure_task
+                            raise error
         except asyncio.CancelledError as error:
             # Client disconnect/task cancellation happens after the USER Event
             # may already be durable. Convert it to a normal internal failure
@@ -550,6 +1005,7 @@ class InteractionService:
                             provider_version=provider_version,
                             failure_event=failure_event,
                             spans=list(trace.spans),
+                            fusion_claims=fusion_claims,
                         )
                     else:
                         await asyncio.to_thread(
@@ -561,9 +1017,17 @@ class InteractionService:
                             failure_event=failure_event,
                             error_code=typed_failure.code,
                             spans=list(trace.spans),
+                            fusion_claims=fusion_claims,
                         )
                 elif pre_route_context is not None:
-                    if failure_stage == "capability_check":
+                    if isinstance(failure, ContextBudgetExceeded):
+                        pre_route_code = "context_limit_exceeded"
+                        pre_route_retryable = False
+                        pre_route_message = (
+                            "The selected local provider cannot fit the already "
+                            "selected privacy-preserving context."
+                        )
+                    elif failure_stage == "capability_check":
                         pre_route_code = "model_unavailable"
                         pre_route_retryable = True
                         pre_route_message = (
@@ -619,14 +1083,88 @@ class InteractionService:
                         failure_event=failure_event,
                         error_code=pre_route_code,
                         spans=list(trace.spans),
+                        fusion_claims=fusion_claims,
+                    )
+                elif isinstance(failure, ContextBudgetExceeded):
+                    failure_event = EventEnvelope(
+                        event_type=EventType.INTERACTION_FAILED,
+                        owner_id=self.owner_id,
+                        session_id=session_id,
+                        request_id=request_id,
+                        trace_id=trace.trace_id,
+                        causation_event_id=user_event.event_id,
+                        data_policy=policy,
+                        payload=InteractionFailurePayload(
+                            failure_stage="context_build",
+                            context_pack_id=None,
+                            failure_code="context_limit_exceeded",
+                            retryable=False,
+                            safe_message=(
+                                "The selected provider cannot fit the required "
+                                "conversation context."
+                            ),
+                        ),
+                    )
+                    await asyncio.to_thread(
+                        self.repository.fail_pre_context_interaction,
+                        owner_id=self.owner_id,
+                        failure_event=failure_event,
+                        error_code="context_limit_exceeded",
+                        spans=list(trace.spans),
+                        fusion_claims=fusion_claims,
                     )
                 else:
-                    await asyncio.to_thread(
-                        self.repository.mark_failed,
-                        request_id,
-                        self.owner_id,
-                        type(failure).__name__,
+                    # The USER_MESSAGE reservation is already durable, but no
+                    # valid ContextPack exists yet.  Keep that terminal truth
+                    # typed and content-free instead of leaving a bare failed
+                    # request that cannot be reconciled to a failure Event.
+                    pre_context_code = (
+                        "interaction_cancelled"
+                        if cancellation is not None
+                        else "internal_error"
                     )
+                    pre_context_retryable = cancellation is not None
+                    pre_context_message = (
+                        "The interaction ended before its conversation context "
+                        "was built."
+                        if cancellation is not None
+                        else "The interaction failed before its conversation "
+                        "context was built."
+                    )
+                    failure_event = EventEnvelope(
+                        event_type=EventType.INTERACTION_FAILED,
+                        owner_id=self.owner_id,
+                        session_id=session_id,
+                        request_id=request_id,
+                        trace_id=trace.trace_id,
+                        causation_event_id=user_event.event_id,
+                        data_policy=policy,
+                        payload=InteractionFailurePayload(
+                            failure_stage="context_build",
+                            context_pack_id=None,
+                            failure_code=pre_context_code,
+                            retryable=pre_context_retryable,
+                            safe_message=pre_context_message,
+                        ),
+                    )
+                    try:
+                        await asyncio.to_thread(
+                            self.repository.fail_pre_context_interaction,
+                            owner_id=self.owner_id,
+                            failure_event=failure_event,
+                            error_code=pre_context_code,
+                            spans=list(trace.spans),
+                            fusion_claims=fusion_claims,
+                        )
+                    except Exception as reconciliation_error:
+                        # A secondary persistence failure must not disguise the
+                        # original application error or client cancellation.
+                        logger.error(
+                            "pre_context_failure_reconciliation_failed "
+                            "request_id=%s error_type=%s",
+                            request_id,
+                            type(reconciliation_error).__name__,
+                        )
             if cancellation is not None:
                 raise cancellation
             raise failure
@@ -659,30 +1197,25 @@ class InteractionService:
         context_pack: ContextPack,
         route: RouteDecision,
     ) -> InferenceRequest:
+        response_plan_sections = tuple(
+            section
+            for section in context_pack.sections
+            if section.section_type == "response_plan"
+        )
+        response_plan = (
+            None
+            if not response_plan_sections
+            else parse_response_plan_json(
+                response_plan_sections[0].content_parts[0].text
+            )
+        )
         allowed_environments: tuple[Literal["local", "cloud"], ...] = (
-            ("local", "cloud")
-            if context_pack.effective_data_policy.cloud_eligible
-            else ("local",)
+            (route.execution_environment,)
         )
         return InferenceRequest(
             request_id=request_id,
             trace_id=trace.trace_id,
-            messages=tuple(
-                InferenceMessage(
-                    role=(
-                        "user"
-                        if section.section_type in {
-                            "current_user_input","conversation_user_message"
-                        }
-                        else "assistant"
-                        if section.section_type == "conversation_assistant_message"
-                        else "system"
-                    ),
-                    content_parts=section.content_parts,
-                    source_refs=section.source_refs,
-                )
-                for section in context_pack.sections
-            ),
+            messages=render_inference_messages(context_pack),
             context_pack_id=context_pack.context_pack_id,
             generation=GenerationSettings(
                 max_output_tokens=context_pack.token_budget.reserved_output_tokens,
@@ -700,6 +1233,18 @@ class InteractionService:
                 "identity_version_id": context_pack.identity_version_id,
                 "values_version_id": context_pack.values_version_id,
                 "builder_version": context_pack.builder_version,
+                "context_presentation_version": CONTEXT_PRESENTATION_VERSION,
+                **(
+                    {}
+                    if response_plan is None
+                    else {
+                        "response_planner_version": response_plan.planner_version,
+                        "response_plan_hash": response_plan.content_hash,
+                        "response_plan_mode": response_plan.mode,
+                        "response_plan_depth": response_plan.depth,
+                        "response_plan_memory_need": response_plan.memory_need,
+                    }
+                ),
                 "router_version": route.router_version,
             },
         )
@@ -711,13 +1256,14 @@ class InteractionService:
         route: RouteDecision,
         provider_class: str,
         provider_version,
+        provider: ModelProvider,
     ) -> InferenceResponse:
         expected_sequence = 0
         response_id: UUID | None = None
         pieces: list[str] = []
         terminal: InferenceStreamEvent | None = None
         saw_started = False
-        async for event in self.provider.stream(request):
+        async for event in provider.stream(request):
             if terminal is not None:
                 raise RuntimeError("provider emitted data after a terminal stream event")
             if event.sequence_number != expected_sequence:
@@ -761,6 +1307,9 @@ class InteractionService:
             expected_provider_id=route.selected_provider_id,
             expected_provider_class=provider_class,
             expected_model_version_id=route.selected_model_version_id,
+            expected_adapter_version_id=(
+                provider_version.active_adapter_version_id
+            ),
             expected_provider_adapter_version_id=(
                 provider_version.provider_adapter_version_id
             ),
@@ -864,7 +1413,10 @@ class InteractionService:
         )
 
     @staticmethod
-    def _request_fingerprint(command: InteractionCommand) -> str:
+    def _request_fingerprint(
+        command: InteractionCommand,
+        manual_strong_context: ManualStrongContext | None = None,
+    ) -> str:
         """Bind an idempotency key to every semantic ingress field.
 
         `traceparent` is transport correlation rather than request meaning and is
@@ -873,22 +1425,28 @@ class InteractionService:
         a durable session ID for the first execution.
         """
 
-        return content_hash(
-            {
-                "schema_version": 1,
-                "message": command.message,
-                "privacy_class": command.privacy_class.value,
-                "memory_eligible": command.memory_eligible,
-                "session_id": str(command.session_id) if command.session_id else None,
-                "channel": command.channel,
-                "language": command.language,
-                "client_created_at": (
-                    command.client_created_at.isoformat()
-                    if command.client_created_at
-                    else None
-                ),
-            }
-        )
+        material = {
+            "schema_version": 1,
+            "message": command.message,
+            "privacy_class": command.privacy_class.value,
+            "memory_eligible": command.memory_eligible,
+            "session_id": str(command.session_id) if command.session_id else None,
+            "channel": command.channel,
+            "language": command.language,
+            "client_created_at": (
+                command.client_created_at.isoformat()
+                if command.client_created_at
+                else None
+            ),
+        }
+        if manual_strong_context is not None:
+            material["manual_strong_disclosure_id"] = str(
+                manual_strong_context.disclosure_id
+            )
+            material["manual_strong_selected_content_hash"] = (
+                manual_strong_context.selected_content_hash
+            )
+        return content_hash(material)
 
     @staticmethod
     def _result(

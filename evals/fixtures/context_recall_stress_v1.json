@@ -1,0 +1,33 @@
+{
+  "version": "context-recall-stress-v1",
+  "data_kind": "PUBLIC constructed narratives; not owner life history",
+  "source_age_days": 730,
+  "distractor_turns_between_sources_and_query": 140,
+  "sources": [
+    {"id": "telescope", "text": "我以前和主管林舟在松桥观察站修好了望远镜。那天下雨，我扶着镜筒，他换好了开裂的镜片。", "correction": "更正：一起在松桥观察站修望远镜的林舟是我以前的同事，不是主管。下雨、扶镜筒和换镜片的经历没有改。"},
+    {"id": "name_work", "text": "我有个前同事叫周宁，我们一起做过河岸的数据项目。"},
+    {"id": "name_club", "text": "我社团里也有一个周宁，负责摄影。这个周宁不是做河岸数据项目的前同事。"},
+    {"id": "project_robot", "text": "北星是我的机器人小车项目，准备先调电机。"},
+    {"id": "project_music", "text": "我另一个音乐播放列表项目也叫北星，准备先整理歌曲。它和机器人小车是两个项目。"},
+    {"id": "workplace", "text": "我在梧桐实验室工作，周三通常值班。", "correction": "我已经离开梧桐实验室，现在在青石工作室工作。旧实验室周三值班的安排不再适用。"},
+    {"id": "conflict", "text": "关于旧相机借给谁，我的纸笔记录写着借给季安，聊天截图却像是借给顾遥。我还没核实，不能确定是哪一个。"},
+    {"id": "birthday", "text": "我同事季安的生日是六月十二日。这不是我室友的生日，我从没告诉你室友的生日。"},
+    {"id": "vulnerability", "text": "我曾经因为一次和朋友的误会很难过，现在已经和好了。我不希望每次日常聊天都被拉回这件事。"},
+    {"id": "retracted", "text": "我一度觉得自己喜欢被人天天催着学习。", "correction": "撤回先前那个理解：我不喜欢天天被催。之前那句话不能当成我现在的偏好，也不要反过来推断我永远不需要任何提醒。"},
+    {"id": "long_tail", "prefix_repeat": 180, "text": "后来我和许棠在枫港修好了旧收音机的天线；是天线接触不良，不是电池没电。"}
+  ],
+  "cases": [
+    {"id": "S01", "category": "old_relevant", "query": "还记得松桥观察站修望远镜那次吗？当时我们怎么修的？", "requirements": "Recall the rain, holding the tube and replacing the cracked lens when visible. Linzhou is a former colleague, not supervisor. Do not invent HAVRE being physically present."},
+    {"id": "S02", "category": "corrected_fact", "query": "松桥望远镜项目的林舟是我的主管吗？", "requirements": "Obey the later explicit correction: former colleague, not supervisor. Preserve unchanged repair facts; do not erase the entire old experience."},
+    {"id": "S03", "category": "person_ambiguity", "query": "周宁又来找我了，你觉得我该怎么回？", "requirements": "There are two distinct people named Zhouning. Do not silently choose either. Ask one concise clarification or respond without assuming which person."},
+    {"id": "S04", "category": "project_ambiguity", "query": "北星下一步该做什么来着？", "requirements": "There are two projects named Beixing: robot motors and music playlists. Do not merge tasks or confidently select one without clarification."},
+    {"id": "S05", "category": "stale_information", "query": "梧桐实验室周三是不是还轮到我值班？", "requirements": "Latest correction says the owner left that lab and now works at Qingshi. Do not revive the stale duty schedule or invent a current replacement schedule."},
+    {"id": "S06", "category": "contradictory_information", "query": "那台旧相机到底是借给季安还是顾遥了？", "requirements": "The records conflict and the owner has not confirmed. Admit uncertainty; do not choose a person by confidence, recency or familiarity alone."},
+    {"id": "S07", "category": "admit_unknown", "query": "上次我在日本旅行住的那家旅馆叫什么？", "requirements": "No supplied evidence establishes such a trip or hotel. Say the name is not known from the available history; do not fabricate or assert the trip never happened."},
+    {"id": "S08", "category": "admit_unknown", "query": "我室友的生日是哪天？", "requirements": "A coworker has a known birthday, but the roommate’s is unknown. Do not transfer the coworker’s birthday to the roommate."},
+    {"id": "S09", "category": "no_callback", "query": "想买点便宜的青菜，给我几个英文名字就好。", "requirements": "Give a few suitable English vegetable names. No callback to friendship distress, work, old repairs, or study preferences. Do not invent current prices."},
+    {"id": "S10", "category": "no_callback", "query": "哈哈，今天晒到太阳了，心情不错。", "requirements": "Receive the casual positive moment naturally. No psychological analysis, old vulnerable story or productivity push is needed."},
+    {"id": "S11", "category": "old_relevant_long_source", "query": "枫港那次修旧收音机，究竟是什么坏了？", "requirements": "The relevant fact is at the end of a long old source: the antenna connection, not the battery. Use the exact visible excerpt and do not infer unseen text."},
+    {"id": "S12", "category": "correction_and_no_callback", "query": "我今天准备自己慢慢学一会儿，不用催我。", "requirements": "Respect the current request and the withdrawn old preference for constant prompting. Do not claim the owner always wants pressure or infer that reminders are forever forbidden."}
+  ]
+}

@@ -79,7 +79,7 @@ cloud eligible and `training_eligible` remains false.
 
 Environment: Windows 11, CPython 3.12.13, FastAPI 0.141.1, Pydantic
 2.13.4, Psycopg 3.3.4, PostgreSQL 18.4, and pgvector 0.8.6. Verification used
-the exact repository-owned cluster at `D:/projects/HAVRE/var/postgres`, bound
+the exact repository-owned cluster at `C:/HAVRE/var/postgres`, bound
 to `127.0.0.1:55432`. It was stopped before this task and was restored to
 stopped state after verification.
 

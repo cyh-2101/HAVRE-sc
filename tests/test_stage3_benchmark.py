@@ -451,7 +451,7 @@ class Stage3BenchmarkContractTests(unittest.TestCase):
             validate_approved_controlled_workload(workload)
 
     def test_checked_in_manifests_map_to_exact_live_contract(self) -> None:
-        settings = Settings.from_env().model_copy(
+        settings = Settings.from_env(require_owner_api_token=False).model_copy(
             update={
                 "provider_id": "self-hosted-openai-compatible",
                 "self_hosted_base_url": "http://127.0.0.1:8080",
@@ -487,6 +487,8 @@ class Stage3BenchmarkContractTests(unittest.TestCase):
                 environment_template_path=DEFAULT_ENVIRONMENT_TEMPLATE_PATH,
             )
 
+        self.assertEqual(provider.max_context_tokens, 4096)
+        self.assertEqual(manifest.context_limit, provider.max_context_tokens)
         self.assertEqual(manifest.provider_id, "self-hosted-openai-compatible")
         self.assertEqual(
             manifest.model_artifact_hash,
@@ -709,7 +711,7 @@ class Stage3BenchmarkHarnessTests(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(ValueError):
             await run_live_inference_benchmark(
-                settings=Settings.from_env(),
+                settings=Settings.from_env(require_owner_api_token=False),
                 output_directory=PROJECT_ROOT / "reports-not-ignored",
                 code_revision="4" * 40,
                 provider_factory=provider_factory,

@@ -6,13 +6,15 @@ import asyncio
 import json
 import re
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 import psycopg
 
 from companion.application import InteractionService
-from companion.context import ContextBuilder
+from companion.commitments.service import CommitmentBroker
+from companion.context import ContextBuilder, load_owner_example_bank
 from companion.consolidation.service import ConsolidationService
 from companion.goals.service import GoalService
 from companion.feedback import FeedbackService
@@ -28,17 +30,30 @@ from companion.persistence import Stage10PostgresStore
 from companion.persistence import Stage12ContextStore
 from companion.persistence.scenes import ScenePostgresStore
 from companion.persistence.proactive import ProactivePostgresStore
+from companion.proactive.evaluator import ProactiveTriggerEvaluator
 from companion.persistence.offline import Stage7PostgresStore
+from companion.product import (
+    DailyCompanionStore,
+    DiaryIntelligenceService,
+    ManualStrongBrainService,
+    WebPushDeliveryProvider,
+)
+from companion.product.strong import MANUAL_STRONG_RESERVED_OUTPUT_TOKENS
+from companion.product.tailscale import TailscaleServeAttestor
 from mlsys.serving import (
     RuntimeAttestation,
+    DeepSeekCloudProvider,
+    CodexCliProvider,
     DeterministicLocalProvider,
     ModelProvider,
     OpenAICompatibleProvider,
+    PrivacyClassRouter,
     Stage1Router,
     attest_active_runtime,
     write_runtime_attestation,
 )
 from mlsys.retrieval.service import RetrievalService
+from mlsys.serving.openai_compatible import llama_context_tokens_per_slot
 from companion.operations import ReleaseManifest
 from companion.operations.ledger import ErasureLedger
 from services.api.release_binding import (
@@ -60,21 +75,49 @@ class Runtime:
     consolidation_service: ConsolidationService
     current_state_service: CurrentStateService
     goal_service: GoalService
+    commitment_broker: CommitmentBroker
     scene_service: SceneService
     proactive_store: ProactivePostgresStore
+    proactive_evaluator: ProactiveTriggerEvaluator
     offline_store: Stage7PostgresStore
     operations_store: Stage10PostgresStore
     context_store: Stage12ContextStore
     feedback_service: FeedbackService
+    daily_companion_store: DailyCompanionStore
+    diary_intelligence_service: DiaryIntelligenceService | None
+    conversation_continuation_service: object | None
+    web_push_provider: WebPushDeliveryProvider
+    strong_brain_service: ManualStrongBrainService | None
     erasure_ledger: ErasureLedger | None
     release_manifest: ReleaseManifest | None
+    realtime_memory_service: object | None = None
 
     def close(self) -> None:
         asyncio.run(self.aclose())
 
     async def aclose(self) -> None:
         try:
-            await self.service.provider.aclose()
+            configured = getattr(
+                self.service,
+                "providers",
+                {self.service.provider.provider_id: self.service.provider},
+            )
+            closed: set[int] = set()
+            for provider in configured.values():
+                if id(provider) in closed:
+                    continue
+                closed.add(id(provider))
+                await provider.aclose()
+            if self.strong_brain_service is not None:
+                strong_provider = (
+                    self.strong_brain_service.interaction_service.provider
+                )
+                if id(strong_provider) not in closed:
+                    await strong_provider.aclose()
+            if self.diary_intelligence_service is not None:
+                diary_provider = self.diary_intelligence_service.provider
+                if id(diary_provider) not in closed:
+                    await diary_provider.aclose()
         finally:
             self.repository.close()
 
@@ -230,7 +273,19 @@ def attest_self_hosted_runtime(
     return attestation
 
 
-def _self_hosted_provider(settings: Settings) -> OpenAICompatibleProvider:
+LOCAL_PRIVACY_PROVIDER_ID = "self-hosted-openai-compatible"
+LOCAL_PRIVACY_MODEL_VERSION_ID = "model-qwen3-8b-gguf-q4-k-m-7c41481f"
+LOCAL_PRIVACY_MODEL_ARTIFACT_HASH = (
+    "sha256:d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785"
+)
+
+
+def _self_hosted_provider(
+    settings: Settings,
+    *,
+    provider_id: str | None = None,
+    require_unadapted_qwen3_8b: bool = False,
+) -> OpenAICompatibleProvider:
     model = _read_manifest(settings.self_hosted_model_manifest, artifact_kind="model")
     engine = _read_manifest(
         settings.self_hosted_engine_manifest,
@@ -260,6 +315,22 @@ def _self_hosted_provider(settings: Settings) -> OpenAICompatibleProvider:
         model_revision, engine_tag, engine_commit
     )):
         raise ValueError("self-hosted manifests require exact upstream revisions")
+    if require_unadapted_qwen3_8b:
+        if (
+            model.get("manifest_id") != LOCAL_PRIVACY_MODEL_VERSION_ID
+            or model_hash != LOCAL_PRIVACY_MODEL_ARTIFACT_HASH
+        ):
+            raise ValueError(
+                "local privacy route requires the exact approved Qwen3-8B base artifact"
+            )
+        if (
+            settings.runtime_adapter_version is not None
+            or settings.runtime_adapter_hash is not None
+            or settings.self_hosted_adapter_manifest is not None
+        ):
+            raise ValueError(
+                "local privacy route forbids every HAVRE adapter binding"
+            )
     runtime_attestation = attest_self_hosted_runtime(settings, write=True)
     if (
         runtime_attestation.active_adapter_version_id
@@ -278,13 +349,13 @@ def _self_hosted_provider(settings: Settings) -> OpenAICompatibleProvider:
         serving_engine="llama.cpp",
         serving_engine_version=f"{engine_tag}@{engine_commit}",
         serving_config_version=content_hash(profile),
-        provider_id=settings.provider_id,
+        provider_id=provider_id or settings.provider_id,
         model_artifact_hash=model_hash,
         adapter_version_id=settings.runtime_adapter_version,
         adapter_artifact_hash=settings.runtime_adapter_hash,
         api_key=settings.self_hosted_api_key,
-        max_context_tokens=int(profile["context_tokens"]),
-        max_output_tokens=min(4096, int(profile["context_tokens"])),
+        max_context_tokens=llama_context_tokens_per_slot(profile),
+        max_output_tokens=min(4096, llama_context_tokens_per_slot(profile)),
         health_path=str(api["health_path"]),
         version_path="/props",
         completions_path=str(api["chat_completions_path"]),
@@ -300,12 +371,97 @@ def _build_provider(settings: Settings) -> ModelProvider:
             active_adapter_artifact_hash=settings.runtime_adapter_hash,
         )
     if settings.provider_id == "self-hosted-openai-compatible":
-        return _self_hosted_provider(settings)
+        return _self_hosted_provider(
+            settings,
+            provider_id=LOCAL_PRIVACY_PROVIDER_ID,
+        )
     if settings.provider_id == "stage9a-candidate-local":
         from mlsys.serving.stage9a_candidate import build_stage9a_candidate_provider
 
         return build_stage9a_candidate_provider(settings)
+    if settings.provider_id == "openai-codex-chatgpt":
+        from mlsys.serving.codex_cli import (
+            CODEX_OWNER_AUTOMATIC_AUTHORIZATION_REF,
+        )
+
+        assert settings.codex_cli_path is not None
+        return CodexCliProvider(
+            executable=settings.codex_cli_path,
+            enabled=True,
+            explicit_authorization_ref=CODEX_OWNER_AUTOMATIC_AUTHORIZATION_REF,
+            reasoning_effort=settings.codex_reasoning_effort,
+        )
     raise ValueError(f"unknown HAVRE provider_id {settings.provider_id!r}")
+
+
+def _manual_strong_brain_enabled(settings: Settings) -> bool:
+    """Require an explicit runtime gate in addition to a configured secret."""
+
+    return bool(
+        settings.manual_strong_brain_enabled
+        and settings.deepseek_api_key is not None
+        and settings.deepseek_api_key.strip()
+    )
+
+
+def _build_reply_composition(
+    settings: Settings,
+    *,
+    provider: ModelProvider,
+    providers: dict[str, ModelProvider],
+) -> tuple[
+    ContextBuilder,
+    dict[str, ContextBuilder],
+    Stage1Router | PrivacyClassRouter,
+    dict[str, Any],
+]:
+    """Build the exact provider-specific Context and request-binding boundary."""
+
+    owner_example_bank = (
+        None
+        if settings.owner_example_bank_path is None
+        else load_owner_example_bank(
+            settings.owner_example_bank_path,
+            owner_id=settings.owner_id,
+        )
+    )
+    context_builder = ContextBuilder(
+        max_input_tokens=settings.context_token_budget,
+        reserved_output_tokens=settings.reserved_output_tokens,
+        owner_timezone=settings.owner_timezone,
+        owner_example_bank=owner_example_bank,
+    )
+    context_builders = {provider.provider_id: context_builder}
+    request_binders: dict[str, Any] = {}
+    if settings.provider_id != "openai-codex-chatgpt":
+        return context_builder, context_builders, Stage1Router(), request_binders
+
+    from mlsys.serving.codex_cli import (
+        CODEX_CLI_PROVIDER_ID,
+        bind_codex_cli_request,
+    )
+
+    local_provider = providers[LOCAL_PRIVACY_PROVIDER_ID]
+    local_output_tokens = min(
+        settings.local_reserved_output_tokens,
+        local_provider.max_output_tokens,
+    )
+    context_builders[LOCAL_PRIVACY_PROVIDER_ID] = ContextBuilder(
+        max_input_tokens=local_provider.max_context_tokens,
+        reserved_output_tokens=local_output_tokens,
+        owner_timezone=settings.owner_timezone,
+        owner_example_bank=None,
+    )
+    request_binders[CODEX_CLI_PROVIDER_ID] = partial(
+        bind_codex_cli_request,
+        reasoning_effort=settings.codex_reasoning_effort,
+    )
+    router = PrivacyClassRouter(
+        cloud_provider_id=CODEX_CLI_PROVIDER_ID,
+        local_provider_id=LOCAL_PRIVACY_PROVIDER_ID,
+        approved_cloud_provider_ids=frozenset({CODEX_CLI_PROVIDER_ID}),
+    )
+    return context_builder, context_builders, router, request_binders
 
 
 def build_runtime(settings: Settings, *, migrate: bool = True) -> Runtime:
@@ -322,13 +478,29 @@ def build_runtime(settings: Settings, *, migrate: bool = True) -> Runtime:
     )
     try:
         provider = _build_provider(settings)
+        providers: dict[str, ModelProvider] = {provider.provider_id: provider}
+        if settings.provider_id == "openai-codex-chatgpt":
+            local_provider = _self_hosted_provider(
+                settings,
+                provider_id=LOCAL_PRIVACY_PROVIDER_ID,
+                require_unadapted_qwen3_8b=True,
+            )
+            providers[local_provider.provider_id] = local_provider
     except Exception:
         repository.close()
         raise
-    runtime_attestation = getattr(provider, "runtime_attestation", None)
-    if runtime_attestation is not None:
-        repository.register_runtime_attestation(runtime_attestation)
-    embedding_provider = DeterministicEmbeddingProvider()
+    for configured_provider in providers.values():
+        runtime_attestation = getattr(
+            configured_provider, "runtime_attestation", None
+        )
+        if runtime_attestation is not None:
+            repository.register_runtime_attestation(runtime_attestation)
+    if settings.memory_encoder_root is not None:
+        from companion.memory.semantic import LocalSemanticEmbeddingProvider
+        embedding_provider = LocalSemanticEmbeddingProvider(settings.memory_encoder_root)
+        repository.memory_encoder = embedding_provider
+    else:
+        embedding_provider = DeterministicEmbeddingProvider()
     memory_service = MemoryService(
         repository=repository,
         embedding_provider=embedding_provider,
@@ -349,6 +521,10 @@ def build_runtime(settings: Settings, *, migrate: bool = True) -> Runtime:
     )
     current_state_service = CurrentStateService(repository=repository)
     goal_service = GoalService(repository=repository)
+    commitment_broker = CommitmentBroker(
+        repository=repository,
+        owner_id=settings.owner_id,
+    )
     scene_service = SceneService(
         store=ScenePostgresStore(
             repository=repository,
@@ -365,6 +541,7 @@ def build_runtime(settings: Settings, *, migrate: bool = True) -> Runtime:
             if settings.privileged_database_url is None
             else lambda: _open_repository(settings.privileged_database_url)
         ),
+        improvement_review_root=settings.owner_improvement_review_root,
     )
     if (
         release_manifest is not None
@@ -380,6 +557,12 @@ def build_runtime(settings: Settings, *, migrate: bool = True) -> Runtime:
         repository=repository,
         owner_id=settings.owner_id,
         identity=identity,
+        commitment_broker=commitment_broker,
+        relational_initiative_enabled=settings.relational_initiative_enabled,
+    )
+    proactive_evaluator = ProactiveTriggerEvaluator(
+        store=proactive_store,
+        owner_timezone=settings.owner_timezone,
     )
     offline_store = Stage7PostgresStore(
         repository=repository,
@@ -397,24 +580,168 @@ def build_runtime(settings: Settings, *, migrate: bool = True) -> Runtime:
         repository=repository,
         owner_id=settings.owner_id,
         device_secret_resolver=resolve_context_device_secret,
+        owner_timezone=settings.owner_timezone,
+    )
+    daily_companion_store = DailyCompanionStore(
+        repository=repository,
+        owner_id=settings.owner_id,
+    )
+    diary_intelligence_service = None
+    chat_goal_planner = None
+    conversation_continuation_service = None
+    if settings.provider_id == "openai-codex-chatgpt":
+        from mlsys.serving.codex_cli import (
+            CODEX_OWNER_AUTOMATIC_AUTHORIZATION_REF,
+        )
+
+        assert settings.codex_cli_path is not None
+        diary_intelligence_service = DiaryIntelligenceService(
+            repository=repository,
+            owner_id=settings.owner_id,
+            identity=identity,
+            provider=CodexCliProvider(
+                executable=settings.codex_cli_path,
+                enabled=True,
+                explicit_authorization_ref=CODEX_OWNER_AUTOMATIC_AUTHORIZATION_REF,
+                reasoning_effort="high",
+            ),
+            embedding_provider=embedding_provider,
+            timeout_ms=max(settings.inference_timeout_ms, 120_000),
+            review_root=settings.owner_improvement_review_root,
+            proactive_store=proactive_store,
+        )
+        from companion.product.chat_goals import ExplicitChatGoalPlanner
+
+        chat_goal_planner = ExplicitChatGoalPlanner(
+            repository=repository,
+            owner_id=settings.owner_id,
+            provider=diary_intelligence_service.provider,
+            goal_service=goal_service,
+            proactive_store=proactive_store,
+            owner_timezone=settings.owner_timezone,
+            timeout_ms=max(settings.inference_timeout_ms, 120_000),
+        )
+        if settings.relational_initiative_enabled:
+            from companion.product.relationship import (
+                ConversationContinuationService,
+            )
+
+            legacy_local_continuation_provider = providers.get(
+                LOCAL_PRIVACY_PROVIDER_ID
+            )
+            if legacy_local_continuation_provider is None:
+                raise RuntimeError(
+                    "relational initiative requires the legacy attested local provider"
+                )
+            conversation_continuation_service = ConversationContinuationService(
+                repository=repository,
+                owner_id=settings.owner_id,
+                provider=diary_intelligence_service.provider,
+                legacy_local_provider=legacy_local_continuation_provider,
+                proactive_store=proactive_store,
+                commitment_broker=commitment_broker,
+                timeout_ms=max(settings.inference_timeout_ms, 120_000),
+            )
+    web_push_provider = WebPushDeliveryProvider(
+        repository=repository,
+        owner_id=settings.owner_id,
+        public_base_url=settings.public_base_url,
+        vapid_private_key=settings.web_push_vapid_private_key,
+        vapid_public_key=settings.web_push_vapid_public_key,
+        vapid_key_version=settings.web_push_vapid_key_version,
+        vapid_subject=settings.web_push_vapid_subject,
+        enabled=settings.web_push_enabled,
+        tailnet_attestor=(
+            None
+            if settings.tailscale_cli_path is None or settings.public_base_url is None
+            else TailscaleServeAttestor(
+                executable=settings.tailscale_cli_path,
+                origin=settings.public_base_url,
+                cache_seconds=0,
+            )
+        ),
+    )
+    (
+        context_builder,
+        context_builders,
+        router,
+        request_binders,
+    ) = _build_reply_composition(
+        settings,
+        provider=provider,
+        providers=providers,
     )
     service = InteractionService(
         owner_id=settings.owner_id,
         identity=identity,
         repository=repository,
-        context_builder=ContextBuilder(
-            max_input_tokens=settings.context_token_budget,
-            reserved_output_tokens=settings.reserved_output_tokens,
-        ),
-        router=Stage1Router(),
+        context_builder=context_builder,
+        context_builders=context_builders,
+        router=router,
         provider=provider,
+        providers=providers,
         retrieval_service=retrieval_service,
+        ambient_context_selector=context_store.select_calendar_context,
+        request_binders=request_binders,
         inference_timeout_ms=settings.inference_timeout_ms,
+        commitment_broker=commitment_broker,
+        chat_goal_planner=chat_goal_planner,
+        conversation_continuation_service=conversation_continuation_service,
     )
+    strong_brain_service = None
+    if _manual_strong_brain_enabled(settings):
+        from mlsys.serving.deepseek_cloud import (
+            DEEPSEEK_PROVIDER_ID,
+            OWNER_MANUAL_AUTHORIZATION_REF,
+        )
+
+        strong_provider = DeepSeekCloudProvider(
+            enabled=True,
+            explicit_authorization_ref=OWNER_MANUAL_AUTHORIZATION_REF,
+            mode="owner_manual",
+            thinking="enabled",
+            reasoning_effort="high",
+            manual_permit_validator=lambda request: (
+                repository.manual_cloud_request_permitted(
+                    owner_id=settings.owner_id, request=request
+                )
+            ),
+        )
+        # DeepSeek thinking and final-answer tokens share one output budget. Keep
+        # the Local input allowance while using the already-evidenced 4096-token
+        # thinking/high budget instead of Local's 256-token reply reserve.
+        strong_input_allowance = (
+            settings.context_token_budget - settings.reserved_output_tokens
+        )
+        strong_interaction = InteractionService(
+            owner_id=settings.owner_id,
+            identity=identity,
+            repository=repository,
+            context_builder=ContextBuilder(
+                max_input_tokens=(
+                    strong_input_allowance + MANUAL_STRONG_RESERVED_OUTPUT_TOKENS
+                ),
+                reserved_output_tokens=MANUAL_STRONG_RESERVED_OUTPUT_TOKENS,
+            ),
+            router=Stage1Router(
+                approved_cloud_provider_ids=frozenset({DEEPSEEK_PROVIDER_ID})
+            ),
+            provider=strong_provider,
+            retrieval_service=retrieval_service,
+            response_policy=service.response_policy,
+            inference_timeout_ms=max(settings.inference_timeout_ms, 120_000),
+            manual_strong_only=True,
+        )
+        strong_brain_service = ManualStrongBrainService(
+            owner_id=settings.owner_id,
+            repository=repository,
+            interaction_service=strong_interaction,
+        )
     feedback_service = FeedbackService(
         repository=repository,
         owner_id=settings.owner_id,
     )
+    from companion.memory.intelligence import RealtimeMemoryService
     return Runtime(
         settings=settings,
         repository=repository,
@@ -426,12 +753,21 @@ def build_runtime(settings: Settings, *, migrate: bool = True) -> Runtime:
         consolidation_service=consolidation_service,
         current_state_service=current_state_service,
         goal_service=goal_service,
+        commitment_broker=commitment_broker,
         scene_service=scene_service,
         proactive_store=proactive_store,
+        proactive_evaluator=proactive_evaluator,
         offline_store=offline_store,
         operations_store=operations_store,
         context_store=context_store,
         feedback_service=feedback_service,
+        daily_companion_store=daily_companion_store,
+        diary_intelligence_service=diary_intelligence_service,
+        realtime_memory_service=(None if diary_intelligence_service is None else RealtimeMemoryService(
+            understanding=diary_intelligence_service,timezone_name=settings.owner_timezone)),
+        conversation_continuation_service=conversation_continuation_service,
+        web_push_provider=web_push_provider,
+        strong_brain_service=strong_brain_service,
         erasure_ledger=erasure_ledger,
         release_manifest=release_manifest,
     )

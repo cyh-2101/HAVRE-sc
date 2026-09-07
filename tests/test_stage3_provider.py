@@ -429,6 +429,18 @@ class OpenAICompatibleProviderTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(raised.exception.provider_status_code)
         self.assertNotIn("provider internals", str(raised.exception))
 
+    async def test_unread_streaming_http_error_keeps_context_limit_code(self) -> None:
+        class ErrorBody(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                yield b'{"error":{"type":"exceed_context_size_error","message":"request (4692 tokens) exceeds the available context size (4096 tokens)"}}'
+        async def handler(_request):
+            return httpx.Response(400, stream=ErrorBody())
+        provider = self._provider(handler)
+        events = [event async for event in provider.stream(self._request(stream=True))]
+        self.assertEqual(events[-1].event, 'response_failed')
+        self.assertEqual(events[-1].failure.code, 'context_limit_exceeded')
+        self.assertNotIn('4692', events[-1].failure.safe_message)
+
     async def test_injected_http_client_is_not_closed_by_provider(self) -> None:
         client = httpx.AsyncClient(
             transport=httpx.MockTransport(lambda _request: httpx.Response(500)),
@@ -777,6 +789,7 @@ class OpenAICompatibleProviderTests(unittest.IsolatedAsyncioTestCase):
                         expected_provider_id="self-hosted-openai-compatible",
                         expected_provider_class="self_hosted",
                         expected_model_version_id="havre-model-v1",
+                        expected_adapter_version_id=None,
                         expected_provider_adapter_version_id=(
                             "openai-compatible-provider-adapter-v1"
                         ),
@@ -792,6 +805,7 @@ class OpenAICompatibleProviderTests(unittest.IsolatedAsyncioTestCase):
                 expected_provider_id="self-hosted-openai-compatible",
                 expected_provider_class="self_hosted",
                 expected_model_version_id="havre-model-v1",
+                expected_adapter_version_id=None,
                 expected_provider_adapter_version_id=(
                     "openai-compatible-provider-adapter-v1"
                 ),
@@ -815,6 +829,7 @@ class OpenAICompatibleProviderTests(unittest.IsolatedAsyncioTestCase):
                 expected_provider_id="self-hosted-openai-compatible",
                 expected_provider_class="self_hosted",
                 expected_model_version_id="havre-model-v1",
+                expected_adapter_version_id=None,
                 expected_provider_adapter_version_id=(
                     "openai-compatible-provider-adapter-v1"
                 ),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, time
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID
@@ -32,6 +33,8 @@ class TriggerSourceKind(StrEnum):
     BELIEF_CONFIRMATION = "belief_confirmation"
     SYSTEM_OPERATIONAL = "system_operational"
     SYNTHETIC_LIFE_CONTEXT = "synthetic_life_context"
+    MEMORY = "memory"
+    CONVERSATION = "conversation"
 
 
 class InterruptionOutcome(StrEnum):
@@ -81,7 +84,16 @@ class TriggerRecord(StrictModel):
 class QuietHours(StrictModel):
     start_local: time
     end_local: time
-    timezone_name: Literal["UTC"] = "UTC"
+    timezone_name: str = Field(default="UTC", min_length=1, max_length=80)
+
+    @field_validator("timezone_name")
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as error:
+            raise ValueError("quiet-hours timezone must be an IANA timezone") from error
+        return value
 
 
 class ProactivePreferenceRevision(StrictModel):
@@ -101,6 +113,7 @@ class ProactivePreferenceRevision(StrictModel):
     global_budget_per_24h: int | None = Field(default=None, gt=0, le=24)
     category_budget_per_24h: dict[str, int] = Field(default_factory=dict)
     cooldown_seconds: int | None = Field(default=None, ge=60, le=2_592_000)
+    generic_push_for_local_only: bool = False
     stopped_subject_refs: tuple[str, ...] = ()
     authorization_ref: str | None = Field(default=None, max_length=500)
     simulation_only: Literal[True] = True
@@ -257,7 +270,9 @@ class RenderedProactiveMessage(StrictModel):
     interruption_decision_id: UUID
     proactive_context_pack_id: UUID
     renderer_kind: Literal["deterministic_template"] = "deterministic_template"
-    renderer_version: Literal["proactive-template-v1"] = "proactive-template-v1"
+    renderer_version: Literal[
+        "proactive-template-v1", "proactive-natural-template-v2"
+    ] = "proactive-natural-template-v2"
     content_text: str = Field(min_length=1, max_length=500)
     preview_policy: PreviewPolicy
     preview_text: str | None = Field(default=None, max_length=200)
@@ -383,6 +398,32 @@ class ProactiveOwnerAction(StrictModel):
         return self
 
 
+class ProactiveSourceGuard(StrictModel):
+    """Execution-time binding from queued work to one exact durable source."""
+
+    source_event_id: UUID
+    source_event_content_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    projection_kind: Literal["none", "goal", "scene"] = "none"
+    projection_id: UUID | None = None
+    projection_revision: int | None = Field(default=None, gt=0)
+    projection_content_hash: str | None = Field(
+        default=None, pattern=r"^sha256:[0-9a-f]{64}$"
+    )
+
+    @model_validator(mode="after")
+    def validate_projection_binding(self) -> "ProactiveSourceGuard":
+        projection_values = (
+            self.projection_id,
+            self.projection_revision,
+            self.projection_content_hash,
+        )
+        if self.projection_kind == "none":
+            if any(value is not None for value in projection_values):
+                raise ValueError("event-only source guard cannot bind a projection")
+        elif any(value is None for value in projection_values):
+            raise ValueError("projection source guard requires ID, revision, and hash")
+        return self
+
 class ProactiveWorkCommand(StrictModel):
     schema_version: Literal[1] = 1
     trigger_type: str = Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")
@@ -400,6 +441,11 @@ class ProactiveWorkCommand(StrictModel):
     earliest_eligible_at: datetime
     expires_at: datetime
     deduplication_key: str = Field(min_length=1, max_length=240)
+    trigger_source_version: str = Field(
+        default="stage6-fixture-trigger-v1",
+        pattern=r"^[a-z][a-z0-9_.-]{2,127}$",
+    )
+    source_guard: ProactiveSourceGuard | None = None
     traceparent: str | None = None
     simulation_only: Literal[True] = True
 

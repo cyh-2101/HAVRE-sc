@@ -148,8 +148,11 @@
       "type": "string"
     },
     "renderer_version": {
-      "const": "proactive-template-v1",
-      "default": "proactive-template-v1",
+      "default": "proactive-natural-template-v2",
+      "enum": [
+        "proactive-template-v1",
+        "proactive-natural-template-v2"
+      ],
       "title": "Renderer Version",
       "type": "string"
     },

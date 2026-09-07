@@ -194,7 +194,7 @@ async def _run(
 
     _progress("run_live_inference_benchmark")
     systems, compatibility = await run_live_inference_benchmark(
-        settings=Settings.from_env(),
+        settings=Settings.from_env(require_owner_api_token=False),
         output_directory=output_directory,
         code_revision="3" * 40,
         provider_factory=provider_factory,

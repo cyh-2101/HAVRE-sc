@@ -1,16 +1,35 @@
 from __future__ import annotations
 
 import unittest
+import sys
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 from uuid import uuid4
 
 from mlsys.serving.stage9a_candidate import build_stage9a_candidate_provider
 from mlsys.serving.stage9a_candidate_server import _messages
-from services.api.cli import run_owner_chat_loop
+from services.api.cli import main, run_owner_chat_loop
 
 
 class Stage9ACandidateBoundaryTests(unittest.TestCase):
+    def test_candidate_attestation_is_offline_and_does_not_require_owner_auth(self) -> None:
+        settings = SimpleNamespace(self_hosted_base_url="http://127.0.0.1:8081")
+        attestation = SimpleNamespace(model_dump_json=lambda **_kwargs: "{}")
+        with (
+            patch.object(sys, "argv", ["havre", "attest-candidate-runtime"]),
+            patch("services.api.cli.Settings.from_env", return_value=settings) as load,
+            patch(
+                "mlsys.serving.stage9a_candidate.attest_stage9a_candidate_runtime",
+                return_value=attestation,
+            ),
+        ):
+            main()
+        load.assert_called_once_with(
+            require_owner_api_token=False,
+            enable_erasure_ledger=True,
+        )
+
     def test_candidate_provider_is_development_only(self) -> None:
         settings = SimpleNamespace(
             deployment_environment="production",

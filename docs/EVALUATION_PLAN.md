@@ -1,8 +1,23 @@
 # Evaluation Plan
 
-Status: **Stage 6/7 second acceptance-correction evaluation technically verified at execution-source snapshot `sha256:8ba8b94632ae181c2966acc3d6c498d8f7a63337d2e8558629b47dd440386f9c`; pending Product Owner reacceptance**
+## Ordinary reply recovery regression (2026-09-05)
 
-Related decisions: [ADR-0010](adr/0010-evaluation-gated-releases.md), [ADR-0011](adr/0011-data-handling-policy.md), [ADR-0015](adr/0015-outcome-aware-evaluation.md), [ADR-0016](adr/0016-governed-core-authorizes-proactive-outreach.md), [ADR-0017](adr/0017-interruption-policy-and-user-control.md), [ADR-0018](adr/0018-provider-neutral-private-delivery.md), [ADR-0019](adr/0019-provider-neutral-ambient-life-context.md), [ADR-0020](adr/0020-experience-memory-lifecycle.md), and [ADR-0022](adr/0022-core-governed-response-delivery.md)
+`tests/test_interaction_recovery.py` uses the complete migrated disposable
+PostgreSQL database and a synthetic blocking provider. It covers AnyIO level
+cancellation (not just one `Task.cancel()`), a disconnected supervised viewer,
+the actual ASGI stream endpoint receiving `http.disconnect`, the task deadline,
+graceful task-manager shutdown, completed-request preservation, owner isolation,
+and cancellation during the initial chat-lease transaction,
+age cutoff, locked-row skipping, repeat-sweep idempotency, exact original-source
+policy/causation, chat-lease release, and rejection of late completion. The PWA
+contract additionally tests body-read timeout, pending-turn polling, failed-draft
+restoration, preservation of a different draft, and no implicit privacy or
+Memory-eligibility broadening on retry. These synthetic tests do not establish
+physical-iPhone background behavior or actual incident transport causation.
+
+Status: **Stage 6/7 second acceptance-correction evaluation is technically verified at execution-source snapshot `sha256:8ba8b94632ae181c2966acc3d6c498d8f7a63337d2e8558629b47dd440386f9c`; pending Product Owner reacceptance. ADR-0030's Stage 14B dual-provider route is implemented with current technical routing, isolation, lineage, failure, migration, and real-probe evidence; practical conversational usefulness remains unproven.**
+
+Related decisions: [ADR-0010](adr/0010-evaluation-gated-releases.md), [ADR-0011](adr/0011-data-handling-policy.md), [ADR-0015](adr/0015-outcome-aware-evaluation.md), [ADR-0016](adr/0016-governed-core-authorizes-proactive-outreach.md), [ADR-0017](adr/0017-interruption-policy-and-user-control.md), [ADR-0018](adr/0018-provider-neutral-private-delivery.md), [ADR-0019](adr/0019-provider-neutral-ambient-life-context.md), [ADR-0020](adr/0020-experience-memory-lifecycle.md), [ADR-0022](adr/0022-core-governed-response-delivery.md), [ADR-0029](adr/0029-default-chatgpt-codex-reply-provider.md), and [ADR-0030](adr/0030-data-policy-driven-dual-replyer-routing.md)
 Case contract: [`MLSYS_DESIGN.md`](MLSYS_DESIGN.md#11-evaluation-case-format)
 
 ## 1. Purpose
@@ -78,6 +93,18 @@ pipeline pass cannot promote a raw model that still fails the model-owned
 companion rubric, and a better companion score cannot offset a Core contract
 failure.
 
+For a Strong Cloud Brain ceiling comparison, first hold the current Identity,
+Context presentation, fixtures, and provider-facing prompt hash constant across
+local and cloud arms. Report raw and Core-governed outputs separately; blind the
+semantic review and score naturalness, usefulness, provenance truth, fabricated
+familiarity, forced callback, ignored relevant history, and current-message
+precedence. Thinking and non-thinking are separate arms, with output/reasoning
+budgets disclosed. Broader replay is conditional on a clear focused gain. If a
+frozen local report has a different system prompt, label the broader run an
+absolute regression and prohibit pure model attribution. Always report tokens,
+latency, final-answer TTFT, cost, privacy admission, Core replacements, and the
+unchanged lifecycle/routing boundary.
+
 ### 3.2 Behavioral quality
 
 Core categories from the Master Plan:
@@ -113,6 +140,198 @@ Rubric dimensions:
 | Concision by scene | During-scene guidance is low-bandwidth; before/after can be fuller |
 
 Each dimension uses a rubric with anchored examples, not just labels from 1 to 5.
+
+### 3.2A Conversation-quality calibration and candidate comparison
+
+The owner-visible unit is a complete multi-turn conversation, not an isolated
+answer and not a training loss. Before any new local model, prompt, presentation,
+or adapter can replace the daily baseline, the comparison must freeze the same
+case inputs and separately preserve this evidence chain:
+
+Stage 13 additionally applies
+[`STAGE13_PRACTICAL_UTILITY_GATE.md`](STAGE13_PRACTICAL_UTILITY_GATE.md).
+A candidate must reduce owner effort and yield an answer the owner would use;
+architecture completion or aggregate scores cannot compensate for an unusable
+result.
+
+1. latest user turn and preceding short-term dialogue;
+2. retrieved Memory candidates and their relevance decisions;
+3. pre-retrieval typed Turn Contract (Response Plan), Memory Gate decision,
+   admitted Context Pack, and final provider messages;
+4. raw provider completion and timing/token measurements;
+5. Core decision and exact owner-visible delivered response;
+6. blind review labels, reviewer identity/version, disagreement, and owner choice.
+
+The frozen suite must cover casual Talk, Guide, Prepare, and Reflect; multi-request
+turns; correction of a prior misunderstanding; an explicit short answer and a
+request needing enough detail; uncertainty; relevant, irrelevant, absent, stale,
+conflicting, and partial Memory; current-turn precedence; long-conversation
+continuity; requests for decision criteria versus one present recommendation; and
+the critical safety/privacy/structured-output cases already defined in this plan.
+Memory counterfactuals keep the latest user message and Turn Contract identical.
+
+Deterministic hard failures include a critical safety or privacy breach, fabricated
+Memory or familiarity, hidden/system disclosure, failure to answer a required
+part of the current request, loss of current-message precedence, unauthorized tool
+or disclosure behavior, failure of a required exact/structured output, truncation
+before a promised decision/deliverable, and an unsupported factual claim that
+changes the recommendation. A response the owner must discard and redo in a
+generic chat product also fails the practical-utility gate. These cannot be
+averaged away by warmer prose, greater length, faster inference, or a higher
+model-judge score.
+
+Nuanced review scores understanding/completeness, context continuity, naturalness,
+usefulness, restrained warmth, firm judgment, uncertainty, Memory appropriateness,
+verbosity fit, and identity consistency. Raw completion and delivered response are
+scored separately so Core containment is not credited to the Replyer. Automated
+markers are triage only. Candidate ordering and names are blinded for pairwise
+owner review. The current Codex GPT-5.6-sol engineering agent may supply an
+additional structured review only on PUBLIC synthetic or separately authorized
+redacted evidence. It is outside HAVRE's runtime, cannot review private raw history
+by default, and cannot approve its own proposal.
+
+The first calibration run establishes disagreement and an owner-reviewed baseline;
+it does not invent a numeric release threshold after seeing results. A replacement
+requires all hard gates to pass, no material regression on accepted capabilities,
+and a clear owner-visible preference across the frozen conversations. Training,
+promotion, routing, or deployment still needs its separately authorized gate.
+
+Iteration follows one causal change at a time: classify a failure as Turn Contract,
+Memory Gate/retrieval, Memory admission, presentation, base-model/Replyer, coverage,
+Core delivery, budget/latency, or evaluator error; change only the responsible layer; rerun the
+frozen cases plus a separately held unseen set; and preserve both regressions and
+improvements. A reviewer may propose a patch or new fixture, but no self-scoring
+loop may rewrite prompts, Memory, datasets, weights, or runtime bindings
+automatically.
+
+The initial protocol is instantiated by
+[`conversation_quality_calibration_v1.json`](../evals/fixtures/conversation_quality_calibration_v1.json).
+[`run_conversation_candidate_calibration.py`](../scripts/run_conversation_candidate_calibration.py)
+collects a hash-sealed PUBLIC raw-Replyer arm under ignored local runtime storage.
+That collector fixes the prompt inputs and preserves outputs/timing, but deliberately
+does not claim retrieval, durable ContextPack admission, Core delivery, semantic
+quality, owner preference, or release acceptance.
+
+Before a same-prompt arm is interpreted semantically, repeat it against the same
+provider-message hashes and generation settings. Record per-case exact-output
+agreement as evidence about reproducibility; if outputs differ, use multiple
+replicates and report the distribution instead of selecting a favorable sample.
+Exact repeatability is not assumed merely because a seed was sent. One three-run
+Qwen3-8B screen with matching provider-message hashes had exact raw-output
+agreement of 1/13, 1/13, and 13/13 for its three pairings. A later trio with live
+runtime-state and response-model binding was internally 13/13 exact, but matched
+only 1/13 outputs from the earlier alternate track despite identical prompt
+hashes. The active runtime used two parallel slots; an association is visible but
+slot causality was not established. Candidate conclusions therefore use repeated
+semantic failure/benefit counts, not one selected completion or an assumed
+deterministic seed. This observation does not establish behavior for other
+servers, models, settings, or concurrency profiles.
+
+### 3.2B Stage 14A ChatGPT desktop practical-use pilot
+
+Stage 14A compares ordinary ChatGPT desktop with the same host using the
+`havre-companion` MCP instructions/tools. It is not a model benchmark: model
+selection may be identical, and the causal variable is the PUBLIC HAVRE
+Identity plus deterministic current-turn planning.
+
+Use representative owner conversations covering ordinary talk, a multi-part
+request, a present decision, a request that needs detail, a request for
+brevity, and a reference whose missing history matters. Record only owner
+ratings unless the owner separately authorizes retaining conversation content.
+For each arm capture: would use the answer, needed restatement/correction,
+missed obligations, fabricated familiarity, verbosity fit, and clear
+preference. Randomize order where practical.
+
+Hard failures are private HAVRE content appearing in a tool result, OA70 use,
+an unauthorized write/effect, invented access to HAVRE history, or a response
+that omits a material current request. MCP initialization and tool success do
+not pass this gate. Stage 14B may be proposed only if Stage 14A is meaningfully
+preferred and the remaining need is specifically governed long-term
+continuity rather than general answer quality.
+
+### 3.2C Stage 14B dual owner-local Replyer
+
+ADR-0029 changes the eligible owner-local daily GPT Replyer, not Identity,
+Memory, or Core authority. Its GPT branch still requires exact
+authorization/request binding, cloud-eligible PUBLIC/NORMAL-only admission,
+rejection of PRIVATE/HIGHLY_PRIVATE/LOCAL_ONLY, stdin-only transfer, minimized
+environment, no tool events, captured final reply lineage, no assistant Event
+on failure, and a durable Core-governed assistant Event on success.
+
+ADR-0030 adds a local branch without expanding cloud eligibility. The implemented
+technical boundary uses a versioned multi-provider RouteDecision and the exact
+matrix:
+
+| Effective ContextPack | Expected route |
+|---|---|
+| PUBLIC/NORMAL, cloud eligible | GPT-5.6-sol |
+| PUBLIC/NORMAL, cloud ineligible | unadapted local Qwen3-8B |
+| PRIVATE/HIGHLY_PRIVATE/LOCAL_ONLY | unadapted local Qwen3-8B |
+
+The matrix is exercised on the completed effective ContextPack, not only the
+current message label. Tests include mixed-policy packs, every privacy class,
+both cloud-eligibility states where the contract permits them, capacity limits,
+provider health, and exact selected/excluded reason codes. PRIVATE,
+HIGHLY_PRIVATE, and LOCAL_ONLY cases require negative proof that no Codex process
+ran. Local failure or context overflow also requires zero cloud calls; the first
+implementation performs no silent failure fallback in either direction.
+
+Provider-specific binding is a hard gate: only the GPT request may contain the
+Codex authorization, data-boundary, and request-hash metadata. Local lineage must
+match the pinned model artifact, llama.cpp process attestation, and null adapter
+fields. Idempotent replay must retain the original route without a second model
+call. A failure on either branch creates a typed failure and no assistant Event.
+
+Current technical probes exercise the authenticated owner-local Codex CLI
+GPT-5.6-sol branch and the exact unadapted local Qwen3-8B branch through the same
+ResponsePlan, retrieval, ContextPack, Core, and durable Event pipeline. They also
+cover the privacy/cloud matrix, mixed-policy packs, negative excluded-provider
+call counts, provider failure, local overflow, idempotent replay, and durable
+lineage. These probes establish mechanics only; they do not establish that either
+branch gives an answer the owner would choose to use.
+
+Operational evidence records Codex CLI version, selected model alias, provider
+usage, local artifact/runtime/attestation identity, selected route, eligible and
+excluded providers, end-to-end latency, failure code, and
+ContextPack/provider-message hashes. The GPT model alias is not evidence of
+immutable weights. A current GPT probe reported 11,824 prompt tokens; the earlier
+GPT-only probe reported 10,818. They are separate observations rather than fixed
+overhead or a capacity guarantee, so review includes latency and account burden
+rather than prose quality alone. The local 8,192-token total-context value is the
+authorized llama.cpp runtime-profile cap, not the intrinsic capacity of Qwen3-8B;
+a compatible Context/output budget and its boundary failure require direct
+evidence.
+
+Web evidence proves NORMAL is the ordinary default, an explicit only-local
+choice exists, the old per-response Strong Brain/Strong UX choice is retired,
+stale cached JavaScript cannot retain the old policy, and the UI reports the
+provider actually used. A stricter turn followed by a NORMAL turn
+must never leak stricter history; evaluation records whether continuity remains
+local or an owner-visible cloud-safe context boundary excludes it. No automatic
+semantic sensitivity classifier is credited or activated by these route tests.
+
+The practical gate is repeated owner use: less restatement/correction, complete
+multi-part understanding, appropriate length, natural relevant-Memory use,
+zero fabricated familiarity, and a result the owner will actually use. The GPT
+branch may be compared with ordinary ChatGPT; the local privacy branch is judged
+locally and is never exported merely for comparison. Green transport or routing
+tests cannot pass that gate.
+
+ADR-0031 plus ADR-0035's explicit owner-local implementation authorization
+prompt-expose OA70 cases 1-70. They are calibration examples, not independent
+test cases, and every case must be excluded from any claim that the runtime
+generalizes. Reports must disclose this complete contamination and may not
+describe OA70 as a clean holdout. The immediate regression matrix also covers
+acknowledgement brevity, ordinary sharing without an unsolicited plan,
+authoritative owner-local time, active-session isolation, explicit-reference
+cross-session fallback, zero-to-three relevant examples, and medium-effort
+request binding. These mechanical passes do not close the owner utility gate.
+
+A proactive GPT realizer is a separate causal component. The deterministic
+trigger/interruption decision precedes generation, and Core acceptance precedes
+delivery. Compare deterministic templates with GPT drafts while holding send
+authority fixed. A model critic may add proposal-only evidence but cannot be the
+only send gate.
 
 ### 3.3 Safety, boundaries, and privacy
 
@@ -204,6 +423,21 @@ Metrics:
 Gold judgments may label a memory `essential`, `helpful`, `irrelevant`, `harmful/stale`, or `should_not_surface`. “Should not surface” catches intimate but semantically similar memories whose use would be inappropriate.
 
 Stage 2 activates this protocol through checked-in `retrieval-gold-v1`: 7 synthetic memories with owner-reviewed importance, 5 manually reviewed queries, R0 recency, legacy ungated R1, and default gated R1 v2 variants, persisted per-case results/exclusions, Recall@5/10, MRR, wrong/stale/duplicate/should-not-surface rates, provenance completeness, error rate, and p50/p95 latency. The v2 gate adds an explicit empty-result behavior, minimum relevance, and duplicate suppression; Context Builder rejects ungated candidates. The measured checkpoint is in [`STAGE2_CHECKPOINT.md`](STAGE2_CHECKPOINT.md).
+
+### 3.5A Relevant-Memory use evaluation
+
+Generation quality after successful retrieval/admission is evaluated separately
+from retrieval quality. A focused suite must preserve the same user message across
+`relevant`, `irrelevant`, `none`, `stale_conflicting`, and `partial` variants; include
+multi-Memory cases where only one item is useful; and retain no-Memory casual
+regression. Review dimensions are naturalness, usefulness, provenance truth,
+fabricated familiarity, forced callback, ignored relevant history, and
+current-message precedence. Automated keyword/length/language checks are only a
+surface/property screen and must declare semantic review required. Training data,
+development diagnostics, and post-plan unseen cases remain physically and
+hash-separately bound; exact text overlap is tested. The current focused protocol and
+its non-acceptance result are in
+[`RELEVANT_MEMORY_USE_MILESTONE_CHECKPOINT.md`](RELEVANT_MEMORY_USE_MILESTONE_CHECKPOINT.md).
 
 ### 3.6 Context Builder evaluation
 
@@ -353,6 +587,15 @@ Compare each router with an always-strongest-eligible baseline:
 - fallback success/failure;
 - latency and cost changes;
 - calibration of predicted versus observed quality/latency/cost.
+
+For ADR-0030, additionally report the full privacy/cloud truth table, effective
+pack policy rather than current-message policy alone, provider-specific binding,
+exact local attestation/adapter-null status, Codex and local call counts, context
+capacity rejection, idempotent replay, and stricter-history behavior when a
+session returns to NORMAL. The critical privacy target is zero cloud calls for
+PRIVATE/HIGHLY_PRIVATE/LOCAL_ONLY and for any cloud-ineligible pack, including
+all provider-failure and overflow paths. Do not average a critical wrong-cloud
+route into an aggregate accuracy score.
 
 One aggregate route-accuracy number is insufficient: routing a deep or safety-sensitive case to an incapable model is more severe than over-routing a trivial query.
 
@@ -583,7 +826,60 @@ When metrics conflict, present a trade-off report. Do not collapse quality, late
 - limited/shadow checks, deployment health, rollback drills, and longitudinal product evidence;
 - Stage 11 iPhone/user-initiated voice capability conformance and Stage 12 Windows/Calendar/location/wearable adapter evaluation one capability at a time.
 
+### Stage 15
+
+ADR-0037 corrections require real-time completed-turn queueing, GPT-high binding,
+private/cross-owner direct-SQL rejection, concurrent claim, retry backoff,
+erasure-during-inference fencing, and 04:59/05:00 source-boundary tests. Semantic
+retrieval evidence must distinguish ranking from final provider-visible input and
+report paraphrase misses and distractor admissions. PWA contract tests do not prove
+physical iPhone lockscreen latency or real-owner conversational usefulness.
+
+- exact source-hash, authorization, five-field allowlist, and forbidden-source
+  disclosure tests;
+- unique/ambiguous/absent completion counterfactuals with immutable transition
+  evidence and stale-reminder cancellation;
+- conversation-fusion inclusion, omission, inference-failure, and arrival-race
+  cases separated from standalone Web-inbox delivery;
+- atomic replacement-generation tests proving the new queue exists before the
+  exact source's legacy pending generation is cancelled, leased work blocks,
+  sent history is preserved, and an exact rerun is idempotent;
+- direct PostgreSQL source-erasure probes for a schedule source and a completion
+  report source, plus zero-row integrity view and full provenance audit.
+- migrations 0060-0063 direct-SQL attacks for wrong hash, mismatched turn pair,
+  LOCAL_ONLY source, wrong first-beat timing, a second beat without a delivered
+  first beat, illegal status transition, immutable exact-source fields, and a
+  local result forged under the GPT authorization;
+- exact one-minute first-beat timing, delivery-relative 30-minute second-beat
+  timing, per-beat expiry, reply-before-plan, reply-before-delivery, two-beat stop,
+  active-chat deferral, exact GPT/high receipt, preserved historical-local receipt,
+  no silent fallback, and two-run source erasure;
+- relationship cadence counterfactuals for 24-hour then 72-hour spacing,
+  three-touch pause, owner-message reset, and Goal-reminder exclusion;
+- stable per-Goal/per-day reminder jitter, same-day deduplication, current-revision
+  and completion cancellation, and no interruption of an active conversation;
+- multiple simultaneously eligible Goals proving the supplemental scheduler creates
+  at most one daily item while exact scheduled reminders remain independent;
+- owner-facing preference tests proving important reminders and friendly check-ins
+  can be enabled or disabled independently and stale product claims are absent;
+- owner-visible non-delivering wording review before the default-false candidate
+  can be activated; test correctness is not evidence that outreach feels caring.
+
 Stage 8 unifies and operationalizes evaluation; it does not postpone evaluation until Stage 8.
+
+### Reply-route recovery regression (2026-09-05)
+
+- A completed daily review with NORMAL privacy but cloud_eligible=false must remain
+  a review artifact; the next eligible NORMAL turn still uses GPT. Assert the review
+  and its policy are unchanged, private/local text stays absent from the GPT request,
+  and neither cloud nor local personal-context selection injects review flags.
+- A real unread HTTP streaming error body identifying context overflow must produce
+  the safe typed context_limit_exceeded failure, not generic invalid_request or raw
+  provider text. Check per-slot llama capacity in both runtime and benchmark inputs.
+- Use the actual ChatGPT-authenticated provider and the actual Web NDJSON endpoint
+  with disposable synthetic owners, verifying durable assistant Events and exact
+  provider routes. Login/readiness alone is not a successful reply, and ASGI testing
+  does not establish physical-iPhone/tailnet performance.
 
 ## 9. Unresolved evaluation decisions
 

@@ -1,5 +1,23 @@
 # Resume Evidence
 
+## September 2026 additions
+
+The current source also implements shared evidence compilation, lifetime raw
+recall, correction/freshness guards, privacy-based GPT/local routing, bounded
+relational follow-ups and brief-turn PWA controls. See
+[CURRENT_IMPLEMENTATION.md](CURRENT_IMPLEMENTATION.md) for the exact boundaries
+and [PUBLIC_TESTING.md](PUBLIC_TESTING.md) for the refreshed 825-test public matrix.
+
+A useful interview claim is: "I built a provider-neutral personal-context system
+whose durable source history, privacy, memory revision and delivery authority
+remain outside the model." Support that claim with a request trace, a forbidden
+cross-owner relationship test, a correction/erasure case and the inconclusive
+context ablation. Do not describe a judge's preference as an owner rating or
+candidate pipeline feasibility as deployed personalization.
+
+The sections below preserve earlier checkpoint measurements.
+
+
 This document maps public-facing claims to checked-in evidence. Use the
 suggested wording or make it narrower. Do not turn a synthetic benchmark,
 candidate run, local deployment, or checkpoint-specific test count into a

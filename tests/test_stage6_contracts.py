@@ -22,6 +22,7 @@ from evals.proactive_evaluation import run_proactive_evaluation
 from mlsys.serving import AdaptiveRouter, EligibleProviderProfile
 from scripts.export_contract_schemas import CONTRACTS
 from services.api.app import create_app
+from services.api.settings import Settings
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -186,7 +187,9 @@ class Stage6OptimizationAndEvaluationTests(unittest.TestCase):
             "proactive-work-command-v1",
         }
         self.assertTrue(expected.issubset(CONTRACTS))
-        paths = create_app().openapi()["paths"]
+        paths = create_app(
+            Settings.from_env(require_owner_api_token=False)
+        ).openapi()["paths"]
         for path in (
             "/v1/proactive/preferences",
             "/v1/proactive/simulations/reach-out",

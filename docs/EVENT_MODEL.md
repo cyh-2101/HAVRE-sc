@@ -1,8 +1,8 @@
 # Event Model
 
-Status: **Stage 6/7 second acceptance corrections technically verified at execution-source snapshot `sha256:8ba8b94632ae181c2966acc3d6c498d8f7a63337d2e8558629b47dd440386f9c`; pending Product Owner reacceptance**
+Status: **Durable Event boundaries are accepted through ADR-0030. Migrations 0052-0063 are technically verified for interaction lineage, the bounded Stage 15 commitment loop, source-separated Diary intelligence, explicit chat Goal effects, source-guarded relationship follow-ups, and two-beat exact-turn continuation receipts with exact GPT-high or historical local provider lineage; formal ADR-0032/0034/0035/0036 acceptance and practical utility remain open.**
 
-Related decisions: [ADR-0003](adr/0003-append-oriented-events-and-erasure.md), [ADR-0004](adr/0004-provenance-and-derived-revisions.md), [ADR-0006](adr/0006-w3c-trace-context.md), [ADR-0011](adr/0011-data-handling-policy.md), [ADR-0012](adr/0012-temporal-belief-model.md), [ADR-0013](adr/0013-scene-session-domain-object.md), [ADR-0019](adr/0019-provider-neutral-ambient-life-context.md), and [ADR-0020](adr/0020-experience-memory-lifecycle.md)
+Related decisions: [ADR-0003](adr/0003-append-oriented-events-and-erasure.md), [ADR-0004](adr/0004-provenance-and-derived-revisions.md), [ADR-0006](adr/0006-w3c-trace-context.md), [ADR-0011](adr/0011-data-handling-policy.md), [ADR-0012](adr/0012-temporal-belief-model.md), [ADR-0013](adr/0013-scene-session-domain-object.md), [ADR-0019](adr/0019-provider-neutral-ambient-life-context.md), [ADR-0020](adr/0020-experience-memory-lifecycle.md), [ADR-0022](adr/0022-core-governed-response-delivery.md), and [ADR-0030](adr/0030-data-policy-driven-dual-replyer-routing.md)
 
 ## 1. What an event means
 
@@ -132,6 +132,28 @@ A `LIFE_CONTEXT_OBSERVED` event is evidence only. `calendar_commitment` does not
 | `GOAL_COMPLETED` | Goal reached or intentionally closed |
 | `PROGRESS_RECORDED` | Evidence-linked observation was recorded against an exact goal revision |
 
+Stage 15 does not invent a new completion Event. A clear owner report is the
+source `USER_MESSAGE`; the resulting existing `GOAL_COMPLETED` Event remains the
+lifecycle record. `goal_transition_evidence` binds both immutable Events, their
+request/session/trace identities, hashes, and the exact Goal revision.
+Ambiguity produces no lifecycle Event. Future erasure of either explicitly
+selected source follows that evidence edge into the affected Goal closure.
+
+An explicitly requested chat Goal reuses `GOAL_CREATED` and any ordinary Goal
+lifecycle Events; `owner_chat_goal_plan_runs` and `owner_chat_goal_actions` are
+effect receipts, not substitute lifecycle Events. A relationship follow-up also
+reuses the existing proactive lifecycle. Its Memory or conversation reference is
+evidence for a proposal, never an Event that grants send authority. The existing
+Core policy and delivered `ASSISTANT_MESSAGE` remain the authoritative decision
+and user-visible effect.
+
+The ADR-0036 continuation receipt is not a new conversational Event and does not
+claim that silence has meaning. It is a derived, expiring planning receipt bound
+to one completed eligible turn. If authorized planning and Core delivery both
+pass, the existing proactive lifecycle and delivered `ASSISTANT_MESSAGE` record
+the actual effect. Any newer ordinary owner `USER_MESSAGE` invalidates the old turn's
+continuation before delivery and resets only the derived cadence counter.
+
 Stage 5 emits `ASSISTANT_MESSAGE` with `interaction_mode = scene_guidance`
 only for guidance actually rendered by the local simulator. Its payload links
 the exact Intervention Decision and renderer version. `INTERVENTION_DECIDED`
@@ -216,7 +238,23 @@ registry entries remain inactive until their named stage.
 
 The registry should remain small. Do not turn every log line or span into a domain event.
 
-Stage 3 persists `INTERACTION_FAILED` at the exact failed phase: `capability_check`, `routing`, `version_check`, or `inference`. It carries only a typed safe code, retryability, relevant ContextPack/route/inference IDs, and a safe message—never a prompt, raw provider body, API key, or stack trace. A failed request cannot also acquire a delivered `ASSISTANT_MESSAGE`.
+The current ordinary interaction path persists `INTERACTION_FAILED` at the exact
+failed phase: `context_build`, `capability_check`, `routing`, `version_check`, or
+`inference`. A pre-Context failure has no fabricated ContextPack, route, or
+inference identity. Later failures carry only the phase-appropriate typed safe
+code, retryability, ContextPack/route/inference IDs, and safe message—never a
+prompt, raw provider body, API key, or stack trace.
+
+Migrations `0052` and `0053` require each ordinary `interaction_requests` terminal
+row to adopt exactly one canonical terminal Event. A completed request binds its
+exact `USER_MESSAGE`, ContextPack, selected route, completed inference
+attempt/response, Core policy decision, and delivered `ASSISTANT_MESSAGE`. A
+failed request binds the exact `INTERACTION_FAILED` Event and the Context/attempt
+lineage appropriate to its failure phase. Completed and failed terminals are
+mutually exclusive and immutable. The sole privileged exception is the exact
+content-free `source_erasure_propagated` request tombstone used while deleting the
+source Event and its derived closure; it cannot be used as an ordinary terminal
+shape.
 
 ## 4. Data policy contract
 
@@ -456,6 +494,20 @@ consideration, while both the source Event and feedback revision keep
 `training_eligible=false`. These records follow ADR-0021 and the same privileged
 erasure closure as their sources.
 
+Diary intelligence does not invent a replacement chat Event. It reads exact completed
+USER_MESSAGE and ASSISTANT_MESSAGE Events and records their IDs, content hashes, and
+one of two dispositions: cloud_summary or private_reference. Only the former may
+enter the GPT request. The resulting Diary, delegated Memory, delegated belief, and
+quality-review flags are derived records with exact source/run provenance, not
+rewritten source history.
+
+An owner-delegated belief still emits USER_BELIEF_CREATED and
+USER_BELIEF_TRANSITIONED lifecycle Events and uses the accepted candidate-to-active
+transition. A delegated Memory still emits MEMORY_CREATED. Private-reference Events
+cannot become delegated updates through this path. Erasure of any run member removes
+the affected mixed synthesis and its delegated derivatives before removing the
+selected source Event.
+
 Normal correction flow:
 
 1. Preserve the original event as what was communicated or produced.
@@ -489,7 +541,10 @@ Every active stage must test that:
 - belief replay distinguishes event occurrence, learning/recording, revision creation, validity interval, and lifecycle-transition time.
 - proposed Stage 6 proactive contract tests prove a trigger/proposal cannot authorize delivery, only `SEND_NOW` can precede rendering, owner confirmation is not itself an outbound permission, and render/delivery references preserve the complete lifecycle;
 - proposed delivery tests prove retry idempotency, expiration/cancellation, duplicate suppression, and that no `ASSISTANT_MESSAGE` is stored before actual user-visible delivery;
-- proposed anti-dependency tests prove elapsed silence creates no trigger/event and cannot cause escalation.
+- bounded conversation-continuation tests prove elapsed silence can advance only
+  an owner-authorized exact-turn receipt: beat one after one minute, beat two only
+  after beat one was visible and another 30 minutes elapsed, then stop; any newer
+  owner interaction cancels the chain and the model never owns send authority.
 - proposed context-adapter tests reject an unknown source/device, capability outside consent, forbidden fields, policy downgrade, invalid interval/clock metadata, duplicate-key mismatch, and unregistered observation kind;
 - proposed source-health/freshness tests prove offline, stale, revoked, unsupported, and absent observations remain missing/unknown rather than negative user evidence;
 - proposed lifecycle tests prove an experience is not automatically promoted to Memory, relevance decay does not mutate truth/validity, and retention/erasure cannot leave contaminated derivatives.

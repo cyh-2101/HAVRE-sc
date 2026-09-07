@@ -72,6 +72,8 @@ class ProviderVersionError(RuntimeError):
 
 
 class ModelProvider(Protocol):
+    provider_id: str
+
     async def capabilities(self) -> ProviderCapabilities: ...
 
     async def health(self) -> ProviderHealth: ...

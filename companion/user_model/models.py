@@ -52,7 +52,9 @@ class BeliefRevision(StrictModel):
     statement: str = Field(min_length=1, max_length=10_000)
     belief_type: BeliefType
     confidence: float = Field(ge=0, le=1)
-    confidence_method: Literal["owner-reviewed-v1"] = "owner-reviewed-v1"
+    confidence_method: Literal[
+        "owner-reviewed-v1", "owner-delegated-gpt-v1"
+    ] = "owner-reviewed-v1"
     initial_status: BeliefInitialStatus
     evidence_occurred_from: datetime | None = None
     evidence_occurred_to: datetime | None = None

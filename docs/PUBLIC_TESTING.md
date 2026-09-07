@@ -1,45 +1,42 @@
-# Public Verification Boundary
+# Public verification
 
-The private HAVRE archive has a larger acceptance matrix than this sanitized
-mirror can reproduce. The mirror deliberately excludes owner-alignment cases,
-private unseen-evaluation material, local benchmark output under `var/`, model
-weights, and the separate training runtime. Those absences are privacy and
-evidence-integrity controls, not files to recreate with invented substitutes.
+## September 7, 2026 result
 
-Run the public-compatible matrix against a dedicated disposable PostgreSQL
-database:
+825 tests passed, zero failures/errors/skips in the selected public matrix.
+97 archival tests are explicitly excluded because their exact local/private
+evaluation artifacts or separate training environment are absent. Excluded tests
+are not passed tests. The initial refreshed run selected 832 and reported seven
+missing-artifact errors; those exact dependencies were then documented in the
+exclusion registry. No product assertion was weakened to hide a defect.
 
-```powershell
-$env:HAVRE_TEST_DATABASE_URL = 'postgresql://postgres@127.0.0.1:55432/havre_showcase_public_tests'
-.\.venv\Scripts\python.exe -m scripts.run_public_verification
-.\.venv\Scripts\python.exe -m services.api.cli audit-provenance
-```
+[Exact excluded test IDs](PUBLIC_TEST_EXCLUSIONS.json) are generated from the same
+runner used for this result. The main private source separately passed 860 primary
+plus 62 pinned-Torch tests (922 total, zero skips). That is separate evidence.
 
-The runner discovers the repository tests, reports the selected and excluded
-counts, and excludes only the following private-artifact-bound surface:
+## Reproduce
 
-| Test surface | Why it is not reproducible from the public mirror |
-| --- | --- |
-| `tests.test_stage8_contracts` | Reads ignored local Stage 2 benchmark output. |
-| `tests.test_stage8_integration` | Reads the same ignored benchmark output. |
-| One owner-alignment test in `tests.test_stage9a_dataset_v4` | Reads the physically separate private OA set. |
-| `tests.test_stage9a_dataset_v7` | Reads excluded owner-local v6 dataset evidence. |
-| `tests.test_stage9a_unseen_v7` | Reads excluded private unseen-evaluation evidence. |
-| `tests.test_stage9a_real_contracts`, `tests.test_stage9a_real_v6`, and `tests.test_stage9a_real_v7` | Require the separate training environment and excluded local artifacts. |
+Install Python 3.12 and the pinned packages into a fresh virtual environment:
 
-Running raw `unittest discover` from this mirror will therefore reach expected
-missing-file failures in those archival tests. Do not describe those tests as
-passing, and do not treat their absence as evidence that the underlying private
-evaluation was reproduced publicly. Exact historical acceptance results remain
-bound to the checkpoint documents and private canonical artifacts.
+~~~powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.lock -r requirements-memory.lock
+.\.venv\Scripts\python.exe -m scripts.fetch_memory_encoder
+createdb -h 127.0.0.1 -p 55432 -U postgres havre_showcase_tests
+.\.venv\Scripts\python.exe -m scripts.run_public_verification --database-url postgresql://postgres@127.0.0.1:55432/havre_showcase_tests --verbose
+~~~
 
-The synthetic showcase is independently reproducible and uses no owner data:
+Use PostgreSQL 18 with pgvector and an isolated loopback database. The runner
+rejects other database names and treats skipped selected tests as a failure.
+The local ONNX encoder is a hash-pinned public prerequisite, downloaded into
+ignored storage. No owner example bank or personal data is needed for this matrix.
+The handoff run reused the same verified public encoder bytes locally.
 
-```powershell
-createdb -h 127.0.0.1 -p 55432 -U postgres havre_showcase_demo
-.\scripts\run_showcase_demo.ps1 -ExternalDatabaseUrl 'postgresql://postgres@127.0.0.1:55432/havre_showcase_demo'
-```
+The synthetic showcase ran in a second disposable database and completed the
+declared interaction, memory, feedback, episode and provenance flow. Its
+deterministic provider does not prove model quality. No real provider generation
+or owner database request is necessary. Generated results stay under ignored var/.
 
-Its success proves the declared synthetic interaction, memory, retrieval,
-feedback/edit, and provenance flow. It does not replace the excluded evaluation
-evidence or establish production model quality.
+The August 26 result (433 selected tests, 90 exclusions) is historical. The
+September result supersedes it for this source tree. Public test exclusions,
+private-source verification, candidate evaluation and physical-device acceptance
+are distinct evidence boundaries.

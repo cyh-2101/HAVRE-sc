@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from companion.policy import PrivacyClass
 from companion.proactive.models import (
@@ -13,9 +14,14 @@ from companion.proactive.models import (
     ProactiveProposal,
 )
 
+STAGE15_UNCAPPED_COMMITMENT_AUTHORIZATION_REF = (
+    "stage15-owner-authorized-no-normal-cap"
+)
+
 
 class InterruptionPolicy:
     version = "interruption-policy-conservative-v1"
+    hard_breaker_per_24h = 24
 
     def __init__(self, *, constitution_version_id: str, identity_version_id: str) -> None:
         self.constitution_version_id = constitution_version_id
@@ -47,24 +53,40 @@ class InterruptionPolicy:
             else "eligible"
         )
         inside_quiet = any(
-            (window.start_local <= now.time() < window.end_local)
+            (window.start_local <= now.astimezone(ZoneInfo(window.timezone_name)).time() < window.end_local)
             if window.start_local <= window.end_local
-            else (now.time() >= window.start_local or now.time() < window.end_local)
+            else (
+                now.astimezone(ZoneInfo(window.timezone_name)).time() >= window.start_local
+                or now.astimezone(ZoneInfo(window.timezone_name)).time() < window.end_local
+            )
             for window in preference.quiet_hours
         )
         quiet_result = "inside" if inside_quiet else "outside"
+        hard_breaker = delivered_global_24h >= self.hard_breaker_per_24h
+        uncapped_owner_commitment = (
+            proposal.reason_code == "owner_goal_reminder"
+            and proposal.category == "owner_reminder"
+            and preference.authorization_ref
+            == STAGE15_UNCAPPED_COMMITMENT_AUTHORIZATION_REF
+        )
         global_budget = (
-            "unresolved" if preference.global_budget_per_24h is None
+            "exhausted" if hard_breaker
+            else "available" if (
+                preference.global_budget_per_24h is None
+                and uncapped_owner_commitment
+            )
+            else "unresolved" if preference.global_budget_per_24h is None
             else "available" if delivered_global_24h < preference.global_budget_per_24h
             else "exhausted"
         )
         category_limit = preference.category_budget_per_24h.get(proposal.category)
         category_budget = (
-            "unresolved" if category_limit is None
+            "available" if category_limit is None and uncapped_owner_commitment
+            else "unresolved" if category_limit is None
             else "available" if delivered_category_24h < category_limit
             else "exhausted"
         )
-        cooldown = "unresolved"
+        cooldown = "clear"
         if preference.cooldown_seconds is not None:
             cooldown = (
                 "active"
@@ -112,6 +134,7 @@ class InterruptionPolicy:
             inputs=inputs,
             now=now,
             snooze_until=snooze_until,
+            hard_breaker=hard_breaker,
         )
         return InterruptionDecision(
             owner_id=proposal.owner_id,
@@ -135,7 +158,7 @@ class InterruptionPolicy:
         )
 
     @staticmethod
-    def _outcome(*, proposal, preference, inputs, now, snooze_until):
+    def _outcome(*, proposal, preference, inputs, now, snooze_until, hard_breaker):
         if inputs.expiration_result == "expired":
             return InterruptionOutcome.DROP, ("proposal_expired",), "The useful window ended.", None
         if inputs.subject_stop_result == "stopped":
@@ -185,6 +208,13 @@ class InterruptionPolicy:
             return InterruptionOutcome.DEFER, ("not_yet_eligible",), "The proposal is early.", proposal.earliest_eligible_at
         if inputs.quiet_hours_result == "inside":
             return InterruptionOutcome.DEFER, ("quiet_hours",), "Quiet hours are active.", min(proposal.expires_at, now + timedelta(hours=1))
+        if hard_breaker:
+            return (
+                InterruptionOutcome.DEFER,
+                ("hard_anti_runaway_breaker",),
+                "The non-configurable anti-runaway breaker is active.",
+                min(proposal.expires_at, now + timedelta(hours=24)),
+            )
         if "exhausted" in {inputs.global_budget_result, inputs.category_budget_result}:
             return InterruptionOutcome.DEFER, ("budget_exhausted",), "The outreach ceiling is exhausted.", min(proposal.expires_at, now + timedelta(hours=24))
         if inputs.cooldown_result == "active":

@@ -8,6 +8,8 @@ with synthetic evidence or reported as passing.
 from __future__ import annotations
 
 import argparse
+import json
+from urllib.parse import urlparse
 import os
 from pathlib import Path
 import sys
@@ -27,6 +29,13 @@ EXCLUDED_MODULES = {
 }
 
 EXCLUDED_TESTS = {
+    'tests.test_strong_cloud_brain_broader.StrongCloudBrainBroaderTests.test_exact_existing_80_case_public_suite_and_current_context': 'requires intentionally omitted case-level local/cloud research outputs or local evaluation fixtures',
+    'tests.test_strong_cloud_brain_broader_review.StrongCloudBrainBroaderReviewTests.test_packet_is_complete_and_contains_no_arm_identity': 'requires intentionally omitted case-level local/cloud research outputs or local evaluation fixtures',
+    'tests.test_strong_cloud_brain_ceiling.StrongCloudBrainHarnessTests.test_exact_fixtures_are_synthetic_and_prompt_bound_to_local_arms': 'requires intentionally omitted case-level local/cloud research outputs or local evaluation fixtures',
+    'tests.test_strong_cloud_brain_cost.StrongCloudBrainCostTests.test_formal_cost_is_independently_recomputed_from_every_request': 'requires intentionally omitted case-level local/cloud research outputs or local evaluation fixtures',
+    'tests.test_strong_cloud_brain_decision.StrongCloudBrainDecisionTests.test_decision_is_bound_to_blind_reviews_and_preserves_stop_boundary': 'requires intentionally omitted case-level local/cloud research outputs or local evaluation fixtures',
+    'tests.test_strong_cloud_brain_decision.StrongCloudBrainDecisionTests.test_review_case_metadata_must_match_blind_packets': 'requires intentionally omitted case-level local/cloud research outputs or local evaluation fixtures',
+    'tests.test_strong_cloud_brain_review.StrongCloudBrainReviewTests.test_review_packet_is_complete_blinded_and_core_replayed': 'requires intentionally omitted case-level local/cloud research outputs or local evaluation fixtures',
     "tests.test_stage9a_dataset_v4.Stage9ADatasetV4Tests."
     "test_owner_alignment_is_permanently_evaluation_only_and_physically_separate":
         "requires the excluded private owner-alignment set",
@@ -75,11 +84,18 @@ def main(argv: list[str] | None = None) -> int:
     if not os.environ.get("HAVRE_TEST_DATABASE_URL"):
         parser.error("provide --database-url or HAVRE_TEST_DATABASE_URL")
 
+    parsed = urlparse(os.environ["HAVRE_TEST_DATABASE_URL"])
+    if parsed.hostname not in {"localhost", "127.0.0.1", "::1"} or not parsed.path.lstrip("/").startswith("havre_showcase_"):
+        parser.error("use a dedicated loopback havre_showcase_* database")
     suite, excluded = build_public_suite()
     print(f"Public verification selected {suite.countTestCases()} tests.")
     print(f"Excluded {len(excluded)} private-artifact-bound tests; see docs/PUBLIC_TESTING.md.")
     result = unittest.TextTestRunner(verbosity=2 if args.verbose else 1).run(suite)
-    return 0 if result.wasSuccessful() else 1
+    summary = {"run": result.testsRun, "failures": len(result.failures), "errors": len(result.errors), "skips": len(result.skipped), "excluded": excluded}
+    output = ROOT / "var/public-verification.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    return 0 if result.wasSuccessful() and not result.skipped else 1
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ Status: **PENDING PRODUCT OWNER FREEZE — TRAINING NOT AUTHORIZED**
 - Evaluation: `havre-behavioral-rubric-v4` property dimensions are primary; reference-token F1 is diagnostic only.
 
 The complete Product Owner-authored review remains byte-preserved at:
-`<repo>\var\stage9a\imports\HAVRE_STAGE9A_V4_CANDIDATE_1\PO_REVIEW_v4.md`
+`C:\HAVRE\var\stage9a\imports\HAVRE_STAGE9A_V4_CANDIDATE_1\PO_REVIEW_v4.md`
 
 Its SHA-256 is `sha256:f8d5cc123da099e7a87e7904727817523ce23db13731ab1ece685271d09ce49e`.
 

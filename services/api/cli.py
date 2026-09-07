@@ -5,9 +5,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import signal
 import threading
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
@@ -19,8 +22,12 @@ from companion.ids import uuid7
 from companion.identity import IdentityLoader
 from companion.persistence import PostgresRepository, apply_migrations
 from companion.policy import PrivacyClass
+from services.api.app import create_app
 from services.api.runtime import attest_self_hosted_runtime, build_runtime
 from services.api.settings import Settings
+
+
+logger = logging.getLogger(__name__)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -483,17 +490,94 @@ def _worker_loop(settings: Settings, *, poll_seconds: float) -> None:
         candidate = getattr(signal, name, None)
         if candidate is not None:
             prior_handlers[candidate] = signal.signal(candidate, stop)
+    understanding_executor = ThreadPoolExecutor(max_workers=3,thread_name_prefix="havre-understanding")
+    understanding_futures = {}
+    def advance_understanding(name, operation):
+        prior=understanding_futures.get(name)
+        if prior is not None and not prior.done():
+            return
+        if prior is not None:
+            try:
+                prior.result()
+            except Exception:
+                logger.exception("owner-local %s work failed; durable retry is scheduled",name)
+        understanding_futures[name]=understanding_executor.submit(lambda: asyncio.run(operation()))
     try:
+        heartbeat_ttl = max(15.0, min(300.0, poll_seconds * 3 + 35.0))
+        last_daily_goal_schedule_at: datetime | None = None
+        runtime.web_push_provider.record_worker_heartbeat(
+            status="running", live_for_seconds=heartbeat_ttl
+        )
         while not stopping.is_set():
             require_active_release()
+            runtime.web_push_provider.record_worker_heartbeat(
+                status="running", live_for_seconds=heartbeat_ttl
+            )
+            evaluation = runtime.proactive_evaluator.run_once()
+            if (
+                settings.relational_initiative_enabled
+                and (
+                    last_daily_goal_schedule_at is None
+                    or datetime.now(UTC) - last_daily_goal_schedule_at
+                    >= timedelta(minutes=15)
+                )
+            ):
+                try:
+                    runtime.proactive_store.enqueue_daily_goal_check_ins(
+                        timezone_name=settings.owner_timezone,
+                    )
+                except Exception:
+                    logger.exception(
+                        "daily Goal reminder fill failed and will retry"
+                    )
+                finally:
+                    last_daily_goal_schedule_at = datetime.now(UTC)
+            diary_service = getattr(runtime, "diary_intelligence_service", None)
+            daily_review = None
+            if diary_service is not None:
+                advance_understanding("daily-review",lambda:diary_service.run_scheduled_once(
+                        worker_id="stage10-worker-diary",
+                        timezone_name=settings.owner_timezone,
+                    ))
+            realtime_service=getattr(runtime,"realtime_memory_service",None)
+            if realtime_service is not None:
+                advance_understanding("realtime-memory",realtime_service.run_once)
+            continuation = None
+            continuation_service = getattr(
+                runtime, "conversation_continuation_service", None
+            )
+            if continuation_service is not None:
+                advance_understanding("conversation-continuation",lambda:continuation_service.run_once(
+                            worker_id="stage10-worker-continuation"
+                        ))
             work = (
                 runtime.memory_worker.run_once(),
                 runtime.proactive_store.run_work_once(worker_id="stage10-worker"),
                 runtime.offline_store.run_once(worker_id="stage10-worker"),
             )
-            if not any(item is not None for item in work):
+            push = runtime.web_push_provider.deliver_pending(limit=10)
+            push_activity = sum(
+                int(push.get(key, 0))
+                for key in ("queued", "delivered", "failed", "skipped")
+            )
+            runtime.web_push_provider.record_worker_heartbeat(
+                status="running", live_for_seconds=heartbeat_ttl
+            )
+            if (
+                evaluation["evaluated"] == 0
+                and continuation is None
+                and not any(item is not None for item in work)
+                and push_activity == 0
+            ):
                 stopping.wait(poll_seconds)
     finally:
+        understanding_executor.shutdown(wait=True,cancel_futures=True)
+        try:
+            runtime.web_push_provider.record_worker_heartbeat(
+                status="stopped", live_for_seconds=1
+            )
+        except Exception:
+            pass
         for candidate, handler in prior_handlers.items():
             signal.signal(candidate, handler)
         runtime.close()
@@ -544,10 +628,14 @@ def main() -> None:
         "backup-create",
         "backup-restore",
         "backup-prune",
+        "attest-runtime",
+        "attest-candidate-runtime",
         "worker-loop",
     }
     settings = Settings.from_env(
-        require_owner_api_token=args.command not in offline_commands,
+        require_owner_api_token=(
+            args.command not in offline_commands or args.command == "worker-loop"
+        ),
         enable_erasure_ledger=args.command != "worker-loop",
     )
     project_root = Path(__file__).resolve().parents[2]
@@ -580,7 +668,7 @@ def main() -> None:
         return
     if args.command == "serve":
         uvicorn.run(
-            "services.api.app:app",
+            create_app(settings),
             host=args.host,
             port=args.port,
             reload=False,

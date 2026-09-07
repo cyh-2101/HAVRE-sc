@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from companion.evidence import EvidenceRef
+from companion.evidence import EvidenceRef, EvidenceRelation, EvidenceSourceKind
 from companion.persistence.postgres import PostgresRepository
 from companion.user_model.models import BeliefTransitionType, BeliefType
 
@@ -39,6 +39,41 @@ class UserModelService:
             reason=reason,
             valid_from=valid_from,
             valid_to=valid_to,
+        )
+
+    def propose_from_confirmed_memory(
+        self,
+        *,
+        owner_id: UUID,
+        memory_id: UUID,
+        statement: str,
+        belief_type: BeliefType,
+        confidence: float,
+        reason: str,
+    ):
+        memory = next(
+            (
+                item
+                for item in self.repository.list_active_memories(owner_id=owner_id)
+                if item["memory_id"] == memory_id
+            ),
+            None,
+        )
+        if memory is None:
+            raise LookupError("active confirmed Memory not found")
+        return self.propose_belief(
+            owner_id=owner_id,
+            belief_key=f"memory-derived:{memory_id}",
+            statement=statement,
+            belief_type=belief_type,
+            confidence=confidence,
+            evidence=(EvidenceRef(
+                source_kind=EvidenceSourceKind.MEMORY_REVISION,
+                source_id=memory_id,
+                source_revision=int(memory["revision"]),
+                relation=EvidenceRelation.SUPPORTS,
+            ),),
+            reason=reason,
         )
 
     def activate(

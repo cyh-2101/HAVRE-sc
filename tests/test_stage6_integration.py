@@ -125,6 +125,10 @@ class Stage6PostgresIntegrationTests(unittest.TestCase):
                 SELECT attempt.external_delivery_authorized, attempt.simulation_only,
                        event.recorded_at, attempt.visible_at,
                        event.payload->>'interaction_mode' AS interaction_mode,
+                       event.payload ? 'context_pack_id' AS has_context_pack_id,
+                       event.payload ? 'inference_response_id'
+                           AS has_inference_response_id,
+                       request.request_kind,
                        count(*) OVER () AS rows
                 FROM havre.proactive_delivery_attempts AS attempt
                 JOIN havre.proactive_inbox_messages AS inbox
@@ -133,6 +137,9 @@ class Stage6PostgresIntegrationTests(unittest.TestCase):
                 JOIN havre.events AS event
                   ON event.owner_id = inbox.owner_id
                  AND event.event_id = inbox.assistant_event_id
+                JOIN havre.interaction_requests AS request
+                  ON request.owner_id = event.owner_id
+                 AND request.request_id = event.request_id
                 WHERE attempt.owner_id = %s AND attempt.proposal_id = %s
                 """,
                 (self.owner, result.proposal.proposal_id),
@@ -140,6 +147,9 @@ class Stage6PostgresIntegrationTests(unittest.TestCase):
             self.assertFalse(row["external_delivery_authorized"])
             self.assertTrue(row["simulation_only"])
             self.assertEqual(row["interaction_mode"], "proactive_web_inbox")
+            self.assertEqual(row["request_kind"], "proactive_work")
+            self.assertFalse(row["has_context_pack_id"])
+            self.assertFalse(row["has_inference_response_id"])
             self.assertGreaterEqual(row["recorded_at"], row["visible_at"])
             self.assertEqual(row["rows"], 1)
 
@@ -343,7 +353,7 @@ class Stage6PostgresIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(reconciled["status"], "delivered")
         self.assertEqual(reconciled["assistant_event_id"], result.assistant_event_id)
-        settings = Settings.from_env().model_copy(
+        settings = Settings.from_env(require_owner_api_token=False).model_copy(
             update={
                 "database_url": DATABASE_URL,
                 "owner_id": self.owner,
@@ -523,7 +533,7 @@ class Stage6PostgresIntegrationTests(unittest.TestCase):
     def test_http_retry_uses_stable_policy_revision(self) -> None:
         assert DATABASE_URL is not None
         owner = uuid.uuid4()
-        settings = Settings.from_env().model_copy(
+        settings = Settings.from_env(require_owner_api_token=False).model_copy(
             update={
                 "database_url": DATABASE_URL,
                 "owner_id": owner,

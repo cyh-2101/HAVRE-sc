@@ -17,7 +17,7 @@ from psycopg.types.json import Jsonb
 from fastapi.testclient import TestClient
 
 from companion.application import InteractionCommand, InteractionService
-from companion.context import ContextBuilder
+from companion.context import ContextBudgetExceeded, ContextBuilder
 from companion.feedback import (
     FeedbackIssueAttribution,
     FeedbackRating,
@@ -45,39 +45,43 @@ OWNER_ID = UUID("00000000-0000-7000-8000-000000000036")
 
 
 class FeedbackDailyChatWebAssetsTests(unittest.TestCase):
-    def test_history_render_does_not_pass_array_index_as_temporary_flag(self) -> None:
+    def test_product_exposes_one_continuous_timeline_without_chat_management(self) -> None:
         chat = (PROJECT_ROOT / "apps" / "web" / "havre-chat.html").read_text(
             encoding="utf-8"
         )
-        self.assertIn("items.forEach(item=>renderMessage(item))", chat)
-        self.assertNotIn("items.forEach(renderMessage)", chat)
+        script = (PROJECT_ROOT / "apps" / "web" / "havre-app.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('id="timeline"', chat)
+        self.assertIn("/v1/timeline?limit=60", script)
+        self.assertNotIn("New Chat", chat)
+        self.assertNotIn("conversation list", chat.lower())
 
-    def test_mobile_chat_keeps_composer_in_chat_flow_and_exposes_drawers(self) -> None:
+    def test_mobile_chat_keeps_composer_in_flow_and_uses_three_item_navigation(self) -> None:
         chat = (PROJECT_ROOT / "apps" / "web" / "havre-chat.html").read_text(
             encoding="utf-8"
         )
-        main_start = chat.index('<main class="chat">')
-        main_end = chat.index("</main>", main_start)
-        composer = chat.index('<div class="composer">')
-        messages_end = chat.index('</div><div class="composer">', main_start)
-        self.assertLess(main_start, messages_end)
-        self.assertLess(messages_end, composer)
-        self.assertLess(composer, main_end)
-        self.assertIn("var(--app-height,100dvh)", chat)
-        self.assertIn('id="openConversations"', chat)
-        self.assertIn('id="openTools"', chat)
-        self.assertIn("function setDrawer(name=null)", chat)
-        self.assertIn(".top strong{min-width:0;flex:1", chat)
-        self.assertIn(".composebox textarea{width:0;min-width:0", chat)
-        self.assertIn(".send{flex:0 0 auto", chat)
+        css = (PROJECT_ROOT / "apps" / "web" / "havre-app.css").read_text(
+            encoding="utf-8"
+        )
+        chat_start = chat.index('id="chatPage"')
+        composer = chat.index('id="composer"')
+        chat_end = chat.index("</section>", chat_start)
+        self.assertLess(chat_start, composer)
+        self.assertLess(composer, chat_end)
+        self.assertEqual(chat.count('class="nav-item'), 3)
+        self.assertIn("var(--app-height)", css)
+        self.assertIn("env(safe-area-inset-bottom)", css)
+        self.assertIn(".compose-row textarea{width:0;min-width:0", css)
+        self.assertIn(".send-button{flex:0 0 auto", css)
 
     def test_pending_assistant_message_has_visible_generation_state(self) -> None:
-        chat = (PROJECT_ROOT / "apps" / "web" / "havre-chat.html").read_text(
+        script = (PROJECT_ROOT / "apps" / "web" / "havre-app.js").read_text(
             encoding="utf-8"
         )
-        self.assertIn("Thinking…", chat)
-        self.assertIn("assistant.scrollIntoView", chat)
-        self.assertIn("window.visualViewport?.addEventListener('resize'", chat)
+        self.assertIn("我在看，等我一下…", script)
+        self.assertIn("timeline.scrollTop=timeline.scrollHeight", script)
+        self.assertIn("window.visualViewport?.addEventListener('resize'", script)
 
 
 @unittest.skipUnless(DATABASE_URL, "HAVRE_TEST_DATABASE_URL is required")
@@ -964,10 +968,60 @@ class FeedbackDailyChatApiTests(unittest.TestCase):
             self.assertNotIn("SECRET INTERNAL PATH",failed.text)
             self.assertIn("could not complete",failed.text)
 
+            async def context_overflow(_command):
+                raise ContextBudgetExceeded("SECRET RAW CONTEXT DETAILS")
+
+            client.app.state.runtime.service.interact = context_overflow
+            rejected = client.post(
+                "/v1/interactions",
+                headers={"Idempotency-Key":f"api-context-limit-{uuid4()}"},
+                json={"message":"overflow safely"},
+            )
+            streamed = client.post(
+                "/v1/interactions/stream",
+                headers={"Idempotency-Key":f"api-context-limit-{uuid4()}"},
+                json={"message":"overflow safely"},
+            )
+            client.app.state.runtime.service.interact = original
+            self.assertEqual(rejected.status_code, 413, rejected.text)
+            self.assertEqual(
+                rejected.json()["detail"],
+                {
+                    "code": "context_limit_exceeded",
+                    "retryable": False,
+                    "message": (
+                        "The selected reply route cannot fit the required "
+                        "conversation context."
+                    ),
+                },
+            )
+            self.assertNotIn("SECRET RAW CONTEXT DETAILS", rejected.text)
+            self.assertEqual(streamed.status_code, 200, streamed.text)
+            stream_events = [
+                __import__("json").loads(line)
+                for line in streamed.text.splitlines()
+            ]
+            self.assertEqual(stream_events[0], {"type":"status","status":"thinking"})
+            self.assertEqual(
+                stream_events[1],
+                {
+                    "type": "error",
+                    "code": "context_limit_exceeded",
+                    "retryable": False,
+                    "status_code": 413,
+                    "message": (
+                        "The selected reply route cannot fit the required "
+                        "conversation context."
+                    ),
+                },
+            )
+            self.assertNotIn("SECRET RAW CONTEXT DETAILS", streamed.text)
+
         protected = settings.model_copy(update={
             "owner_id":UUID("00000000-0000-7000-8000-000000000038"),
             "owner_api_token":"o" * 48,
             "desktop_bootstrap_token":"b" * 48,
+            "require_owner_api_token":True,
         })
         with TestClient(create_app(protected)) as client:
             self.assertEqual(client.get("/v1/conversations").status_code,401)
@@ -983,6 +1037,123 @@ class FeedbackDailyChatApiTests(unittest.TestCase):
             self.assertEqual(ready.status_code,200)
             self.assertIn("HttpOnly",ready.headers["set-cookie"])
             self.assertEqual(client.get("/v1/conversations").status_code,200)
+            self.assertEqual(
+                client.post("/v1/product/calendar", json={"enabled":False}).status_code,
+                403,
+            )
+            self.assertEqual(
+                client.post(
+                    "/v1/product/calendar",
+                    headers={"Origin":"http://testserver"},
+                    json={"enabled":False},
+                ).status_code,
+                409,
+            )
+            replay = client.post(
+                "/v1/desktop/session",
+                headers={"X-HAVRE-Desktop-Bootstrap":"b" * 48},
+            )
+            self.assertEqual(replay.status_code,403)
+
+    def test_failed_timeline_reports_selected_engine_or_no_engine(self) -> None:
+        assert DATABASE_URL is not None
+        settings = Settings(
+            database_url=DATABASE_URL,
+            owner_id=UUID("00000000-0000-7000-8000-000000000039"),
+            identity_root=PROJECT_ROOT / "identity",
+            provider_id="deterministic-local",
+            self_hosted_base_url="http://127.0.0.1:1",
+            self_hosted_model_manifest=PROJECT_ROOT / "README.md",
+            self_hosted_engine_manifest=PROJECT_ROOT / "README.md",
+            context_token_budget=4096,
+            reserved_output_tokens=256,
+            inference_timeout_ms=10_000,
+            require_owner_api_token=False,
+            enable_erasure_ledger=False,
+        )
+
+        class FailingProvider(DeterministicLocalProvider):
+            async def generate(self, request):
+                raise RuntimeError("SECRET PROVIDER FAILURE")
+
+        with TestClient(create_app(settings)) as client:
+            service = client.app.state.runtime.service
+            original_provider = service.provider
+            failing_provider = FailingProvider()
+            service.provider = failing_provider
+            service.providers[failing_provider.provider_id] = failing_provider
+            failed_key = f"api-failed-route-{uuid4()}"
+            try:
+                failed = client.post(
+                    "/v1/interactions/stream",
+                    headers={"Idempotency-Key": failed_key},
+                    json={
+                        "message": "show the actual failed route",
+                        "client_created_at": "2026-09-03T20:02:03Z",
+                    },
+                )
+            finally:
+                service.provider = original_provider
+                service.providers[original_provider.provider_id] = original_provider
+            self.assertEqual(failed.status_code, 200, failed.text)
+            self.assertNotIn("SECRET PROVIDER FAILURE", failed.text)
+            self.assertIn("could not complete", failed.text)
+            with service.repository.pool.connection() as connection:
+                failed_request = connection.execute(
+                    """SELECT request_id FROM havre.interaction_requests
+                       WHERE owner_id=%s AND idempotency_key=%s""",
+                    (settings.owner_id, failed_key),
+                ).fetchone()
+            timeline = client.get("/v1/timeline?limit=100")
+            self.assertEqual(timeline.status_code, 200, timeline.text)
+            failed_user = next(
+                item
+                for item in timeline.json()["items"]
+                if item["request_id"] == str(failed_request["request_id"])
+            )
+            self.assertEqual(failed_user["interaction_status"], "failed")
+            self.assertEqual(failed_user["provider_id"], "deterministic-local")
+            self.assertEqual(
+                failed_user["model_version_id"],
+                "deterministic-companion-v1",
+            )
+            self.assertEqual(failed_user["execution_environment"], "local")
+            self.assertEqual(
+                failed_user["client_created_at"],
+                "2026-09-03T20:02:03Z",
+            )
+
+            overflow_key = f"api-failed-before-route-{uuid4()}"
+            overflow = client.post(
+                "/v1/interactions/stream",
+                headers={"Idempotency-Key": overflow_key},
+                json={
+                    "message": "x" * 30_000,
+                    "client_created_at": "2026-09-03T20:02:04Z",
+                },
+            )
+            self.assertEqual(overflow.status_code, 200, overflow.text)
+            self.assertIn("context_limit_exceeded", overflow.text)
+            with service.repository.pool.connection() as connection:
+                overflow_request = connection.execute(
+                    """SELECT request_id FROM havre.interaction_requests
+                       WHERE owner_id=%s AND idempotency_key=%s""",
+                    (settings.owner_id, overflow_key),
+                ).fetchone()
+            timeline = client.get("/v1/timeline?limit=100")
+            no_route_user = next(
+                item
+                for item in timeline.json()["items"]
+                if item["request_id"] == str(overflow_request["request_id"])
+            )
+            self.assertEqual(no_route_user["interaction_status"], "failed")
+            self.assertEqual(
+                no_route_user["interaction_error_code"],
+                "context_limit_exceeded",
+            )
+            self.assertIsNone(no_route_user["provider_id"])
+            self.assertIsNone(no_route_user["model_version_id"])
+            self.assertIsNone(no_route_user["execution_environment"])
 
     def test_desktop_launcher_uses_protected_application_credentials(self) -> None:
         start = (PROJECT_ROOT / "scripts" / "start_havre_desktop.ps1").read_text(
@@ -995,6 +1166,12 @@ class FeedbackDailyChatApiTests(unittest.TestCase):
         self.assertIn("HAVRE_OWNER_API_TOKEN_FILE",start)
         self.assertIn("HAVRE_DESKTOP_BOOTSTRAP_TOKEN_FILE",start)
         self.assertIn("HAVRE_DATABASE_URL_FILE",start)
+        self.assertNotIn("#desktop-bootstrap=",start)
+        self.assertIn('method="post"',start)
+        self.assertEqual(start.count("Open-HavreDesktop"),3)
+        running_branch=start[start.index("if (Test-Path -LiteralPath $StatePath)"):start.index("& (Join-Path $PSScriptRoot")]
+        self.assertIn("Open-HavreDesktop",running_branch)
+        self.assertNotIn('Start-Process "$BaseUrl/chat"',running_branch)
         self.assertNotIn("Get-Content -Raw -LiteralPath $DatabaseSecret",start)
         self.assertNotIn(
             '$env:HAVRE_DATABASE_URL = "postgresql://postgres@',start
@@ -1005,7 +1182,11 @@ class FeedbackDailyChatApiTests(unittest.TestCase):
             start.index("SetAccessRuleProtection($true,$false)"),
             start.index("-m scripts.prepare_havre_desktop"),
         )
-        self.assertIn("Desktop secret directory is not owner-only",start)
+        self.assertIn("Get-Acl -LiteralPath $Path",start)
+        self.assertIn("Set-HavreOwnerOnlyPath -Path $SecretRoot",start)
+        self.assertIn("RemoveAccessRuleSpecific",start)
+        self.assertIn("FileSystemAclExtensions]::SetAccessControl",start)
+        self.assertIn("HAVRE protected path is not owner-only",start)
         self.assertIn("must be pre-created with owner-only ACLs",prepare)
         migration_runner = (
             PROJECT_ROOT / "companion" / "persistence" / "migrations.py"

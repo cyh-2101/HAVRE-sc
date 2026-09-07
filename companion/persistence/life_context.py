@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
+import re
 from typing import Callable
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from psycopg.types.json import Jsonb
 
@@ -38,6 +40,9 @@ from companion.life_context import (
     verify_collection_permit_request_signature,
 )
 from companion.policy import DataPolicy
+from companion.policy import PrivacyClass
+from companion.policy.models import PRIVACY_RESTRICTION_ORDER
+from companion.context.models import PersonalContextItem
 from companion.persistence.postgres import PostgresRepository
 
 
@@ -96,10 +101,12 @@ class Stage12ContextStore:
         repository: PostgresRepository,
         owner_id: UUID,
         device_secret_resolver: Callable[[str], bytes],
+        owner_timezone: str = "UTC",
     ) -> None:
         self.repository = repository
         self.owner_id = owner_id
         self.device_secret_resolver = device_secret_resolver
+        self.owner_timezone = ZoneInfo(owner_timezone)
 
     def activate_windows_bundle(
         self, bundle: WindowsContextActivationBundle
@@ -110,6 +117,153 @@ class Stage12ContextStore:
         self, bundle: CalendarContextActivationBundle
     ) -> tuple[ContextSourceStateRevision, ContextCapabilityStateRevision]:
         return self._activate_bundle(bundle)
+
+    def select_calendar_context(
+        self, *, query_text: str, maximum_privacy_class: PrivacyClass
+    ) -> tuple[PersonalContextItem, ...]:
+        """Select fresh availability only when the current turn actually asks for it."""
+        if (
+            PRIVACY_RESTRICTION_ORDER[maximum_privacy_class]
+            < PRIVACY_RESTRICTION_ORDER[PrivacyClass.LOCAL_ONLY]
+        ):
+            return ()
+        normalized = query_text.casefold()
+        schedule_intents = (
+            "calendar", "schedule", "class", "course", "meeting", "busy", "free",
+            "availability", "日程", "课程", "课表", "有空", "忙不忙", "几点", "安排",
+        )
+        if not any(intent in normalized for intent in schedule_intents):
+            return ()
+        now = datetime.now(UTC)
+        with self.repository.pool.connection() as connection:
+            row = connection.execute(
+                """SELECT observation.*
+                   FROM havre.life_context_observations observation
+                   JOIN LATERAL (
+                     SELECT status FROM havre.context_source_state_revisions state
+                     WHERE state.owner_id=observation.owner_id
+                       AND state.source_instance_id=observation.source_instance_id
+                       AND state.effective_at<=%s
+                     ORDER BY state.revision DESC LIMIT 1
+                   ) source_state ON true
+                   JOIN LATERAL (
+                     SELECT status FROM havre.context_capability_state_revisions state
+                     WHERE state.owner_id=observation.owner_id
+                       AND state.capability_revision_id=observation.capability_revision_id
+                       AND state.effective_at<=%s
+                     ORDER BY state.revision DESC LIMIT 1
+                   ) capability_state ON true
+                   JOIN havre.context_consent_scope_revisions consent
+                     ON consent.owner_id=observation.owner_id
+                    AND consent.consent_scope_revision_id=observation.consent_scope_revision_id
+                   JOIN LATERAL (
+                     SELECT health.status,health.last_successful_observation_id
+                     FROM havre.context_source_health_records health
+                     WHERE health.owner_id=observation.owner_id
+                       AND health.source_instance_id=observation.source_instance_id
+                       AND health.capability_revision_id=observation.capability_revision_id
+                     ORDER BY health.checked_at DESC LIMIT 1
+                   ) latest_health ON true
+                   WHERE observation.owner_id=%s
+                     AND observation.observation_kind='calendar_availability_window'
+                     AND observation.fresh_until>%s
+                     AND observation.retention_expires_at>%s
+                     AND source_state.status='enabled'
+                     AND capability_state.status='enabled'
+                     AND consent.status='active'
+                     AND consent.effective_at<=%s AND consent.expires_at>%s
+                     AND NOT EXISTS (
+                       SELECT 1 FROM havre.context_consent_scope_revisions newer
+                       WHERE newer.owner_id=consent.owner_id
+                         AND newer.consent_scope_id=consent.consent_scope_id
+                         AND newer.revision>consent.revision
+                     )
+                     AND latest_health.status='healthy'
+                     AND latest_health.last_successful_observation_id=observation.observation_id
+                   ORDER BY observation.source_observed_at DESC LIMIT 1""",
+                (now, now, self.owner_id, now, now, now, now),
+            ).fetchone()
+        if row is None:
+            return ()
+        observation = self._observation_from_row(row)
+        if not hasattr(observation.value, "busy_intervals"):
+            return ()
+        window_from, window_to = self._calendar_query_window(
+            normalized=normalized,
+            now=now,
+            coverage_from=observation.occurred_from,
+            coverage_to=observation.occurred_to,
+        )
+        if window_to <= window_from:
+            return ()
+        intervals = tuple(
+            item for item in observation.value.busy_intervals
+            if item.ends_at > window_from and item.starts_at < window_to
+        )
+        rendered = "; ".join(
+            f"{item.starts_at.isoformat()} to {item.ends_at.isoformat()} ({item.availability})"
+            for item in intervals[:24]
+        ) or "No busy intervals were present in the requested covered range; absence is not evidence of availability."
+        text = (
+            "Owner-local calendar availability only (no titles, locations, attendees, or content): "
+            f"requested range {window_from.isoformat()} to {window_to.isoformat()}; "
+            f"{rendered}. Treat missing or stale calendar data as unknown."
+        )
+        return (
+            PersonalContextItem(
+                owner_id=self.owner_id,
+                section_id=f"calendar-availability-{observation.observation_id}",
+                section_type="calendar_availability",
+                content_text=text,
+                priority=92,
+                source_refs=(f"context-observation/{observation.observation_id}",),
+                data_policy=observation.data_policy,
+                selector_version="stage12a-calendar-context-selector-v1",
+            ),
+        )
+
+    def _calendar_query_window(
+        self,
+        *,
+        normalized: str,
+        now: datetime,
+        coverage_from: datetime,
+        coverage_to: datetime,
+    ) -> tuple[datetime, datetime]:
+        local_now = now.astimezone(self.owner_timezone)
+        explicit = re.search(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)", normalized)
+        if explicit is not None:
+            start_local = datetime(
+                int(explicit.group(1)), int(explicit.group(2)), int(explicit.group(3)),
+                tzinfo=self.owner_timezone,
+            )
+            end_local = start_local + timedelta(days=1)
+        elif "tomorrow" in normalized or "明天" in normalized:
+            requested_date = local_now.date() + timedelta(days=1)
+            start_local = datetime.combine(requested_date, time.min, self.owner_timezone)
+            end_local = start_local + timedelta(days=1)
+        elif "today" in normalized or "今天" in normalized:
+            start_local = datetime.combine(local_now.date(), time.min, self.owner_timezone)
+            end_local = start_local + timedelta(days=1)
+        elif "next week" in normalized or "下周" in normalized:
+            next_monday = local_now.date() + timedelta(days=7-local_now.weekday())
+            start_local = datetime.combine(next_monday, time.min, self.owner_timezone)
+            end_local = start_local + timedelta(days=7)
+        elif "this week" in normalized or "这周" in normalized:
+            monday = local_now.date() - timedelta(days=local_now.weekday())
+            start_local = max(
+                local_now,
+                datetime.combine(monday, time.min, self.owner_timezone),
+            )
+            end_local = datetime.combine(
+                monday + timedelta(days=7), time.min, self.owner_timezone
+            )
+        else:
+            start_local = local_now
+            end_local = local_now + timedelta(days=14)
+        start = max(start_local.astimezone(UTC), coverage_from, now)
+        end = min(end_local.astimezone(UTC), coverage_to)
+        return start, end
 
     def _activate_bundle(
         self, bundle: WindowsContextActivationBundle | CalendarContextActivationBundle

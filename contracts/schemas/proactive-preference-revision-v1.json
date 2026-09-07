@@ -22,8 +22,9 @@
           "type": "string"
         },
         "timezone_name": {
-          "const": "UTC",
           "default": "UTC",
+          "maxLength": 80,
+          "minLength": 1,
           "title": "Timezone Name",
           "type": "string"
         }
@@ -108,6 +109,11 @@
       "const": false,
       "default": false,
       "title": "External Delivery Authorized",
+      "type": "boolean"
+    },
+    "generic_push_for_local_only": {
+      "default": false,
+      "title": "Generic Push For Local Only",
       "type": "boolean"
     },
     "global_budget_per_24h": {

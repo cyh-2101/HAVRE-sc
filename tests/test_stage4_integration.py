@@ -20,7 +20,8 @@ from companion.goals.models import Goal, GoalStatus, GoalTrack
 from companion.goals.service import GoalService
 from companion.hashing import canonical_json
 from companion.identity import IdentityLoader
-from companion.memory import DeterministicEmbeddingProvider
+from companion.memory import DeterministicEmbeddingProvider, DeterministicEpisodicExtractor
+from companion.memory.service import MemoryService, MemoryWorker
 from companion.persistence import PostgresRepository, apply_migrations
 from companion.policy import DataPolicy, PrivacyClass
 from companion.state.service import CurrentStateService
@@ -101,6 +102,62 @@ class Stage4PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
             client_created_at=occurred_at,
             idempotency_key=f"stage4-source-{uuid.uuid4()}",
         ))
+
+    async def test_confirmed_memory_bridges_to_owner_reviewed_user_model_candidate(self) -> None:
+        source = await self._source("I prefer concise answers with the conclusion first.")
+        memory = MemoryService(
+            repository=self.repository,
+            embedding_provider=self.embedding,
+        )
+        worker = MemoryWorker(
+            repository=self.repository,
+            extractor=DeterministicEpisodicExtractor(),
+            owner_id=self.owner_id,
+            worker_id=f"stage4-memory-bridge-{uuid.uuid4()}",
+        )
+        candidate = None
+        for _ in range(200):
+            stored = worker.run_once()
+            if stored is None:
+                break
+            if stored["source_event_id"] == source.user_event_id:
+                candidate = stored
+                break
+        self.assertIsNotNone(candidate)
+        confirmed = memory.accept_candidate(
+            owner_id=self.owner_id,
+            candidate_id=candidate["candidate_id"],
+            reason="Owner confirmed the exact Memory before User Model proposal",
+        )
+        proposed = self.user_model.propose_from_confirmed_memory(
+            owner_id=self.owner_id,
+            memory_id=confirmed.memory_id,
+            statement="The owner prefers concise answers with the conclusion first.",
+            belief_type=BeliefType.PREFERENCE,
+            confidence=0.7,
+            reason="Owner proposed this confirmed Memory for User Model review",
+        )
+        self.assertEqual(proposed.initial_status.value, "candidate")
+        snapshots = self.user_model.list_beliefs(
+            owner_id=self.owner_id,
+            include_inactive=True,
+        )
+        snapshot = next(
+            item for item in snapshots if item.revision.belief_id == proposed.belief_id
+        )
+        self.assertEqual(snapshot.effective_status, "candidate")
+        self.assertEqual(len(snapshot.supporting_evidence), 1)
+        evidence = snapshot.supporting_evidence[0]
+        self.assertEqual(evidence.source_kind, EvidenceSourceKind.MEMORY_REVISION)
+        self.assertEqual(evidence.source_id, confirmed.memory_id)
+        self.assertEqual(evidence.source_revision, confirmed.revision)
+        activated = self.user_model.activate(
+            owner_id=self.owner_id,
+            belief_id=proposed.belief_id,
+            revision=proposed.revision,
+            reason="Owner accepted the User Model proposal",
+        )
+        self.assertEqual(activated.transition_type, BeliefTransitionType.ACTIVATED)
 
     @staticmethod
     def _event_ref(event_id, relation=EvidenceRelation.SUPPORTS):
@@ -643,7 +700,7 @@ class Stage4PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     (self.owner_id, proposal.proposal_id),
                 )
         query = await self.interactions.interact(InteractionCommand(
-            message="What has helped my slow piano practice?",
+            message="What helped my slow piano practice last time?",
             privacy_class=PrivacyClass.NORMAL,
             memory_eligible=False,
             channel="api",
