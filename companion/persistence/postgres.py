@@ -345,6 +345,7 @@ class PostgresRepository:
             # API/CLI retain the historical Stage 2 per-event behavior.
             should_extract_memory = (
                 user_event.data_policy.memory_eligible
+                and user_event.payload.input_origin != "continuation_button"
                 and (channel != "web" or proposed_memory_text(source_text) is not None)
                 and not (self.memory_encoder is not None and channel == "web")
             )
@@ -2215,6 +2216,14 @@ class PostgresRepository:
                 """,
                 (owner_id, source_event_id),
             )
+            chat_plan_ids = []
+            if connection.execute("SELECT to_regclass('havre.owner_chat_goal_plan_sources') IS NOT NULL AS present").fetchone()["present"]:
+                chat_plan_ids = [row["plan_run_id"] for row in connection.execute(
+                    "SELECT DISTINCT run.plan_run_id FROM havre.owner_chat_goal_plan_runs run "
+                    "LEFT JOIN havre.owner_chat_goal_plan_sources source ON source.owner_id=run.owner_id AND source.plan_run_id=run.plan_run_id "
+                    "WHERE run.owner_id=%s AND (run.source_event_id=%s OR source.event_id=%s)",
+                    (owner_id,source_event_id,source_event_id),
+                ).fetchall()]
             context_observation_ids = [
                 row["observation_id"]
                 for row in connection.execute(
@@ -2554,6 +2563,13 @@ class PostgresRepository:
                     row["goal_id"]: row for row in [*goal_rows, *transition_goal_rows]
                 }
                 goal_rows = list(goal_rows_by_id.values())
+            if chat_plan_ids:
+                chat_goal_rows=connection.execute(
+                    "SELECT goal.goal_id,goal.revision FROM havre.goals goal JOIN havre.owner_chat_goal_actions action "
+                    "ON action.owner_id=goal.owner_id AND action.goal_id=goal.goal_id "
+                    "WHERE goal.owner_id=%s AND action.plan_run_id=ANY(%s::uuid[])",(owner_id,chat_plan_ids),
+                ).fetchall()
+                goal_rows=list({row["goal_id"]:row for row in (*goal_rows,*chat_goal_rows)}.values())
             goal_ids = [row["goal_id"] for row in goal_rows]
             progress_record_ids.update(
                 row["progress_record_id"]
@@ -2593,6 +2609,7 @@ class PostgresRepository:
                     (owner_id, memory_id),
                 ).fetchall()
             ]
+            source_refs.extend(f"goal-plan/{run_id}" for run_id in chat_plan_ids)
             source_refs.extend(
                 f"belief/{belief_id}@{row['revision']}"
                 for belief_id in belief_ids
@@ -3482,13 +3499,13 @@ class PostgresRepository:
             ).fetchone()["present"]:
                 owner_chat_goal_action_count = connection.execute(
                     """DELETE FROM havre.owner_chat_goal_actions
-                       WHERE owner_id=%s AND source_event_id=%s""",
-                    (owner_id, source_event_id),
+                       WHERE owner_id=%s AND (source_event_id=%s OR plan_run_id=ANY(%s::uuid[]))""",
+                    (owner_id, source_event_id, chat_plan_ids),
                 ).rowcount
                 owner_chat_goal_plan_run_count = connection.execute(
                     """DELETE FROM havre.owner_chat_goal_plan_runs
-                       WHERE owner_id=%s AND source_event_id=%s""",
-                    (owner_id, source_event_id),
+                       WHERE owner_id=%s AND (source_event_id=%s OR plan_run_id=ANY(%s::uuid[]))""",
+                    (owner_id, source_event_id, chat_plan_ids),
                 ).rowcount
             goal_count = connection.execute(
                 """
@@ -4996,6 +5013,9 @@ class PostgresRepository:
                 for part in parts
                 if isinstance(part, dict) and part.get("type") == "text"
             ).strip()
+            if row["payload"].get("input_origin") == "continuation_button":
+                from companion.context.continuation import CONTINUATION_INPUT_TEXT
+                text = CONTINUATION_INPUT_TEXT
             if not text:
                 continue
             result.append(ConversationHistoryItem(

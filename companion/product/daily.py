@@ -454,6 +454,8 @@ class DailyCompanionStore:
                         (row["payload"].get("response_policy_decision") or {}).get("category")
                         if isinstance(row["payload"], dict) else None
                     ),
+                    "reply_to_event_id": row["payload"].get("reply_to_event_id") if isinstance(row["payload"],dict) else None,
+                    "input_origin": row["payload"].get("input_origin", "owner_text"),
                     "client_created_at": (
                         row["payload"].get("client_created_at")
                         if isinstance(row["payload"], dict)
@@ -646,6 +648,7 @@ class DailyCompanionStore:
                    FROM havre.events
                    WHERE owner_id=%s
                      AND event_type IN ('USER_MESSAGE','ASSISTANT_MESSAGE')
+                     AND COALESCE(payload->>'input_origin','owner_text') <> 'continuation_button'
                      AND (recorded_at AT TIME ZONE %s)::date=%s
                    ORDER BY recorded_at,event_id""",
                 (self.owner_id, timezone_name, local_date),

@@ -112,3 +112,17 @@ receipts. That execution still does not prove the resulting Diary is useful,
 that a physical iPhone displayed the revised UI, or that relational follow-ups
 improve the owner's life. Those require actual owner experience and feedback.
 Formal ADR acceptance remains a separate owner decision.
+
+## Owner-authorized multi-turn action repair (2026-09-08)
+
+The explicit Goal planner may resolve a pending request from at most eight
+contiguous eligible messages within 24 hours, with exact owner quotes and no
+reliance on assistant promises as authority. Unrelated conversation, revocation
+or restricted sources end that chain. Explicit daily schedules of at most 31
+dates use the existing one-off reminder queue and current permission checks;
+random daytime is used only on owner request and disclosed as 10:00–21:00.
+A current durable receipt precedes any claim of saving or scheduling. “再说点”
+does not re-execute actions. Migration 0072 records immutable owner-qualified
+source manifests and adds earlier-source erasure closure. This is an authorized
+repair of point 7, not a new proactive scheduler, permission or formal acceptance
+of any other pending ADR scope. See [repair evidence](../CHAT_REPAIR_REVIEW_2026-09-08.md).

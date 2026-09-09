@@ -15,9 +15,10 @@ async function testClientBehavior() {
   assert.ok(appSource.includes("friendly_check_ins_enabled:$('#reachOutFriendly').checked"));
   assert.ok(appSource.includes('settings.relationship_initiative_active'));
   assert.ok(appSource.includes('setInterval(()=>refreshVisibleTimeline(),4000)'));
+  const elements = {'#messageInput': {value:''}, '#sendButton': {disabled:false}};
   const context = {
     __HAVRE_PWA_TEST_MODE__: true,
-    document: {querySelector: () => ({}), querySelectorAll: () => []},
+    document: {querySelector: selector => elements[selector] ||= {}, querySelectorAll: () => []},
     location: {hostname: '127.0.0.1'},
     localStorage: {getItem: () => null, setItem: () => {}},
     AbortController, setTimeout, clearTimeout,
@@ -45,6 +46,16 @@ async function testClientBehavior() {
     assert.strictEqual(hooks.canPaceReply({...ordinary,...change},['一','二']),false);
   }
   assert.strictEqual(hooks.canPaceReply(ordinary,['一'.repeat(400),'二']),false);
+  assert.strictEqual(hooks.isContinuationControl({role:'user',content:'再说点'}),false);
+  assert.strictEqual(hooks.isContinuationControl({role:'user',input_origin:'continuation_button'}),true);
+  const tap=hooks.createPendingInteraction('再说点','2026-09-08T23:00:00Z',false,'session','key');
+  tap.body.input_origin='continuation_button';
+  assert.strictEqual(hooks.validPendingInteraction(tap),false);
+  tap.body.reply_to_event_id='parent';
+  assert.strictEqual(hooks.validPendingInteraction(tap),true);
+  const tapRow={role:'user',content:'再说点',request_id:'r',session_id:'session',privacy_class:'NORMAL',client_created_at:tap.body.client_created_at,reply_to_event_id:'parent'};
+  assert.strictEqual(hooks.pendingMatchesTimelineItem(tap,tapRow),false);
+  assert.strictEqual(hooks.pendingMatchesTimelineItem(tap,{...tapRow,input_origin:'continuation_button'}),true);
   const ready={busy:false,draft:'',sessionId:'s',pending:null,focused:false};
   assert.strictEqual(hooks.sayMoreAvailable([ordinary],ready),true);
   for(const change of [{busy:true},{draft:'还没发出的草稿'},{sessionId:'other'},{pending:{}},{focused:true}]){
@@ -52,6 +63,16 @@ async function testClientBehavior() {
   }
   assert.strictEqual(hooks.sayMoreAvailable([{...ordinary,proactive:true}],ready),false);
   assert.strictEqual(hooks.sayMoreAvailable([{role:'user'}],ready),false);
+  // An unread reply is expanded locally; no second request is allowed.
+  hooks.state.items=[ordinary];hooks.state.sessionId='s';
+  let finished=0;
+  hooks.bubblePacers.set('e',{snapshot:()=>({done:false}),finish:()=>{finished++;hooks.bubblePacers.delete('e')}});
+  context.fetch=()=>{throw new Error('expanding unread text must not send a request')};
+  hooks.updateSayMore();assert.strictEqual(elements['#sayMoreButton'].textContent,'看完这条');
+  await hooks.sayMore();assert.strictEqual(finished,1);
+  assert.strictEqual(elements['#messageInput'].value,'');
+  assert.strictEqual(elements['#sayMoreButton'].textContent,'再说点');
+
   for(const content of ['```python\nx=1\n```\n\n说明','1. 第一步\n\n2. 第二步','{"key": 42}\n\n说明']){
     assert.strictEqual(hooks.conversationBubbleParts({role:'assistant',content}).length,1);
   }
@@ -140,6 +161,21 @@ async function testClientBehavior() {
     interaction_status: 'completed',
   };
   assert.strictEqual(hooks.pendingMatchesTimelineItem(pending, committedUser), true);
+  const continuation=hooks.createPendingInteraction('再说点',pending.body.client_created_at,false,'s','continue-once');
+  continuation.body.reply_to_event_id='bound-parent';
+  hooks.persistPendingInteraction(continuation,pendingStorage);
+  const restored=hooks.readPendingInteraction(pendingStorage);
+  assert.strictEqual(restored.body.reply_to_event_id,'bound-parent');
+  const continuedUser={...committedUser,content:'再说点',session_id:'s',reply_to_event_id:'bound-parent',privacy_class:'LOCAL_ONLY'};
+  assert.strictEqual(hooks.pendingMatchesTimelineItem(restored,continuedUser),true);
+  assert.strictEqual(hooks.pendingMatchesTimelineItem(restored,{...continuedUser,reply_to_event_id:'another-parent'}),false);
+  const sent=[];
+  await assert.rejects(hooks.submitPendingInteraction(restored,async (_url,options)=>{sent.push(options);throw new Error('disconnect')}),/disconnect/);
+  await assert.rejects(hooks.submitPendingInteraction(restored,async (_url,options)=>{sent.push(options);throw new Error('disconnect')}),/disconnect/);
+  assert.strictEqual(sent[0].body,sent[1].body);
+  assert.strictEqual(JSON.parse(sent[0].body).reply_to_event_id,'bound-parent');
+  assert.strictEqual(sent[0].headers['Idempotency-Key'],sent[1].headers['Idempotency-Key']);
+
   assert.strictEqual(
     hooks.pendingResolution(pending, [committedUser]).status,
     'terminal',
@@ -157,6 +193,7 @@ async function testClientBehavior() {
   assert.strictEqual(hooks.retryDraft({...failed, cloud_eligible: false}, ''), null);
   assert.strictEqual(hooks.retryDraft({...failed, memory_eligible: false}, ''), null);
   assert.strictEqual(hooks.retryDraft(committedUser, ''), null);
+  assert.strictEqual(hooks.retryDraft({...failed,reply_to_event_id:'bound-parent'},'').replyToEventId,'bound-parent');
   await assert.rejects(hooks.submitPendingInteraction(pending, async (_url, options) => ({
     ok: true, text: () => new Promise((_resolve, reject) => {
       options.signal.addEventListener('abort', () => reject(new Error('aborted')));
@@ -310,8 +347,8 @@ async function testClientBehavior() {
   assert.strictEqual(
     hooks.intendedRouteLabel(true, dualSettings), 'Qwen3-8B Base · 仅本机',
   );
-  assert.strictEqual(hooks.thinkingLabel(false, dualSettings), '我在看，等我一下…');
-  assert.strictEqual(hooks.thinkingLabel(true, dualSettings), '我在看，等我一下…');
+  assert.strictEqual(hooks.thinkingLabel(false, dualSettings), '...');
+  assert.strictEqual(hooks.thinkingLabel(true, dualSettings), '...');
   assert.strictEqual(hooks.intendedRouteLabel(false, null), '正在确认回复引擎…');
 
   const localPrimarySettings = {reply_routes: {
@@ -402,9 +439,7 @@ async function testClientBehavior() {
     role: 'user', interaction_status: 'completed',
   }), '');
 
-  let updateNotice = '';
-  hooks.handleControllerChange(value => {updateNotice = value;});
-  assert.ok(updateNotice.includes('不会自动刷新'));
+  assert.strictEqual(hooks.APP_VERSION,'20260908-fluid-bubbles-v21');
 
   let ackCount = 0;
   let openCount = 0;
@@ -475,6 +510,44 @@ async function testClientBehavior() {
   releaseStale({items:[{event_id:'old-server-message'}],next_cursor:null,has_more:false});
   assert.strictEqual(await stale,null);
   assert.ok(context.__HAVRE_PWA_TIMELINE_TEST__.items().includes(optimistic));
+}
+
+function testUpdateProtectsUnfinishedWork() {
+  let dialog=false,focusedInput=false,reloads=0,stored=new Map();
+  const elements={
+    '#chatPage':{classList:{contains:()=>true}},'#messageInput':{value:''},
+    '#sendButton':{disabled:false},'#timeline':{scrollHeight:500,scrollTop:0,clientHeight:500}
+  };
+  const context={__HAVRE_PWA_TEST_MODE__:true,
+    document:{visibilityState:'visible',activeElement:{matches:()=>focusedInput},querySelector:selector=>selector==='dialog[open],.sheet.open'?dialog:(elements[selector]||={}),querySelectorAll:()=>[]},
+    navigator:{onLine:true},location:{hostname:'127.0.0.1',reload:()=>{reloads++;}},
+    sessionStorage:{getItem:key=>stored.get(key)||null,setItem:(key,value)=>stored.set(key,value)},
+    localStorage:{getItem:()=>null},setTimeout:()=>1,clearTimeout(){},AbortController
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(root,'apps/web/havre-app.js'),'utf8'),context);
+  const hooks=context.__HAVRE_PWA_TEST__;assert.strictEqual(hooks.canApplyAppUpdate(),true);
+  const guards=[
+    [()=>elements['#messageInput'].value=' ',()=>elements['#messageInput'].value=''],
+    [()=>focusedInput=true,()=>focusedInput=false],
+    [()=>dialog=true,()=>dialog=false],
+    [()=>elements['#sendButton'].disabled=true,()=>elements['#sendButton'].disabled=false],
+    [()=>hooks.state.pendingInteraction={},()=>hooks.state.pendingInteraction=null],
+    [()=>hooks.state.items=[{role:'user',request_id:'r',interaction_status:'processing'}],()=>hooks.state.items=[]],
+    [()=>hooks.state.loading=true,()=>hooks.state.loading=false],
+    [()=>hooks.state.focusedHistory=true,()=>hooks.state.focusedHistory=false],
+    [()=>elements['#timeline'].scrollTop=-200,()=>elements['#timeline'].scrollTop=0],
+    [()=>context.document.visibilityState='hidden',()=>context.document.visibilityState='visible'],
+    [()=>context.navigator.onLine=false,()=>context.navigator.onLine=true],
+    [()=>elements['#chatPage'].classList.contains=()=>false,()=>elements['#chatPage'].classList.contains=()=>true],
+    [()=>hooks.bubblePacers.set('e',{snapshot:()=>({done:false})}),()=>hooks.bubblePacers.clear()]
+  ];
+  hooks.offerAppUpdate('next-version');
+  for(const[block,restore]of guards){block();assert.strictEqual(hooks.canApplyAppUpdate(),false);assert.strictEqual(hooks.applyAppUpdate(),false);assert.strictEqual(reloads,0);restore();}
+  assert.strictEqual(hooks.applyAppUpdate(),true);assert.strictEqual(reloads,1);
+  assert.strictEqual(hooks.applyAppUpdate(),false,'automatic reload must not loop for the same version');
+  assert.strictEqual(hooks.applyAppUpdate({manual:true}),true);
+  hooks.offerAppUpdate('another-version');context.sessionStorage.setItem=()=>{throw new Error('blocked storage');};
+  assert.strictEqual(hooks.applyAppUpdate(),false,'no reload-loop protection means no automatic reload');
 }
 
 async function runServiceWorkerClick(ackShell) {
@@ -559,9 +632,9 @@ async function testStaticCacheLifecycle() {
   let install;
   listeners.install({waitUntil: promise => {install = promise;}});
   await install;
-  assert.deepStrictEqual(opened, ['havre-static-20260906-short-turns-v17']);
-  assert.ok(precached.includes('/assets/havre-app.js?v=20260906-short-turns-v17'));
-  assert.ok(precached.includes('/assets/havre-app.css?v=20260906-short-turns-v17'));
+  assert.deepStrictEqual(opened, ['havre-static-20260908-fluid-bubbles-v21']);
+  assert.ok(precached.includes('/assets/havre-app.js?v=20260908-fluid-bubbles-v21'));
+  assert.ok(precached.includes('/assets/havre-app.css?v=20260908-fluid-bubbles-v21'));
   assert.strictEqual(skipped, 1);
 
   let activate;
@@ -572,122 +645,32 @@ async function testStaticCacheLifecycle() {
 }
 
 async function testStaticFetchUsesCanonicalAwaitedCacheKey() {
-  const workerSource = fs.readFileSync(path.join(root, 'apps/web/service-worker.js'), 'utf8');
-  const listeners = {};
-  const storedKeys = [];
-  let releasePut;
-  const putGate = new Promise(resolve => {releasePut = resolve;});
-  let putFinished = false;
-  const networkResponse = {
-    ok: true,
-    type: 'basic',
-    clone: () => ({kind: 'clone'}),
+  const listeners={},matched=[],stored=[],fetched=[];
+  const fresh={ok:true,type:'basic',kind:'fresh',clone:()=>({kind:'clone'})};
+  const cached={kind:'cached'};let offline=false,releasePut;
+  const cacheWrite=new Promise(resolve=>{releasePut=resolve;});
+  const context={
+    self:{location:{origin:'https://havre.test'},addEventListener:(name,callback)=>{listeners[name]=callback;}},
+    clients:{},URL,setTimeout,clearTimeout,
+    caches:{open:async()=>({match:async key=>{matched.push(key);return key==='/chat'?cached:null;},put:async key=>{stored.push(key);await cacheWrite;}})},
+    fetch:async request=>{fetched.push(request.url);if(offline)throw new Error('offline');return fresh;}
   };
-  const context = {
-    self: {
-      location: {origin: 'https://havre.test'},
-      addEventListener: (name, callback) => {listeners[name] = callback;},
-    },
-    clients: {},
-    caches: {
-      open: async () => ({match: async()=>null, put: async key => {
-        storedKeys.push(key);
-        await putGate;
-        putFinished = true;
-      }}),
-      match: async () => null,
-    },
-    fetch: async () => networkResponse,
-    URL, setTimeout, clearTimeout,
-  };
-  vm.runInNewContext(workerSource, context, {filename: 'service-worker.js'});
-  let completion;
-  listeners.fetch({
-    waitUntil() {},
-    request: {
-      method: 'GET',
-      url: `https://havre.test/chat?notification_open=${locator}`,
-    },
-    respondWith: promise => {completion = promise;},
-  });
-  await new Promise(resolve => setImmediate(resolve));
-  assert.deepStrictEqual(storedKeys, ['/chat']);
-  assert.strictEqual(putFinished, false);
-  let responseSettled = false;
-  completion.then(() => {responseSettled = true;});
-  await Promise.resolve();
-  assert.strictEqual(responseSettled, true,'render must not wait for a disk cache write');
-  releasePut();
-  assert.strictEqual(await completion, networkResponse);
-  assert.strictEqual(putFinished, true);
-
-  let staleAssetCompletion;
-  listeners.fetch({
-    waitUntil() {},
-    request: {
-      method: 'GET',
-      url: 'https://havre.test/assets/havre-app.js?v=20260903-dual-route-v3',
-    },
-    respondWith: promise => {staleAssetCompletion = promise;},
-  });
-  assert.strictEqual(await staleAssetCompletion, networkResponse);
-  assert.strictEqual(
-    storedKeys.at(-1),
-    '/assets/havre-app.js?v=20260906-short-turns-v17',
-  );
-
-  const offlineListeners = {};
-  const matchedKeys = [];
-  const cachedResponse = {kind: 'cached-chat'};
-  const offlineContext = {
-    self: {
-      location: {origin: 'https://havre.test'},
-      addEventListener: (name, callback) => {offlineListeners[name] = callback;},
-    },
-    clients: {},
-    caches: {
-      open: async () => ({match:key=>offlineContext.caches.match(key),put:()=>{throw new Error('must not write while offline');}}),
-      match: async key => {
-        matchedKeys.push(key);
-        return key === '/chat' ? cachedResponse : null;
-      },
-    },
-    fetch: async () => {throw new Error('offline');},
-    URL, setTimeout, clearTimeout,
-  };
-  vm.runInNewContext(workerSource, offlineContext, {filename: 'service-worker.js'});
-  let offlineCompletion;
-  offlineListeners.fetch({
-    request: {
-      method: 'GET',
-      url: `https://havre.test/chat?notification_open=${locator}`,
-    },
-    respondWith: promise => {offlineCompletion = promise;},
-  });
-  assert.strictEqual(await offlineCompletion, cachedResponse);
-  assert.deepStrictEqual(matchedKeys, ['/chat']);
-
-  matchedKeys.length = 0;
-  const cachedAssetResponse = {kind: 'cached-current-asset'};
-  offlineContext.caches.match = async key => {
-    matchedKeys.push(key);
-    return key === '/assets/havre-app.js?v=20260906-short-turns-v17'
-      ? cachedAssetResponse
-      : null;
-  };
-  let staleOfflineCompletion;
-  offlineListeners.fetch({
-    request: {
-      method: 'GET',
-      url: 'https://havre.test/assets/havre-app.js?v=20260903-dual-route-v3',
-    },
-    respondWith: promise => {staleOfflineCompletion = promise;},
-  });
-  assert.strictEqual(await staleOfflineCompletion, cachedAssetResponse);
-  assert.deepStrictEqual(
-    matchedKeys,
-    ['/assets/havre-app.js?v=20260906-short-turns-v17'],
-  );
+  vm.runInNewContext(fs.readFileSync(path.join(root,'apps/web/service-worker.js'),'utf8'),context);
+  const dispatch=(url,method='GET')=>{let promise;listeners.fetch({request:{url:'https://havre.test'+url,method},respondWith:value=>{promise=value;},waitUntil(){}});return promise;};
+  assert.strictEqual(await dispatch('/chat?notification_open='+locator),fresh,'online navigation must bypass an existing cache');
+  assert.deepStrictEqual(stored,[],'do not overwrite the coherent installed offline HTML with a different release');
+  offline=true;
+  assert.strictEqual(await dispatch('/chat?notification_open='+locator),cached);
+  offline=false;
+  assert.strictEqual(await dispatch('/assets/havre-app.js?v=20260908-fluid-bubbles-v21'),fresh,'render must not wait for cache disk writes');
+  assert.deepStrictEqual(stored,['/assets/havre-app.js?v=20260908-fluid-bubbles-v21']);releasePut();
+  for(const url of ['/assets/havre-app.js?v=future-release','/assets/havre-app.js?v=old-release','/v1/timeline','/v1/interactions/stream','/metrics']){
+    assert.strictEqual(dispatch(url),undefined,'unknown versions and private APIs must pass through: '+url);
+  }
+  assert.strictEqual(dispatch('/chat','POST'),undefined);
+  let version;
+  listeners.message({data:{type:'HAVRE_APP_VERSION'},ports:[{postMessage:value=>{version=value.version;}}]});
+  assert.strictEqual(version,'20260908-fluid-bubbles-v21');
 }
 
 (async () => {
@@ -699,11 +682,11 @@ async function testStaticFetchUsesCanonicalAwaitedCacheKey() {
   assert.ok(htmlSource.includes('正在确认回复引擎…'));
   assert.ok(htmlSource.includes('id="privacyMode"'));
   assert.ok(htmlSource.includes('title="正在确认本机回复引擎" disabled'));
-  assert.ok(htmlSource.includes('havre-app.js?v=20260906-short-turns-v17'));
-  assert.ok(htmlSource.includes('havre-app.css?v=20260906-short-turns-v17'));
+  assert.ok(htmlSource.includes('havre-app.js?v=20260908-fluid-bubbles-v21'));
+  assert.ok(htmlSource.includes('havre-app.css?v=20260908-fluid-bubbles-v21'));
   assert.ok(htmlSource.includes('id="reachOutFriendlyStatus"'));
   assert.ok(workerSource.includes("PUSH_SHELL_VERSION='havre-shell-v5'"));
-  assert.ok(workerSource.includes("CACHE='havre-static-20260906-short-turns-v17'"));
+  assert.ok(workerSource.includes("CACHE='havre-static-20260908-fluid-bubbles-v21'"));
   assert.ok(workerSource.includes("LEGACY_CACHES=new Set(['havre-shell-v5'])"));
   assert.ok(workerSource.includes('event.waitUntil(cache.put(fallback,response.clone()).catch(()=>{}))'));
   assert.ok(workerSource.includes('if(cached)return cached'));
@@ -713,6 +696,7 @@ async function testStaticFetchUsesCanonicalAwaitedCacheKey() {
   assert.ok(appSource.includes("'Idempotency-Key':pending.idempotency_key"));
   assert.ok(!appSource.includes("'Idempotency-Key':crypto.randomUUID()"));
   await testClientBehavior();
+  testUpdateProtectsUnfinishedWork();
   await testStaticCacheLifecycle();
   await testStaticFetchUsesCanonicalAwaitedCacheKey();
   assert.deepStrictEqual(

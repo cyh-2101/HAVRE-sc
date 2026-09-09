@@ -1,12 +1,30 @@
 const PUSH_SHELL_VERSION='havre-shell-v5';
-const CACHE='havre-static-20260906-short-turns-v17';
+const APP_VERSION='20260908-fluid-bubbles-v21';
+const CACHE='havre-static-20260908-fluid-bubbles-v21';
 const LEGACY_CACHES=new Set(['havre-shell-v5']);
-const SHELL=['/chat','/assets/havre-app.css?v=20260906-short-turns-v17','/assets/havre-app.js?v=20260906-short-turns-v17','/assets/havre-icon.svg','/manifest.webmanifest'];
-function shellEntry(url){if(url.pathname==='/chat')return'/chat';return SHELL.find(entry=>new URL(entry,self.location.origin).pathname===url.pathname)}
+const SHELL=['/chat','/assets/havre-app.css?v=20260908-fluid-bubbles-v21','/assets/havre-app.js?v=20260908-fluid-bubbles-v21','/assets/havre-icon.svg','/manifest.webmanifest'];
+function shellEntry(url){if(url.pathname==='/chat')return'/chat';return SHELL.find(entry=>entry===url.pathname+url.search)}
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>LEGACY_CACHES.has(key)||(key.startsWith('havre-static-')&&key!==CACHE)).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
-// Only the versioned public app shell is cached; API/chat contents never are.
-self.addEventListener('fetch',event=>{const url=new URL(event.request.url),fallback=shellEntry(url);if(event.request.method!=='GET'||url.origin!==self.location.origin||!fallback)return;event.respondWith((async()=>{const cache=await caches.open(CACHE),cached=await cache.match(fallback);if(cached)return cached;const response=await fetch(new URL(fallback,self.location.origin).href,{credentials:'same-origin'});if(response.ok&&response.type==='basic')event.waitUntil(cache.put(fallback,response.clone()).catch(()=>{}));return response})())});
+// Navigation is fresh online. Keep the installed HTML snapshot for a coherent
+// offline shell; never pair newer HTML with older cached asset bytes.
+// Only exact public shell keys are cached. APIs and unknown versions pass through.
+self.addEventListener('fetch',event=>{
+ const url=new URL(event.request.url),fallback=shellEntry(url);
+ if(event.request.method!=='GET'||url.origin!==self.location.origin||!fallback)return;
+ event.respondWith((async()=>{
+  const cache=await caches.open(CACHE);
+  if(fallback==='/chat'||fallback==='/manifest.webmanifest'){
+   try{const response=await fetch(event.request,{cache:'no-store'});if(response.ok)return response;const cached=await cache.match(fallback);return cached||response}
+   catch(error){const cached=await cache.match(fallback);if(cached)return cached;throw error}
+  }
+  const cached=await cache.match(fallback);if(cached)return cached;
+  const response=await fetch(event.request);
+  if(response.ok&&response.type==='basic')event.waitUntil(cache.put(fallback,response.clone()).catch(()=>{}));
+  return response
+ })())
+});
+self.addEventListener('message',event=>{if(event.data?.type==='HAVRE_APP_VERSION')event.ports?.[0]?.postMessage({type:'HAVRE_APP_VERSION',version:APP_VERSION})});
 self.addEventListener('push',event=>{let incoming={};try{incoming=event.data.json()}catch{}const locator=typeof incoming.delivery_locator==='string'&&/^[0-9a-f-]{36}$/.test(incoming.delivery_locator)?incoming.delivery_locator:null;const url=locator?`/chat#delivery-${locator}`:'/chat';event.waitUntil(self.registration.showNotification('HAVRE',{body:'HAVRE 有条消息给你',icon:'/assets/havre-icon.svg',badge:'/assets/havre-icon.svg',data:{url,delivery_locator:locator},tag:locator||'havre-message',renotify:false}))});
 function notifyClient(client,message){return new Promise(resolve=>{const channel=new MessageChannel();let settled=false;const finish=acked=>{if(settled)return;settled=true;clearTimeout(timer);resolve(acked)};const timer=setTimeout(()=>finish(false),750);channel.port1.onmessage=event=>finish(event.data?.type==='HAVRE_NOTIFICATION_OPEN_ACK'&&event.data?.shell===PUSH_SHELL_VERSION);try{client.postMessage(message,[channel.port2])}catch{finish(false)}})}
 self.addEventListener('notificationclick',event=>{event.notification.close();const locator=event.notification.data?.delivery_locator,valid=typeof locator==='string'&&/^[0-9a-f-]{36}$/.test(locator);const targetUrl=new URL('/chat',self.location.origin);if(valid)targetUrl.hash=`delivery-${locator}`;targetUrl.searchParams.set('notification_open',valid?locator:'1');const target=targetUrl.href;const message={type:'HAVRE_NOTIFICATION_OPEN',delivery_locator:valid?locator:null};event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(async list=>{const current=list.find(client=>new URL(client.url).origin===self.location.origin&&new URL(client.url).pathname==='/chat');if(current){try{await current.focus();const acked=await notifyClient(current,message);if(!acked)await current.navigate(target);return}catch{return clients.openWindow(target)}}return clients.openWindow(target)}))});

@@ -1,8 +1,9 @@
 # Public release and privacy audit
 
-- Date: 2026-09-07
+- Date: 2026-09-08
 - Target: cyh-2101/HAVRE-sc
-- Private source checkpoint: bcdbba9fa7b4d41d5afd439e45247915d0c7ef8e
+- Private source: current working tree based on f7bb1efb83f4bd1f77805286c38cbf8126c5875f
+- Authorization: owner requested this public showcase refresh
 - Decision: **PUBLICATION CANDIDATE: PASS**
 
 ## Scope and controls
@@ -11,31 +12,40 @@ The original new root commit established a public-only history; this update
 appends to it and never merges private ancestry. Apache-2.0 is retained. Public
 noreply author metadata is used. The private archive remains authoritative.
 
-Source code, migrations, contracts and synthetic tests were refreshed. Private
-data directories, new case-level research outputs and personal screenshots were
-excluded. Detailed owner audits have explicit technical synopses. Known owner
-paths were replaced. Embedded references to a specific private OA example were
-removed from the public prompt copy; source policies were not changed.
+This refresh includes requested-record context, exact Goal sources, action
+receipts, continuation controls, PWA update/motion repairs and migrations
+0072-0075. Private databases, case-level outputs, screenshots, runtime artifacts
+and new private semantic fixtures are excluded. Detailed owner audits have
+explicit public technical synopses. Known owner paths are replaced; the private
+OA-specific anchor is omitted from the public prompt copy.
 
-The full candidate-tree credential/path scan found no secret or owner-path
-matches. A local comparison with long owner-message substrings found only
-technical source hashes, program-generated import-policy text and a synthetic
-course-title fixture; these were reviewed as non-transcript matches. No raw
-conversation was exported. Such a scan is bounded evidence, not a guarantee for
-future additions.
+A local comparison against long conversation substrings identified one exact
+assistant transcript in a regression test. That entire test was omitted from the
+public source and registered as excluded. It was not substituted with invented
+data or counted as passing. The final public candidate has no remaining matches
+in that bounded comparison. Credential/path and forbidden-file checks found no
+matches. Scans are bounded evidence, not a guarantee for future additions. The
+private export/provenance receipts stay local.
+
+The README and resume evidence disclose that most implementation and tests were
+produced with AI coding agents. Repository functionality is not proof of the
+owner's independent implementation or subsystem mastery.
 
 ## Verification
 
-- Public matrix: 825 passed, zero failures/errors/skips; 97 documented exclusions.
-- Separate private source: 922 passed, zero failures/errors/skips.
-- Dedicated synthetic demo completed; provenance violations: zero.
+- Public matrix: 841 passed, zero failures/errors/skips; 98 documented exclusions.
+- Fresh PostgreSQL 18 database applied migrations 0001-0075 and canonical roles.
+- Independent Git snapshot preserved exact staged source bytes for provenance.
+- Synthetic demo completed; provenance CLI violations: zero.
+- Headless Edge: 21 interaction, seven motion and ten Service Worker checks passed.
 - Verified public encoder artifacts stayed ignored.
-- Final documentation/link checks and source whitespace checks passed.
+- Final documentation/link, compilation, dependency and whitespace checks passed.
 - Generated evidence stays outside public Git.
 - PostgreSQL was already running. Only task-created test databases are removed;
   the owner runtime and earlier databases are preserved.
 
-No owner database, OA material, plaintext backup, credential, browser profile,
-device origin or model weight may be added to this repository. Publishing this
-source snapshot does not establish production quality, physical-iPhone behavior,
-long-term usefulness, or authorization for another stage.
+The initial failed run and its setup corrections are documented in
+[PUBLIC_TESTING.md](PUBLIC_TESTING.md). No new training, model promotion, production
+context-policy change or private-repository push is part of this publication.
+It does not establish long-term usefulness, production capacity, physical-iPhone
+feel or authorization for another stage.

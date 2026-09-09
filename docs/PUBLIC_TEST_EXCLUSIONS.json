@@ -1,6 +1,7 @@
 {
-  "excluded_count": 97,
+  "excluded_count": 98,
   "test_ids": [
+    "tests.test_chat_repair.ActionClaimTests.test_failed_action_cannot_become_a_promise",
     "tests.test_stage8_contracts.Stage8ContractTests.test_artifacts_cannot_enable_cloud_or_automatic_deletion",
     "tests.test_stage8_contracts.Stage8ContractTests.test_blocking_human_review_cannot_accept_candidate_evidence",
     "tests.test_stage8_contracts.Stage8ContractTests.test_critical_regression_cannot_receive_candidate_recommendation",

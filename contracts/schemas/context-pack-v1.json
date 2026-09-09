@@ -241,7 +241,7 @@
   "additionalProperties": false,
   "properties": {
     "builder_version": {
-      "default": "context-builder-v17",
+      "default": "context-builder-v18",
       "enum": [
         "context-builder-v3",
         "context-builder-v4",
@@ -257,7 +257,8 @@
         "context-builder-v14",
         "context-builder-v15",
         "context-builder-v16",
-        "context-builder-v17"
+        "context-builder-v17",
+        "context-builder-v18"
       ],
       "title": "Builder Version",
       "type": "string"

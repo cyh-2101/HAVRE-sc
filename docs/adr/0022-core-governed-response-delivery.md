@@ -80,3 +80,15 @@ cases remain visible failures and require separately reviewed versioning.
 This extends ADR-0003 through ADR-0005, ADR-0009 through
 ADR-0011, ADR-0014, and ADR-0021 without changing Constitution, Identity, Core
 Values, training authority, or promotion authority.
+
+## Owner-authorized action receipt repair (2026-09-08)
+
+The current implementation now passes only persisted effects from the explicit
+chat Goal planner or successful commitment completion into Core. Policy
+`core-response-policy-v2-action-receipts` adds narrow checks against unsupported
+saved/scheduled/completed claims at the existing effect-truth boundary. Historical
+v1 decisions remain supported; migration 0073 retains the full existing lineage
+guard and adds only this recognized version. This supersedes the historical
+statement that ordinary chat supplies no effects. It does not alter canonical
+Identity, effect authority, categories or claim exhaustive semantic detection.
+See [repair evidence](../CHAT_REPAIR_REVIEW_2026-09-08.md).

@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import re
 from contextlib import nullcontext
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+import hashlib
 from typing import Any, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -14,6 +15,7 @@ from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from companion.context import PersonalContextItem
+from companion.context.response_plan import _SAY_MORE
 from companion.events import EventEnvelope, TextContentPart
 from companion.goals.models import GoalPriority, GoalTrack
 from companion.goals.service import GoalService
@@ -50,6 +52,21 @@ class PlannedReminder(StrictModel):
         return self
 
 
+class DailyReminderPlan(StrictModel):
+    start_date: date
+    end_date: date
+    local_time: str | None = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    varying_daytime: bool = False
+
+    @model_validator(mode="after")
+    def bounded(self):
+        if not 0 <= (self.end_date-self.start_date).days <= 30:
+            raise ValueError("daily reminders must have a bounded period of at most 31 dates")
+        if self.varying_daytime == (self.local_time is not None):
+            raise ValueError("choose either an exact local time or owner-requested varied daytime")
+        return self
+
+
 class ChatGoalPlan(StrictModel):
     schema_version: Literal[1] = 1
     create_goal: bool
@@ -61,6 +78,7 @@ class ChatGoalPlan(StrictModel):
     next_action: str | None = Field(default=None, max_length=500)
     review_at: datetime | None = None
     reminders: tuple[PlannedReminder, ...] = Field(default=(), max_length=3)
+    daily_reminder: DailyReminderPlan | None = None
 
     @model_validator(mode="after")
     def validate_action(self) -> "ChatGoalPlan":
@@ -70,9 +88,11 @@ class ChatGoalPlan(StrictModel):
         if not self.create_goal and any(value is not None for value in required):
             raise ValueError("no-action plan must omit Goal fields")
         if not self.create_goal and (
-            self.next_action is not None or self.review_at is not None or self.reminders
+            self.next_action is not None or self.review_at is not None or self.reminders or self.daily_reminder
         ):
             raise ValueError("no-action plan cannot schedule Goal work")
+        if self.daily_reminder is not None and self.reminders:
+            raise ValueError("do not duplicate daily and one-off reminders")
         return self
 
     @classmethod
@@ -102,7 +122,7 @@ class ChatGoalPlan(StrictModel):
 
 
 class ExplicitChatGoalPlanner:
-    version = "owner-directed-chat-goal-planner-v2"
+    version = "owner-directed-chat-goal-planner-v3-conversation"
     _explicit = re.compile(
         r"(?:记成|记录为|设成|设为|创建|建立|加(?:一个)?|生成)(?:.{0,8})目标"
         r"|我的目标是|帮我规划|给我规划|提醒我|帮我记得"
@@ -140,7 +160,10 @@ class ExplicitChatGoalPlanner:
     async def apply(
         self, *, user_event: EventEnvelope, message: str
     ) -> PersonalContextItem | None:
-        if not self.explicitly_requests_action(message):
+        if user_event.payload.reply_to_event_id is not None or _SAY_MORE.fullmatch(message):
+            return None
+        history = self._planning_history(user_event=user_event, message=message)
+        if not self.explicitly_requests_action(message) and not history:
             return None
         if (
             user_event.data_policy.privacy_class
@@ -161,11 +184,13 @@ class ExplicitChatGoalPlanner:
                 source_refs=(f"event/{user_event.event_id}",),
                 data_policy=user_event.data_policy,
             )
-        request = self._request(user_event=user_event, message=message)
+        request = self._request(user_event=user_event, message=message, history=history)
         try:
             response = await self.provider.generate(request)
             plan = ChatGoalPlan.parse_provider_text(response.output_parts[0].text)
-            if plan.source_quote is not None and plan.source_quote not in message:
+            owner_texts = [message, *("\n".join(p.text for p in e.payload.content_parts)
+                for e in history if e.event_type.value == "USER_MESSAGE")]
+            if plan.source_quote is not None and not any(plan.source_quote in text for text in owner_texts):
                 raise ValueError("chat Goal source_quote was not copied from the owner")
             now = datetime.now(UTC)
             if plan.review_at is not None and (
@@ -178,9 +203,10 @@ class ExplicitChatGoalPlanner:
                 for item in plan.reminders
             ):
                 raise ValueError("chat Goal reminder is outside the allowed horizon")
+            reminders = self._scheduled_reminders(plan, user_event=user_event, owner_texts=owner_texts)
             run_id, goal = self._commit_plan(
                 user_event=user_event, message=message, request=request,
-                response=response, plan=plan,
+                response=response, plan=plan, reminders=reminders,
             )
             if not plan.create_goal:
                 return PersonalContextItem(
@@ -188,29 +214,32 @@ class ExplicitChatGoalPlanner:
                     section_id=f"chat-goal-no-action-{run_id}",
                     section_type="owner_response_instruction",
                     content_text=(
-                        "No durable action was taken. The owner may only be reflecting, "
-                        "venting, or exploring a wish. Continue that conversation naturally; "
-                        "do not mention a planner, manufacture a task, or insist on clarification. "
-                        "If they wanted a saved action, ask only the missing essential detail."
+                        "No durable action was taken. Do not say an action is saved or promise "
+                        "future reminders. If an explicit request is incomplete, ask the one missing "
+                        "detail, using the ongoing conversation. Otherwise continue naturally."
                     ),
                     priority=99,
-                    source_refs=(f"event/{user_event.event_id}", f"goal-plan/{run_id}"),
+                    source_refs=(*(f"event/{e.event_id}" for e in history), f"event/{user_event.event_id}", f"goal-plan/{run_id}"),
                     data_policy=user_event.data_policy,
                 )
             assert goal is not None
-            reminder_count = len(plan.reminders)
+            reminder_count = len(reminders)
             return PersonalContextItem(
                 owner_id=self.owner_id,
                 section_id=f"chat-goal-receipt-{run_id}",
                 section_type="owner_response_instruction",
                 content_text=(
                     "Durable action receipt: an explicit owner request created Goal "
-                    f"'{goal.title}' and {reminder_count} reminder(s). You may naturally "
+                    f"'{goal.title}' and {reminder_count} reminder(s). "
+                    + (f"First {reminders[0].remind_at.astimezone(ZoneInfo(self.owner_timezone)).isoformat()}, last {reminders[-1].remind_at.astimezone(ZoneInfo(self.owner_timezone)).isoformat()}; " if reminders else "")
+                    + ("once per day at varied daytime hours (10:00-21:00 owner local time). " if plan.daily_reminder and plan.daily_reminder.varying_daytime else "")
+                    + "You may naturally "
                     "confirm exactly that, but do not claim any additional Memory, plan, "
                     "or reminder was saved."
                 ),
                 priority=99,
                 source_refs=(
+                    *(f"event/{e.event_id}" for e in history),
                     f"event/{user_event.event_id}", f"goal/{goal.goal_id}@1",
                     f"goal-plan/{run_id}",
                 ),
@@ -231,8 +260,75 @@ class ExplicitChatGoalPlanner:
                 data_policy=user_event.data_policy,
             )
 
+    _time_followup = re.compile(r".{0,65}(?:每天|每日|一个月|一周|\d+天|\d{1,2}(?:点|:\d{2})|随机|随便|都行|daily|random).{0,30}", re.I)
+
+    def _planning_history(self, *, user_event, message):
+        if user_event.data_policy.privacy_class not in {PrivacyClass.PUBLIC,PrivacyClass.NORMAL} or not user_event.data_policy.cloud_eligible:
+            return ()
+        followup = self._time_followup.fullmatch(message)
+        if not self.explicitly_requests_action(message) and followup is None:
+            return ()
+        with self.repository.pool.connection() as connection:
+            rows = connection.execute(
+                "SELECT event.* FROM havre.events event WHERE owner_id=%s AND session_id=%s "
+                "AND recorded_at<%s AND recorded_at>=%s-interval '24 hours' "
+                "AND event_type IN ('USER_MESSAGE','ASSISTANT_MESSAGE') ORDER BY recorded_at DESC,event_id DESC LIMIT 8",
+                (self.owner_id,user_event.session_id,user_event.recorded_at,user_event.recorded_at),
+            ).fetchall()
+            # A privacy boundary or erasure breaks continuation; do not silently bridge across it.
+            usable=[]
+            for row in rows:
+                if row["privacy_class"] not in {"NORMAL","PUBLIC"} or not row["cloud_eligible"]:
+                    break
+                revoked=connection.execute("SELECT 1 FROM havre.offline_source_revocations WHERE owner_id=%s AND source_event_id=%s",(self.owner_id,row["event_id"])).fetchone()
+                if revoked: break
+                if row["event_type"] == "USER_MESSAGE":
+                    text = "\n".join(p.get("text", "") for p in row["payload"].get("content_parts", []))
+                    if not self.explicitly_requests_action(text) and not self._time_followup.fullmatch(text):
+                        break
+                usable.append(row)
+            user_rows=[row for row in usable if row["event_type"]=="USER_MESSAGE"]
+            if not user_rows: return ()
+            roots=[row for row in user_rows if self.explicitly_requests_action("\n".join(p.get("text","") for p in row["payload"].get("content_parts",[])))]
+            if not roots: return ()
+            # Do not repeat a prior committed request on a bare time/ack follow-up.
+            if not self.explicitly_requests_action(message) and connection.execute(
+                "SELECT 1 FROM havre.owner_chat_goal_actions WHERE owner_id=%s AND source_event_id=ANY(%s::uuid[])",
+                (self.owner_id,[row["event_id"] for row in user_rows]),
+            ).fetchone(): return ()
+        events = tuple(self.repository.event_by_id(owner_id=self.owner_id,event_id=row["event_id"])
+            for row in reversed(usable))
+        return events if all(event is not None for event in events) else ()
+
+    def _scheduled_reminders(self, plan, *, user_event, owner_texts):
+        schedule=plan.daily_reminder
+        if schedule is None: return plan.reminders
+        owner_text="\n".join(owner_texts)
+        if not re.search(r"每天|每日|daily|every day",owner_text,re.I):
+            raise ValueError("daily schedule lacks owner intent")
+        if schedule.varying_daytime and not re.search(r"随机|随便|都行|random|any time",owner_text,re.I):
+            raise ValueError("varied times lack owner intent")
+        zone=ZoneInfo(self.owner_timezone); now=datetime.now(UTC)
+        if schedule.start_date < now.astimezone(zone).date() or schedule.end_date > now.astimezone(zone).date()+timedelta(days=366):
+            raise ValueError("daily schedule is outside the allowed horizon")
+        result=[]
+        for offset in range((schedule.end_date-schedule.start_date).days+1):
+            day=schedule.start_date+timedelta(days=offset)
+            if schedule.varying_daytime:
+                seed=f"{self.owner_id}:{user_event.event_id}:{day}".encode()
+                minute=600+int.from_bytes(hashlib.sha256(seed).digest()[:4],"big")%661
+                at=time(minute//60,minute%60)
+            else:
+                at=time.fromisoformat(schedule.local_time)
+            instant=datetime.combine(day,at,tzinfo=zone)
+            if instant<=now: continue
+            result.append(PlannedReminder(kind="check_in",text=f"{plan.title}，今天想推进哪一点？",
+                remind_at=instant,expires_at=instant+timedelta(hours=2)))
+        if not result: raise ValueError("daily schedule has no future reminders")
+        return tuple(result)
+
     def _request(
-        self, *, user_event: EventEnvelope, message: str
+        self, *, user_event: EventEnvelope, message: str, history=()
     ) -> InferenceRequest:
         zone = ZoneInfo(self.owner_timezone)
         now = datetime.now(zone)
@@ -245,7 +341,7 @@ class ExplicitChatGoalPlanner:
         instructions = (
             "Return one strict JSON object for an explicit owner Goal/reminder request. "
             "Keys exactly: schema_version=1, create_goal, source_quote, track, title, "
-            "why, priority, next_action, review_at, reminders. Identify owner-directed "
+            "why, priority, next_action, review_at, reminders, daily_reminder. Identify owner-directed "
             "intent semantically, not by requiring command words. A clear chosen personal "
             "direction or commitment can be a Goal without saying 'create a goal'. Ordinary "
             "conversation, hypothetical wishes, self-criticism, other people's objectives "
@@ -258,7 +354,16 @@ class ExplicitChatGoalPlanner:
             "objective is ambiguous. An untimed Goal can have null review_at and no "
             "reminders; never invent a schedule or deadline. Reminders require the owner's "
             "request and a resolvable time. Do not create Memory or infer "
-            "completion. Keep title human-readable and free of technical metadata."
+            "completion. Keep title human-readable and free of technical metadata. "
+            "Read the bounded conversation to resolve follow-up answers such as a duration or time. "
+            "Only OWNER messages establish intent; assistant promises are not saved actions. "
+            "Do not create duplicate actions already confirmed by a receipt. source_quote must be "
+            "copied from an owner message in this request. For an explicitly requested daily schedule "
+            "with a resolved objective and end date (at most 31 dates), set daily_reminder to "
+            "{start_date,end_date,local_time,varying_daytime} and reminders to []. local_time is HH:MM. "
+            "Only if the owner asks for random/variable times use varying_daytime=true and local_time=null; "
+            "Core chooses a stable varied time between 10:00 and 21:00. Otherwise daily_reminder=null. "
+            "Missing objective or unresolved time requires no_action, never an invented reminder."
         )
         request = InferenceRequest(
             request_id=uuid7(), trace_id=user_event.trace_id,
@@ -274,8 +379,10 @@ class ExplicitChatGoalPlanner:
                         "owner_local_time": now.isoformat(timespec="seconds"),
                         "owner_timezone": self.owner_timezone,
                         "message": message,
+                        "conversation": [{"event_id":str(e.event_id),"role":("user" if e.event_type.value=="USER_MESSAGE" else "assistant"),
+                            "content":"\n".join(p.text for p in e.payload.content_parts)} for e in history],
                     }, ensure_ascii=False, separators=(",", ":"))),),
-                    source_refs=(f"event/{user_event.event_id}",),
+                    source_refs=tuple(f"event/{e.event_id}" for e in (*history,user_event)),
                 ),
             ),
             generation=GenerationSettings(
@@ -288,6 +395,7 @@ class ExplicitChatGoalPlanner:
             ),
             metadata={
                 "chat_goal_authorization_ref": CHAT_GOAL_AUTHORIZATION_REF,
+                "chat_goal_source_manifest": json.dumps([{"event_id":str(e.event_id),"content_hash":e.content_hash} for e in (*history,user_event)],separators=(",",":")),
                 "source_event_id": str(user_event.event_id),
                 "explicit_intent_hash": content_hash({"message": message}),
                 "codex_output_schema": json.dumps(ChatGoalPlan.provider_schema(), separators=(",", ":")),
@@ -295,10 +403,13 @@ class ExplicitChatGoalPlanner:
         )
         return bind_codex_cli_request(request, reasoning_effort="high")
 
-    def _commit_plan(self, *, user_event, message, request, response, plan):
+    def _commit_plan(self, *, user_event, message, request, response, plan, reminders=None):
         # The model call has finished before taking locks. A receipt, Goal and all
         # queue entries either commit together or roll back together.
         with self.repository.pool.connection() as connection, connection.transaction():
+            connection.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (f"offline-owner:{self.owner_id}",))
+            for source in sorted(json.loads(request.metadata.get("chat_goal_source_manifest","[]")),key=lambda x:x["event_id"]):
+                connection.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",(f"offline-source:{self.owner_id}:{source['event_id']}",))
             connection.execute(
                 "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
                 (f"proactive-owner:{self.owner_id}",),
@@ -321,7 +432,7 @@ class ExplicitChatGoalPlanner:
                    VALUES (%s,%s,%s,%s,1)""",
                 (self.owner_id, run_id, user_event.event_id, goal.goal_id),
             )
-            for index, reminder in enumerate(plan.reminders):
+            for index, reminder in enumerate(plan.reminders if reminders is None else reminders):
                 self.proactive_store.enqueue_goal_reminder(
                     goal_id=goal.goal_id, reminder_kind=reminder.kind,
                     reminder_text=reminder.text, remind_at=reminder.remind_at,
@@ -343,8 +454,8 @@ class ExplicitChatGoalPlanner:
                     explicit_intent_hash,status,inference_request_id,
                     request_binding_hash,provider_id,model_version_id,
                     provider_adapter_version_id,serving_config_version,
-                    reasoning_effort,result,response_content_hash,authorization_ref)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'high',%s,%s,%s)""",
+                    reasoning_effort,result,response_content_hash,authorization_ref,source_manifest)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'high',%s,%s,%s,%s)""",
                 (
                     run_id, self.owner_id, user_event.event_id,
                     user_event.content_hash, content_hash({"message": message}),
@@ -358,8 +469,12 @@ class ExplicitChatGoalPlanner:
                     Jsonb(plan.model_dump(mode="json")),
                     content_hash(response.output_parts[0].text),
                     CHAT_GOAL_AUTHORIZATION_REF,
+                    Jsonb(json.loads(request.metadata.get("chat_goal_source_manifest","[]"))),
                 ),
             )
+            for source in json.loads(request.metadata.get("chat_goal_source_manifest","[]")):
+                connection.execute("INSERT INTO havre.owner_chat_goal_plan_sources(owner_id,plan_run_id,event_id,event_content_hash) VALUES (%s,%s,%s,%s)",
+                    (self.owner_id,run_id,source["event_id"],source["content_hash"]))
         return run_id
 
     def _persist_failure(
@@ -381,3 +496,18 @@ class ExplicitChatGoalPlanner:
 
 
 __all__ = ["CHAT_GOAL_AUTHORIZATION_REF", "ChatGoalPlan", "ExplicitChatGoalPlanner"]
+
+
+def committed_action_effects(repository, *, owner_id, event_id):
+    with repository.pool.connection() as c:
+        actions=c.execute("SELECT action.goal_id,action.plan_run_id FROM havre.owner_chat_goal_actions action "
+            "JOIN havre.owner_chat_goal_plan_runs run ON run.owner_id=action.owner_id AND run.plan_run_id=action.plan_run_id "
+            "WHERE action.owner_id=%s AND action.source_event_id=%s AND run.status='completed'",(owner_id,event_id)).fetchall()
+        if not actions: return ()
+        effects=["goal_created"]
+        for action in actions:
+            prefix=f"chat-goal:{action['plan_run_id']}:%"
+            if c.execute("SELECT 1 FROM havre.proactive_work_items WHERE owner_id=%s AND idempotency_key LIKE %s "
+                "AND status NOT IN ('cancelled','failed') LIMIT 1",(owner_id,prefix)).fetchone():
+                effects.append("reminders_scheduled")
+        return tuple(sorted(set(effects)))

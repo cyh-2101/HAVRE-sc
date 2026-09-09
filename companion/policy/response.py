@@ -30,7 +30,7 @@ class ResponsePolicyDecision(BaseModel):
 
     schema_version: Literal[1] = 1
     decision_id: UUID = Field(default_factory=uuid7)
-    policy_version: Literal["core-response-policy-v1"] = "core-response-policy-v1"
+    policy_version: Literal["core-response-policy-v1", "core-response-policy-v2-action-receipts"] = "core-response-policy-v1"
     request_id: UUID
     trace_id: str = Field(pattern=r"^[0-9a-f]{32}$")
     context_pack_id: UUID
@@ -78,7 +78,7 @@ class ResponsePolicyResult(BaseModel):
 class CoreResponsePolicy:
     """High-precision Core guarantees, not a general semantic safety model."""
 
-    version = "core-response-policy-v1"
+    version = "core-response-policy-v2-action-receipts"
 
     _history_markers = (
         "你又", "你上次", "上次你", "之前你", "还记得你", "我记得你",
@@ -116,6 +116,10 @@ class CoreResponsePolicy:
             category = "privacy_tool_boundary"
             reason = "effect_or_private_access_not_authorized"
         if replacement is None:
+            replacement = self._action_truth(raw_text, available_effects=available_effects)
+            category = "privacy_tool_boundary"
+            reason = "uncommitted_action_claim_blocked"
+        if replacement is None:
             replacement = self._exact_or_structured(current_user_input)
             category = "exact_structured_output"
             reason = "declared_output_contract_canonicalized"
@@ -138,6 +142,7 @@ class CoreResponsePolicy:
             action = "replace"
 
         decision = ResponsePolicyDecision(
+            policy_version=self.version,
             request_id=request_id,
             trace_id=trace_id,
             context_pack_id=context_pack_id,
@@ -150,6 +155,24 @@ class CoreResponsePolicy:
             available_effects=tuple(sorted(set(available_effects))),
         )
         return ResponsePolicyResult(decision=decision, output_parts=delivered)
+
+    @staticmethod
+    def _action_truth(text: str, *, available_effects: tuple[str, ...]) -> str | None:
+        # Narrow checks for claims of a saved effect. Discussion, quotes, owner
+        # completion reports and hypothetical suggestions are not action receipts.
+        for sentence in re.split(r"[。！？!?\n]", text):
+            if re.search(r"[“”\"]|(?:不能|不会|没有|尚未|还没|未能|如果|可以帮|需要先|希望|不该)",sentence):
+                continue
+            scheduled = re.search(r"(?:我(?:会|来|每天|已经)|接下来.{0,12}每天|以后每天|已(?:经)?(?:设好|设置|安排)).{0,55}提醒你",sentence)
+            if scheduled and "reminders_scheduled" not in available_effects:
+                return "提醒还没有设置成功，我不能说已经安排好了。"
+            saved = re.search(r"(?:我(?:已|已经)|已经|已).{0,12}(?:创建|保存|记录|建好).{0,12}(?:目标|goal)",sentence,re.I)
+            if saved and "goal_created" not in available_effects:
+                return "这个目标还没有保存成功。"
+            completed = re.search(r"(?:我(?:已|已经)|已经|已).{0,12}(?:标记|勾掉|取消).{0,15}(?:完成|提醒)|(?:以后|之后|接下来).{0,12}不再提醒你",sentence)
+            if completed and "goal_completed" not in available_effects:
+                return "我知道你说完成了，但任务状态还没更新成功。"
+        return None
 
     @staticmethod
     def _urgent_safety(text: str) -> str | None:

@@ -25,3 +25,15 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}.app-shell,.pages,.page,.r
 
 /* Explicit continuation stays separate from send and never replaces a draft. */
 .conversation-controls{max-width:800px;margin:0 auto;display:flex;justify-content:flex-start}.say-more-button{border:1px solid var(--line);background:var(--paper-2);color:var(--accent);border-radius:18px;padding:9px 16px;min-height:44px;margin-bottom:8px;font-size:13px}.say-more-button:hover{background:var(--accent-soft)}.say-more-button:focus-visible,.remaining-reply:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.say-more-button[hidden]{display:none}.remaining-reply{min-height:44px;font-size:12px;text-align:left}
+
+/* Animate only newly delivered bubbles, never loaded history or a polling refresh. */
+.bubble-enter{transform-origin:bottom left;animation:bubbleArrive 460ms cubic-bezier(.22,.7,.25,1) both;will-change:transform,opacity}
+.owner .bubble-enter{transform-origin:bottom right}
+@keyframes bubbleArrive{from{opacity:0;transform:translateY(18px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}
+.typing-dots{display:flex;align-items:center;justify-content:center;gap:3px;min-width:52px;height:39px;padding:0 13px 7px;color:var(--muted);font-size:24px;font-weight:650}
+.typing-dots span{animation:typingDot 1.2s ease-in-out infinite}
+.typing-dots span:nth-child(2){animation-delay:.16s}.typing-dots span:nth-child(3){animation-delay:.32s}
+@keyframes typingDot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.continuation-status{color:var(--muted);font-size:12px;align-items:center}
+
+.app-update-banner{display:flex;align-items:center;justify-content:space-between;gap:12px}.app-update-banner[hidden]{display:none}.app-update-banner button{flex-shrink:0;min-height:32px}

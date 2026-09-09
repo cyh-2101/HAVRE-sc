@@ -265,6 +265,22 @@ class Stage15CommitmentBrokerIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(dict(current), {"status": "active", "revision": 1})
         self.assertEqual(work["status"], "pending")
 
+    async def test_written_report_with_time_suffix_updates_exact_task(self):
+        from companion.context.lookup import requested_personal_context
+        goal,_=await self._commitment(task_name="ECE 210 Lab 1 Report（9/8 11:59 PM）",entry_id="written-report")
+        other,_=await self._commitment(task_name="ECE 210 Lab 2 Report（9/15 11:59 PM）",entry_id="other-report")
+        reminder=self._due_reminder(goal_id=goal.goal_id,task_name="Lab 1 Report")
+        service=self._interaction_service(output="这项完成了。",broker=True)
+        result=await service.interact(InteractionCommand(message="昨天我把ece210 lab1report写完了",privacy_class=PrivacyClass.NORMAL,channel="web",idempotency_key=str(uuid.uuid4())))
+        with self.repository.pool.connection() as c:
+            states={row["goal_id"]:row["status"] for row in c.execute("SELECT goal_id,status FROM havre.goals WHERE owner_id=%s",(self.owner_id,)).fetchall()}
+            self.assertEqual(states[goal.goal_id],"completed");self.assertEqual(states[other.goal_id],"active")
+            self.assertEqual(c.execute("SELECT status FROM havre.proactive_work_items WHERE owner_id=%s AND work_item_id=%s",(self.owner_id,reminder["work_item_id"])).fetchone()["status"],"cancelled")
+        event=self.repository.event_by_id(owner_id=self.owner_id,event_id=result.user_event_id)
+        evidence=requested_personal_context(self.repository,current_event=event,query="ece210 lab1report现在状态是什么",timezone_name="UTC")
+        self.assertTrue(any("status=completed" in item.content_text and "Lab 1 Report" in item.content_text for item in evidence))
+        self.assertFalse(any("Private next action" in item.content_text for item in evidence))
+
     async def test_natural_composite_completion_is_safe_and_source_bound(self) -> None:
         goal, _ = await self._commitment(task_name="Lab 2.1 Demo + Quiz 1", entry_id="natural")
         service = self._interaction_service(output="Understood.", broker=True)

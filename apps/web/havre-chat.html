@@ -10,7 +10,7 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/assets/havre-icon.svg">
   <link rel="apple-touch-icon" href="/assets/havre-icon.svg">
-  <link rel="stylesheet" href="/assets/havre-app.css?v=20260906-short-turns-v17">
+  <link rel="stylesheet" href="/assets/havre-app.css?v=20260908-fluid-bubbles-v21">
   <title>HAVRE</title>
 </head>
 <body>
@@ -24,6 +24,7 @@
     </header>
 
     <div id="networkBanner" class="network-banner" hidden>网络断开了。消息会留在这里，连上后再试。</div>
+    <div id="appUpdateBanner" class="network-banner app-update-banner" role="status" hidden><span>有更新，空闲时会自动启用。</span><button id="applyAppUpdate" class="text-button">现在更新</button></div>
     <div id="authBanner" class="network-banner" hidden>这个浏览器还没有获得 HAVRE 本机授权。</div>
 
     <main class="pages">
@@ -101,6 +102,6 @@
   <dialog id="feedbackDialog" class="dialog"><form method="dialog" class="dialog-card"><button class="dialog-close" value="cancel" aria-label="关闭反馈">×</button><h2>这条回复怎么样？</h2><div class="feedback-choices"><button value="helpful" data-rating="helpful">有帮助</button><button value="mixed" data-rating="mixed">有一点</button><button value="unhelpful" data-rating="unhelpful">没帮助</button></div><label>想补充什么？<textarea id="feedbackText" rows="3"></textarea></label><button id="saveFeedback" type="button" class="primary-button">保存反馈</button></form></dialog>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script src="/assets/havre-app.js?v=20260906-short-turns-v17" defer></script>
+  <script src="/assets/havre-app.js?v=20260908-fluid-bubbles-v21" defer></script>
 </body>
 </html>

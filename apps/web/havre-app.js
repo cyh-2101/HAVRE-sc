@@ -2,6 +2,7 @@
 'use strict';
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
+const APP_VERSION='20260908-fluid-bubbles-v21';
 const PUSH_SHELL_VERSION='havre-shell-v5',PRIVACY_MODE_KEY='havre-local-only-mode-v1',SESSION_ID_KEY='havre-hidden-session',PUSH_SUBSCRIPTION_ID_KEY='havrePushSubscriptionId',PENDING_INTERACTION_KEY='havre-pending-interaction-v1';
 function browserStorage(){try{return globalThis.localStorage||null}catch{return null}}
 function browserSessionStorage(){try{return globalThis.sessionStorage||null}catch{return null}}
@@ -12,21 +13,21 @@ function isLoopbackHost(locationLike=globalThis.location){const hostname=String(
 function authorizationRequiredMessage(loopback=isLoopbackHost()){return loopback?'这个浏览器没有本机授权。请运行 .\\scripts\\start_havre_desktop.ps1，并使用它自动打开的新页面。':'这台设备需要先和 HAVRE 安全绑定。'}
 function readLocalOnly(storage=browserStorage()){return storageGet(PRIVACY_MODE_KEY,storage)==='1'}
 function persistLocalOnly(value,storage=browserStorage()){return storageSet(PRIVACY_MODE_KEY,value?'1':'0',storage)}
-function validPendingInteraction(value){const body=value?.body;return value?.schema_version===1&&typeof value.idempotency_key==='string'&&value.idempotency_key.length>0&&value.idempotency_key.length<=200&&typeof body?.message==='string'&&body.message.trim().length>0&&(body.privacy_class==='NORMAL'||body.privacy_class==='LOCAL_ONLY')&&body.memory_eligible===true&&(body.session_id==null||typeof body.session_id==='string')&&typeof body.client_created_at==='string'&&Number.isFinite(Date.parse(body.client_created_at))}
+function validPendingInteraction(value){const body=value?.body;return value?.schema_version===1&&typeof value.idempotency_key==='string'&&value.idempotency_key.length>0&&value.idempotency_key.length<=200&&typeof body?.message==='string'&&body.message.trim().length>0&&(body.privacy_class==='NORMAL'||body.privacy_class==='LOCAL_ONLY')&&body.memory_eligible===true&&(body.input_origin==null||body.input_origin==='owner_text'||(body.input_origin==='continuation_button'&&body.message==='再说点'&&typeof body.reply_to_event_id==='string'&&typeof body.session_id==='string'))&&(body.session_id==null||typeof body.session_id==='string')&&(body.reply_to_event_id==null||typeof body.reply_to_event_id==='string')&&typeof body.client_created_at==='string'&&Number.isFinite(Date.parse(body.client_created_at))}
 function readPendingInteraction(storage=browserSessionStorage()){const raw=storageGet(PENDING_INTERACTION_KEY,storage);if(!raw)return null;try{const value=JSON.parse(raw);if(validPendingInteraction(value))return value}catch{}storageRemove(PENDING_INTERACTION_KEY,storage);return null}
 function persistPendingInteraction(value,storage=browserSessionStorage()){return validPendingInteraction(value)&&storageSet(PENDING_INTERACTION_KEY,JSON.stringify(value),storage)}
 function removePendingInteraction(storage=browserSessionStorage()){return storageRemove(PENDING_INTERACTION_KEY,storage)}
 function createPendingInteraction(message,clientCreatedAt,localOnly=false,sessionId=null,idempotencyKey=globalThis.crypto?.randomUUID?.()){const value={schema_version:1,idempotency_key:idempotencyKey,body:buildInteractionBody(message,clientCreatedAt,localOnly,sessionId)};if(!validPendingInteraction(value))throw new Error('无法建立安全的发送事务。');return value}
 function sameClientInstant(left,right){const a=Date.parse(left),b=Date.parse(right);return Number.isFinite(a)&&Number.isFinite(b)&&a===b}
-function pendingMatchesTimelineItem(pending,item={}){if(!validPendingInteraction(pending)||item.role!=='user'||!item.request_id)return false;const body=pending.body,itemPrivacy=item.privacy_class||item.effective_privacy_class||null;if(item.content!==body.message||itemPrivacy!==body.privacy_class||!sameClientInstant(item.client_created_at,body.client_created_at))return false;return body.session_id==null||String(item.session_id)===String(body.session_id)}
+function pendingMatchesTimelineItem(pending,item={}){if(!validPendingInteraction(pending)||item.role!=='user'||!item.request_id)return false;const body=pending.body,itemPrivacy=item.privacy_class||item.effective_privacy_class||null;const inheritedPrivate=body.privacy_class==='NORMAL'&&itemPrivacy==='LOCAL_ONLY'&&item.reply_to_event_id&&/^(?:再说点|再说一点|多说点|多说一点|say more|keep talking)[。.!！?？\s]*$/i.test(body.message);if((item.input_origin||'owner_text')!==(body.input_origin||'owner_text')||item.content!==body.message||(!inheritedPrivate&&itemPrivacy!==body.privacy_class)||!sameClientInstant(item.client_created_at,body.client_created_at)||(body.reply_to_event_id&&String(body.reply_to_event_id)!==String(item.reply_to_event_id)))return false;return body.session_id==null||String(item.session_id)===String(body.session_id)}
 function pendingResolution(pending,items=[]){const item=[...items].reverse().find(candidate=>pendingMatchesTimelineItem(pending,candidate));if(!item)return{status:'absent',item:null};if(item.interaction_status==='completed'||item.interaction_status==='failed')return{status:'terminal',item};return{status:'processing',item}}
 async function submitPendingInteraction(pending,request=globalThis.fetch,timeoutMs=350000){return withRequestDeadline(async signal=>{if(!validPendingInteraction(pending)||typeof request!=='function')throw new Error('无法恢复安全的发送事务。');const response=await request('/v1/interactions/stream',{method:'POST',credentials:'same-origin',signal,headers:{'Content-Type':'application/json','Idempotency-Key':pending.idempotency_key},body:JSON.stringify(pending.body)});if(!response.ok){if(response.status===401)throw authorizationFailure();throw new Error(`发送失败 (${response.status})`)}const frames=(await response.text()).split('\n').filter(Boolean);let completed=null;for(const line of frames){const value=JSON.parse(line);if(value.type==='error')throw new Error(value.message);if(value.type==='completed')completed=value.interaction}if(!completed)throw new Error('回复没有完成，稍后再试。');return completed},timeoutMs)}
 async function submitPendingWithReconciliation(pending,{request=globalThis.fetch,reload=()=>loadTimeline({refreshAfterCurrent:true}),items=()=>state.items}={}){let lastError=null;for(let attempt=0;attempt<2;attempt+=1){try{return{status:'completed',completed:await submitPendingInteraction(pending,request)}}catch(error){lastError=error;let loaded=null;try{loaded=await reload()}catch{return{status:'unknown',item:null,error}}if(loaded==null)return{status:'unknown',item:null,error};const resolution=pendingResolution(pending,items());if(resolution.status!=='absent')return{...resolution,error};if(attempt===0)continue}}return{status:'absent',item:null,error:lastError}}
 async function withRequestDeadline(operation,timeoutMs){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);try{return await operation(controller.signal)}catch(error){if(controller.signal.aborted)throw new Error('连接等待超时，正在确认消息是否已保存。');throw error}finally{clearTimeout(timer)}}
-function retryDraft(item,draft=''){if(item?.role!=='user'||item.interaction_status!=='failed'||item.memory_eligible!==true||!['NORMAL','LOCAL_ONLY'].includes(item.privacy_class)||(item.privacy_class==='NORMAL'&&item.cloud_eligible!==true))return null;if(draft.trim()&&draft.trim()!==item.content)return null;return{message:item.content,localOnly:item.privacy_class==='LOCAL_ONLY',sessionId:item.session_id}}
-function prepareFailedRetry(item,{focus=true}={}){if(send.disabled&&focus){showToast('先等当前回复结束，原消息还在。');return false}const active=state.pendingInteraction;if(active&&pendingResolution(active,state.items).status!=='terminal'){showToast('上一条还在处理中，先等它结束。');return false}const draft=retryDraft(item,input.value);if(!draft){showToast('原消息仍然保留；请先保存当前草稿，再重试。');return false}if(draft.localOnly&&localRouteAvailable()!==true){showToast('这条消息只能在本机重试；请等本机回复引擎恢复。');return false}if(active)forgetActivePending();setLocalOnly(draft.localOnly);adoptPendingSession(item);input.value=draft.message;resizeInput();if(focus)input.focus();showToast('回复中断了，原文已恢复；点发送重试。');return true}
+function retryDraft(item,draft=''){if(item?.role!=='user'||item.interaction_status!=='failed'||item.memory_eligible!==true||!['NORMAL','LOCAL_ONLY'].includes(item.privacy_class)||(item.privacy_class==='NORMAL'&&item.cloud_eligible!==true))return null;if(draft.trim()&&draft.trim()!==item.content)return null;return{message:item.content,localOnly:item.privacy_class==='LOCAL_ONLY',sessionId:item.session_id,replyToEventId:item.reply_to_event_id||null,...(item.input_origin==='continuation_button'?{inputOrigin:item.input_origin}:{})}}
+function prepareFailedRetry(item,{focus=true}={}){if(send.disabled&&focus){showToast('先等当前回复结束，原消息还在。');return false}const active=state.pendingInteraction;if(active&&pendingResolution(active,state.items).status!=='terminal'){showToast('上一条还在处理中，先等它结束。');return false}const draft=retryDraft(item,input.value);if(!draft){showToast('原消息仍然保留；请先保存当前草稿，再重试。');return false}if(draft.localOnly&&localRouteAvailable()!==true){showToast('这条消息只能在本机重试；请等本机回复引擎恢复。');return false}if(active)forgetActivePending();if(draft.inputOrigin==='continuation_button'){adoptPendingSession(item);if(focus)void sendMessage({preventDefault(){}},draft.replyToEventId,'continuation_button');else showToast('这次没接上，可以重试续聊。');return true}setLocalOnly(draft.localOnly);adoptPendingSession(item);input.value=draft.message;state.retryContinuation=draft.replyToEventId?{message:draft.message,eventId:draft.replyToEventId}:null;resizeInput();if(focus)input.focus();showToast('回复中断了，原文已恢复；点发送重试。');return true}
 const restoredPending=readPendingInteraction();
-const state={items:[],cursor:null,hasMore:false,loading:false,sessionId:storageGet(SESSION_ID_KEY),feedbackEvent:null,feedbackRating:'helpful',settings:null,installPrompt:null,localOnly:readLocalOnly(),authorizationRequired:false,routeEvidence:new Map(),pendingInteraction:restoredPending,pendingPersisted:Boolean(restoredPending),animateAssistantEventId:null,lastReadEventId:null};
+const state={items:[],cursor:null,hasMore:false,loading:false,sessionId:storageGet(SESSION_ID_KEY),feedbackEvent:null,feedbackRating:'helpful',settings:null,installPrompt:null,localOnly:readLocalOnly(),authorizationRequired:false,routeEvidence:new Map(),pendingInteraction:restoredPending,pendingPersisted:Boolean(restoredPending),animateAssistantEventId:null,enteringEventIds:new Set(),lastReadEventId:null};
 const timeline=$('#timeline'),input=$('#messageInput'),send=$('#sendButton'),toast=$('#toast');
 
 function readableError(detail,status){if(/belief[_ ]key already/.test(detail))return '这条记忆已经有对应的理解，请在“我对你的理解”里查看或纠正。';if(status===409)return '这条记录刚刚有了更新，请重新打开后再试。';return /[\u4e00-\u9fff]/.test(detail)?detail:'暂时没能完成这一步。请稍后再试，已保存的内容仍在。'}
@@ -79,15 +80,18 @@ function updateBubblePacing(){const pause=Boolean(input.value.trim())||document.
 function sayMoreAvailable(items=state.items,{busy=send.disabled,draft=input.value,sessionId=state.sessionId,pending=state.pendingInteraction,focused=state.focusedHistory}={}){
   const last=items.at(-1);
   return !busy&&!pending&&!focused&&!String(draft||'').trim()&&last?.role==='assistant'&&!last.proactive&&
-    Boolean(last.request_id&&last.session_id)&&String(last.session_id)===String(sessionId)&&
-    (!bubblePacers.has(String(last.event_id))||bubblePacers.get(String(last.event_id)).snapshot().done);
+    Boolean(last.request_id&&last.session_id)&&String(last.session_id)===String(sessionId);
 }
-function updateSayMore(){const button=$('#sayMoreButton');if(!button)return;button.hidden=!sayMoreAvailable();button.disabled=send.disabled||Boolean(state.pendingInteraction)}
+function isContinuationControl(item){return item?.role==='user'&&item.input_origin==='continuation_button'}
+function continuationRetryAvailable(){return state.pendingInteraction?.body.input_origin==='continuation_button'&&!send.disabled&&!input.value.trim()&&!state.focusedHistory}
+function updateSayMore(){const button=$('#sayMoreButton');if(!button)return;const pacer=bubblePacers.get(String(state.items.at(-1)?.event_id));button.textContent=continuationRetryAvailable()?'重试续聊':pacer&&!pacer.snapshot().done?'看完这条':'再说点';button.hidden=!(sayMoreAvailable()||continuationRetryAvailable());button.disabled=send.disabled}
 async function sayMore(){
+  if(continuationRetryAvailable()){await sendMessage({preventDefault(){}},state.pendingInteraction.body.reply_to_event_id,'continuation_button');return}
   if(!sayMoreAvailable())return;
-  // An explicit, visible owner request uses the same route, privacy and idempotency path.
-  input.value='再说点';resizeInput();updateSayMore();
-  await sendMessage({preventDefault(){}});
+  // A control request retains privacy, exact reply binding and idempotent recovery.
+  const parent=state.items.at(-1),pacer=bubblePacers.get(String(parent.event_id));
+  if(pacer&&!pacer.snapshot().done){pacer.finish();updateSayMore();return}
+  await sendMessage({preventDefault(){}},parent.event_id,'continuation_button');
 }
 
 function modelLabel(modelId,adapterId=null,local=false){const normalized=typeof modelId==='string'?modelId.toLowerCase():'';if(normalized.includes('gpt-5.6-sol'))return'GPT-5.6-sol';if(normalized.includes('qwen3-8b'))return adapterId?`Qwen3-8B · ${adapterId}`:'Qwen3-8B Base';return modelId||(local?'本机模型':'GPT')}
@@ -95,21 +99,71 @@ function routeLabel(item={}){const provider=item.provider_id||item.provider?.pro
 function configuredRoute(localOnly,settings=state.settings){const routes=settings?.reply_routes;if(!routes)return null;if(localOnly){if(routes.local_only_available===false||routes.local_only?.available===false)return null;return routes.local_only||null}return routes.default?.available===false?null:routes.default||null}
 function localRouteAvailable(settings=state.settings){if(!settings)return null;const route=configuredRoute(true,settings);return Boolean(route&&route.execution_environment==='local'&&route.privacy_classes?.includes('LOCAL_ONLY'))}
 function intendedRouteLabel(localOnly=state.localOnly,settings=state.settings){if(!settings)return'正在确认回复引擎…';const configured=configuredRoute(localOnly,settings);if(!configured)return localOnly?'仅本机回复不可用':'回复引擎不可用';if(!localOnly&&configured.execution_environment==='cloud'){const name=configured.label||modelLabel(configured.model_version_id);return localRouteAvailable(settings)===true?`默认 ${name}；上下文不适合云端时仅本机`:`默认 ${name}；受限上下文不会发送云端`}return routeLabel(configured)||configured.label||'回复引擎'}
-function thinkingLabel(){return'我在看，等我一下…'}
+function thinkingLabel(){return'...'}
 function privacyModeNotice(localOnly,persisted){if(localOnly)return persisted?'已切换为仅本机；这个选择会保持到你主动切回。':'已在本标签页切换为仅本机；浏览器未能保存此选择，刷新后请重新确认。';return persisted?'已切回默认回复；此前仅本机的对话不会发送给 GPT。':'已在本标签页切回默认回复；浏览器未能保存此选择，刷新后请重新确认。'}
 function updatePrivacyUI(){const button=$('#privacyMode');if(!button)return;button.setAttribute('aria-pressed',String(state.localOnly));button.textContent=state.localOnly?'✓ 仅本机':'仅本机';if(state.authorizationRequired){button.disabled=true;button.title='请通过 HAVRE 启动器获得本机授权';$('#brainLabel').textContent='需要本机授权';return}const availability=localRouteAvailable();button.disabled=send.disabled||(!state.localOnly&&availability!==true);button.title=state.localOnly?'保持在本机；再次点击可切回默认回复':availability===null?'正在确认本机回复引擎':availability?'点击后，本条及后续消息只交给本机模型':'当前没有可用的本机回复引擎';$('#brainLabel').textContent=intendedRouteLabel()}
 function setLocalOnly(value,{announce=false,storage=browserStorage()}={}){const next=Boolean(value);if(next&&localRouteAvailable()!==true){if(announce)showToast('当前没有可用的本机回复引擎。');return false}state.localOnly=next;const persisted=persistLocalOnly(state.localOnly,storage);updatePrivacyUI();if(announce)showToast(privacyModeNotice(state.localOnly,persisted));return true}
 function buildInteractionBody(message,clientCreatedAt,localOnly=state.localOnly,sessionId=state.sessionId){return{message,privacy_class:localOnly?'LOCAL_ONLY':'NORMAL',memory_eligible:true,session_id:sessionId,client_created_at:clientCreatedAt}}
 function interactionFailureLabel(item={}){if(item.role!=='user'||item.interaction_status!=='failed')return'';const actual=routeLabel(item);return`${actual||'尚未选择回复引擎'} 未生成回复 · 本次未跨模型重试`}
-function rememberCompletedRoute(completed){if(completed?.assistant_event_id){cancelBubblePacing();const id=String(completed.assistant_event_id);state.routeEvidence.set(id,completed);state.animateAssistantEventId=id}}
+function rememberCompletedRoute(completed){if(completed?.assistant_event_id){cancelBubblePacing();const id=String(completed.assistant_event_id);state.routeEvidence.set(id,completed);state.animateAssistantEventId=id;state.enteringEventIds.add(id)}}
 function mergeRouteEvidence(items,evidenceByEvent=state.routeEvidence){const fields=['provider_id','model_version_id','adapter_version_id','execution_environment','effective_privacy_class'];return items.map(item=>{const evidence=evidenceByEvent.get(String(item.event_id));if(!evidence)return item;const merged={...item};for(const field of fields)if(merged[field]==null&&evidence[field]!=null)merged[field]=evidence[field];return merged})}
-function timelineItemFingerprint(item={}){return[item.event_id,item.role,item.content,item.recorded_at,item.interaction_status,item.provider_id,item.model_version_id,item.proactive,item.response_policy_category].map(value=>String(value??'')).join('\u001f')}
+function timelineItemFingerprint(item={}){return[item.event_id,item.role,item.content,item.recorded_at,item.interaction_status,item.provider_id,item.model_version_id,item.proactive,item.response_policy_category,item.input_origin,item.thinking].map(value=>String(value??'')).join('\u001f')}
 function sameTimelineSnapshot(left=[],right=[]){return left.length===right.length&&left.every((item,index)=>timelineItemFingerprint(item)===timelineItemFingerprint(right[index]))}
-function beginOptimisticTurn(temporary,thinking){state.timelineEpoch=(state.timelineEpoch||0)+1;state.items.push(temporary,thinking)}
+function beginOptimisticTurn(temporary,thinking){state.timelineEpoch=(state.timelineEpoch||0)+1;state.items.push(temporary,thinking);state.enteringEventIds.add(temporary.event_id);state.enteringEventIds.add(thinking.event_id)}
 function setPage(name){$$('.page').forEach(page=>page.classList.toggle('active',page.id===`${name}Page`));$$('.nav-item').forEach(button=>button.classList.toggle('active',button.dataset.page===name));const notificationHash=/^#(?:message|delivery)-/.test(location.hash)?location.hash:'';history.replaceState(null,'',name==='chat'?`/chat${notificationHash}`:`/chat#${name}`);if(name==='diary')loadDiary();if(name==='memory')loadMemory();if(name==='chat')requestAnimationFrame(()=>timeline.scrollTop=timeline.scrollHeight)}
 
-function renderTimeline({preserve=false}={}){for(const [id,controller] of bubblePacers){if(!state.items.some(item=>String(item.event_id)===id)){controller.cancel();bubblePacers.delete(id)}}const oldHeight=timeline.scrollHeight,oldTop=timeline.scrollTop,existing=new Map([...timeline.querySelectorAll('.message-row')].map(node=>[node.id,node]));timeline.querySelectorAll('.message-row,.date-separator').forEach(node=>node.remove());let previous=null;for(const item of state.items){if(!previous||!sameDay(previous.recorded_at,item.recorded_at)){const separator=document.createElement('div');separator.className='date-separator';separator.textContent=localDay(item.recorded_at);timeline.append(separator)}const fingerprint=timelineItemFingerprint(item),old=existing.get(`message-${item.event_id}`),row=old?.dataset.fingerprint===fingerprint?old:renderMessage(item);row.dataset.fingerprint=fingerprint;timeline.append(row);previous=item}$('#emptyChat').hidden=state.items.length>0;$('#loadOlder').hidden=!state.hasMore;timeline.scrollTop=preserve?oldTop+timeline.scrollHeight-oldHeight:timeline.scrollHeight;highlightFromHash();updateSayMore()}
+function pendingThinkingItem(items=state.items){const last=items.at(-1);return last?.role==='user'&&last.request_id&&last.interaction_status==='processing'?{event_id:`thinking-persisted-${last.request_id}`,role:'assistant',thinking:true,content:'...',recorded_at:last.recorded_at}:null}
+const timelineMotions=new Map();
+function reducedMotion(){return Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches)}
+function cancelTimelineMotion(){for(const animation of timelineMotions.values())animation.cancel();timelineMotions.clear()}
+function captureTimelinePositions(enabled=true){
+  if(!enabled||reducedMotion()||document.visibilityState!=='visible'){cancelTimelineMotion();return null}
+  const viewport=timeline.getBoundingClientRect(),positions=new Map();
+  for(const row of timeline.querySelectorAll('.message-row,.date-separator')){
+    const rect=row.getBoundingClientRect();if(rect.bottom>viewport.top&&rect.top<viewport.bottom)positions.set(row,rect.top);
+  }
+  // Capture the currently visible positions before cancelling an interrupted move.
+  cancelTimelineMotion();return positions;
+}
+function animateTimelinePositions(positions){
+  if(!positions||reducedMotion())return;
+  for(const [row,top] of positions){
+    if(!row.isConnected||typeof row.animate!=='function')continue;
+    const delta=top-row.getBoundingClientRect().top;if(Math.abs(delta)<.5)continue;
+    const animation=row.animate([{transform:`translateY(${delta}px)`},{transform:'translateY(0)'}],{duration:460,easing:'cubic-bezier(.22,.7,.25,1)'});
+    timelineMotions.set(row,animation);animation.onfinish=()=>{if(timelineMotions.get(row)===animation)timelineMotions.delete(row)};
+  }
+}
+function renderTimeline({preserve=false}={}){
+  const positions=captureTimelinePositions(!preserve);
+  for(const [id,controller] of bubblePacers){if(!state.items.some(item=>String(item.event_id)===id)){controller.cancel();bubblePacers.delete(id)}}
+  const oldHeight=timeline.scrollHeight,oldTop=timeline.scrollTop;
+  const existing=new Map([...timeline.querySelectorAll('.message-row')].map(node=>[node.id,node]));
+  const dates=new Map([...timeline.querySelectorAll('.date-separator')].map(node=>[node.dataset.day,node])),nodes=[];
+  let previous=null;
+  for(const item of [...state.items,...(pendingThinkingItem()?[pendingThinkingItem()]:[])]){
+    if(isContinuationControl(item)&&item.interaction_status!=='failed'){state.enteringEventIds.delete(String(item.event_id));continue}
+    if(!previous||!sameDay(previous.recorded_at,item.recorded_at)){
+      const day=localDay(item.recorded_at),separator=dates.get(day)||document.createElement('div');
+      dates.delete(day);separator.className='date-separator';separator.dataset.day=day;separator.textContent=day;nodes.push(separator);
+    }
+    const fingerprint=timelineItemFingerprint(item),old=existing.get(`message-${item.event_id}`),row=old?.dataset.fingerprint===fingerprint?old:renderMessage(item);
+    row.dataset.fingerprint=fingerprint;nodes.push(row);previous=item;
+  }
+  // Keep unchanged rows attached: removing/reinserting them restarts CSS animation.
+  const keep=new Set(nodes);
+  for(const node of timeline.querySelectorAll('.message-row,.date-separator'))if(!keep.has(node))node.remove();
+  let cursor=timeline.querySelector('.message-row,.date-separator');
+  for(const node of nodes){if(node===cursor)cursor=cursor.nextElementSibling;else timeline.insertBefore(node,cursor)}
+  $('#emptyChat').hidden=state.items.length>0;$('#loadOlder').hidden=!state.hasMore;
+  timeline.scrollTop=preserve?oldTop+timeline.scrollHeight-oldHeight:timeline.scrollHeight;
+  animateTimelinePositions(positions);highlightFromHash();updateSayMore();
+}
+function enterBubble(bubble){bubble.classList.add('bubble-enter');bubble.addEventListener('animationend',event=>{if(event.target===bubble)bubble.classList.remove('bubble-enter')},{once:true})}
 function renderMessage(item){
+  const entering=state.enteringEventIds.delete(String(item.event_id));
+  if(isContinuationControl(item)){const row=document.createElement('div');row.className='message-row continuation-status';row.id=`message-${item.event_id}`;row.setAttribute('role','status');const label=document.createElement('span');label.textContent='这次没接上。';const retry=document.createElement('button');retry.type='button';retry.className='quiet-button';retry.textContent='重试续聊';retry.addEventListener('click',()=>prepareFailedRetry(item));row.append(label,retry);return row}
+  if(item.thinking){const row=document.createElement('div');row.className='message-row assistant thinking';row.id=`message-${item.event_id}`;row.setAttribute('role','status');row.setAttribute('aria-label','正在回复');const bubble=document.createElement('div');bubble.className='bubble typing-dots';bubble.setAttribute('aria-hidden','true');for(let n=0;n<3;n++){const dot=document.createElement('span');dot.textContent='.';bubble.append(dot)}if(entering)enterBubble(bubble);row.append(bubble);return row}
   const failed=interactionFailureLabel(item),row=document.createElement('div');
   row.className=`message-row ${item.role==='user'?'owner':'assistant'}${failed?' failed':''}`;row.id=`message-${item.event_id}`;
   const wrap=document.createElement('div');wrap.className='message-wrap';
@@ -118,7 +172,7 @@ function renderMessage(item){
   const animate=id===state.animateAssistantEventId&&canPaceReply(item,parts)&&!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   // A re-render of a changed Event must not revive its old scheduled presentation.
   if(bubblePacers.has(id)){bubblePacers.get(id).cancel();bubblePacers.delete(id)}
-  const bubbles=parts.map((part,index)=>{const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=part;bubble.hidden=animate&&index>0;stack.append(bubble);return bubble});
+  const bubbles=parts.map((part,index)=>{const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=part;bubble.hidden=animate&&index>0;if(entering&&!bubble.hidden)enterBubble(bubble);stack.append(bubble);return bubble});
   const meta=document.createElement('div');meta.className='message-meta';
   const baseLabel=item.proactive?'HAVRE 主动发来':clock(item.recorded_at),route=item.role==='assistant'?routeLabel(item):(!failed&&(item.effective_privacy_class||item.privacy_class)==='LOCAL_ONLY'?'仅本机':'');
   meta.innerHTML=`<span>${text(baseLabel)}</span>${route?`<span class="route-label">${text(route)}</span>`:''}${failed?`<span class="failure-label">${text(failed)}</span>`:''}`;
@@ -129,8 +183,10 @@ function renderMessage(item){
     const remaining=document.createElement('button');remaining.type='button';remaining.className='quiet-button remaining-reply';wrap.append(remaining);
     const controller=createBubblePacer(parts.length,index=>{
       const nearBottom=timeline.scrollHeight-timeline.scrollTop-timeline.clientHeight<100;
-      bubbles[index].hidden=false;
-      if(nearBottom)requestAnimationFrame(()=>timeline.scrollTop=timeline.scrollHeight);
+      const positions=captureTimelinePositions(nearBottom);
+      bubbles[index].hidden=false;enterBubble(bubbles[index]);
+      if(nearBottom)timeline.scrollTop=timeline.scrollHeight;
+      animateTimelinePositions(positions);
     },{onChange:view=>{if(view.done)bubblePacers.delete(id);remaining.hidden=view.done;remaining.textContent=`查看余下 ${view.total-view.shown} 条`;updateSayMore();if(view.done&&state.items.at(-1)?.event_id===item.event_id&&document.visibilityState==='visible')markRead(item.event_id)}});
     bubblePacers.set(id,controller);remaining.textContent=`查看余下 ${parts.length-1} 条`;
     remaining.addEventListener('click',()=>controller.finish());updateBubblePacing();
@@ -156,7 +212,7 @@ async function loadTimeline(
     let url='/v1/timeline?limit=60';
     if(throughEventId)url+=`&through_event_id=${encodeURIComponent(throughEventId)}`;
     if(older&&state.cursor)url+=`&before_at=${encodeURIComponent(state.cursor.before_at)}&before_event_id=${state.cursor.before_event_id}`;
-    const data=await request(url);if(timelineEpoch!==(state.timelineEpoch||0))return null;const items=mergeRouteEvidence(data.items),nextItems=older?[...items,...state.items]:items,changed=!state.timelineLoaded||older||!sameTimelineSnapshot(state.items,nextItems),nearBottom=!Number.isFinite(timeline.scrollHeight)||timeline.scrollHeight-timeline.scrollTop-timeline.clientHeight<100;state.timelineLoaded=true;state.focusedHistory=Boolean(throughEventId)||(older&&state.focusedHistory);if($('#returnLatest'))$('#returnLatest').hidden=!state.focusedHistory&&!older;if(!older&&nextItems.some(item=>item.role==='user'&&!state.items.some(previous=>previous.event_id===item.event_id)))cancelBubblePacing();state.items=nextItems;state.cursor=data.next_cursor;state.hasMore=data.has_more;if(changed)render({preserve:older||!nearBottom});const last=state.items.at(-1);if(last&&nearBottom)mark(last.event_id);return data;
+    const data=await request(url);if(timelineEpoch!==(state.timelineEpoch||0))return null;const items=mergeRouteEvidence(data.items),nextItems=older?[...items,...state.items]:items,changed=!state.timelineLoaded||older||!sameTimelineSnapshot(state.items,nextItems),nearBottom=!Number.isFinite(timeline.scrollHeight)||timeline.scrollHeight-timeline.scrollTop-timeline.clientHeight<100;if(state.timelineLoaded&&!older&&!throughEventId){for(const item of nextItems){if(item.role==='assistant'&&!state.items.some(old=>old.event_id===item.event_id))state.enteringEventIds.add(String(item.event_id))}}state.timelineLoaded=true;state.focusedHistory=Boolean(throughEventId)||(older&&state.focusedHistory);if($('#returnLatest'))$('#returnLatest').hidden=!state.focusedHistory&&!older;if(!older&&nextItems.some(item=>item.role==='user'&&!state.items.some(previous=>previous.event_id===item.event_id)))cancelBubblePacing();state.items=nextItems;state.cursor=data.next_cursor;state.hasMore=data.has_more;if(changed)render({preserve:older||!nearBottom});const last=state.items.at(-1);if(last&&nearBottom)mark(last.event_id);return data;
   }catch(error){if(silent)console.debug(error);else showToast(error.message);return null}finally{state.loading=false}})();
   state.loadingPromise=operation;
   try{return await operation}finally{if(state.loadingPromise===operation)state.loadingPromise=null}
@@ -169,15 +225,17 @@ async function openNotification(locator){if(typeof locator!=='string'||!/^[0-9a-
 function activatePendingInteraction(pending){state.pendingInteraction=pending;state.pendingPersisted=persistPendingInteraction(pending)}
 function forgetActivePending(){state.pendingInteraction=null;state.pendingPersisted=false;removePendingInteraction()}
 function adoptPendingSession(item){if(!item?.session_id)return;state.sessionId=String(item.session_id);storageSet(SESSION_ID_KEY,state.sessionId)}
-async function resumePendingInteraction({retryAbsent=true,quiet=false}={}){const pending=state.pendingInteraction;if(!pending)return'none';const resolution=pendingResolution(pending,state.items);if(resolution.status==='terminal'){adoptPendingSession(resolution.item);forgetActivePending();if(resolution.item.interaction_status==='failed'){prepareFailedRetry(resolution.item,{focus:false})}else if(input.value.trim()===pending.body.message)input.value='';resizeInput();return'terminal'}if(resolution.status==='processing'){if(!quiet)showToast('上一条消息已收到，仍在处理中；不会重复发送。');return'processing'}const draft=input.value.trim();if(draft&&draft!==pending.body.message){showToast('上一条发送结果尚未确认；当前草稿已保留，请先等待或恢复上一条。');return'blocked'}input.value=pending.body.message;resizeInput();if(retryAbsent)await sendMessage({preventDefault(){}});return'absent'}
+async function resumePendingInteraction({retryAbsent=true,quiet=false}={}){const pending=state.pendingInteraction;if(!pending)return'none';const resolution=pendingResolution(pending,state.items);if(resolution.status==='terminal'){adoptPendingSession(resolution.item);forgetActivePending();if(resolution.item.interaction_status==='failed'){prepareFailedRetry(resolution.item,{focus:false})}else if(input.value.trim()===pending.body.message)input.value='';resizeInput();return'terminal'}if(resolution.status==='processing'){if(!quiet)showToast('上一条消息已收到，仍在处理中；不会重复发送。');return'processing'}const draft=input.value.trim();if(draft&&draft!==pending.body.message){showToast('上一条发送结果尚未确认；当前草稿已保留，请先等待或恢复上一条。');return'blocked'}if(pending.body.input_origin!=='continuation_button')input.value=pending.body.message;resizeInput();if(retryAbsent)await sendMessage({preventDefault(){}});return'absent'}
 
-async function sendMessage(event){
+async function sendMessage(event,replyToEventId=null,inputOrigin='owner_text'){
+  if(state.pendingInteraction?.body.input_origin==='continuation_button'&&!input.value.trim()){inputOrigin='continuation_button';replyToEventId=state.pendingInteraction.body.reply_to_event_id}
+  if(!replyToEventId&&state.retryContinuation?.message===input.value.trim())replyToEventId=state.retryContinuation.eventId;
   event.preventDefault();
-  const message=input.value.trim();
+  const message=inputOrigin==='continuation_button'?'再说点':input.value.trim();
   if(!message||send.disabled)return;
   cancelBubblePacing();updateSayMore();
   let pending=state.pendingInteraction;
-  if(pending&&pending.body.message!==message){
+  if(pending&&(pending.body.message!==message||(pending.body.input_origin||'owner_text')!==inputOrigin)){
     const loaded=await loadTimeline({refreshAfterCurrent:true});
     const resolution=loaded==null?{status:'unknown'}:pendingResolution(pending,state.items);
     if(resolution.status==='terminal'){adoptPendingSession(resolution.item);forgetActivePending();pending=null}
@@ -185,16 +243,18 @@ async function sendMessage(event){
   }
   if(!pending){
     pending=createPendingInteraction(message,new Date().toISOString(),state.localOnly,state.sessionId);
-    activatePendingInteraction(pending);
+    if(replyToEventId){pending.body.reply_to_event_id=replyToEventId;const parent=state.items.find(item=>String(item.event_id)===String(replyToEventId));if((parent?.privacy_class||parent?.effective_privacy_class)==='LOCAL_ONLY')pending.body.privacy_class='LOCAL_ONLY'}
+    if(inputOrigin==='continuation_button')pending.body.input_origin=inputOrigin;
+    activatePendingInteraction(pending);state.retryContinuation=null;
   }
   const localOnly=pending.body.privacy_class==='LOCAL_ONLY',createdAt=pending.body.client_created_at,privacyButton=$('#privacyMode');
   send.disabled=true;
   if(privacyButton)privacyButton.disabled=true;
   input.value='';
   resizeInput();
-  $('#sendState').textContent=thinkingLabel();
-  const temporary={event_id:`temp-${crypto.randomUUID()}`,role:'user',content:pending.body.message,recorded_at:createdAt,client_created_at:createdAt,proactive:false,privacy_class:pending.body.privacy_class};
-  const thinking={event_id:`thinking-${crypto.randomUUID()}`,role:'assistant',content:'我在看，等我一下…',recorded_at:new Date().toISOString(),proactive:false};
+  $('#sendState').textContent='';
+  const temporary={event_id:`temp-${crypto.randomUUID()}`,role:'user',input_origin:pending.body.input_origin,content:pending.body.message,recorded_at:createdAt,client_created_at:createdAt,proactive:false,privacy_class:pending.body.privacy_class};
+  const thinking={event_id:`thinking-${crypto.randomUUID()}`,role:'assistant',thinking:true,content:thinkingLabel(),recorded_at:new Date().toISOString(),proactive:false};
   beginOptimisticTurn(temporary,thinking);
   renderTimeline();
   const clearOptimistic=()=>{state.items=state.items.filter(item=>item!==temporary&&item!==thinking);renderTimeline()};
@@ -206,7 +266,8 @@ async function sendMessage(event){
       rememberCompletedRoute(outcome.completed);
       adoptPendingSession(outcome.completed);
       forgetActivePending();
-      await loadTimeline({refreshAfterCurrent:true});
+      const loaded=await loadTimeline({refreshAfterCurrent:true});
+      if(loaded==null){clearOptimistic();showToast('回复已保存，正在重新加载。')}
     }else if(outcome.status==='terminal'){
       adoptPendingSession(outcome.item);
       forgetActivePending();
@@ -216,7 +277,7 @@ async function sendMessage(event){
       showToast('消息已收到，仍在处理中；不会重复发送。');
     }else{
       clearOptimistic();
-      if(!input.value.trim())input.value=pending.body.message;
+      if(!input.value.trim()&&pending.body.input_origin!=='continuation_button')input.value=pending.body.message;
       resizeInput();
       const suffix=state.pendingPersisted?'再次发送会沿用同一请求，不会创建重复轮次。':'浏览器未能保存续传信息；请不要刷新本页。';
       showToast(`${outcome.error?.message||'发送结果暂时无法确认。'} ${suffix}`);
@@ -225,7 +286,7 @@ async function sendMessage(event){
     send.disabled=false;
     updatePrivacyUI();
     $('#sendState').textContent='';
-    input.focus();updateSayMore();
+    if(inputOrigin!=='continuation_button')input.focus();updateSayMore();
   }
 }
 
@@ -353,7 +414,49 @@ function handleServiceWorkerMessage(event,open=openNotification){
   event.ports[0]?.postMessage({type:'HAVRE_NOTIFICATION_OPEN_ACK',shell:PUSH_SHELL_VERSION});
   return open(event.data.delivery_locator);
 }
-function handleControllerChange(notify=showToast){notify('HAVRE 已更新。为避免打断当前输入，本页不会自动刷新；方便时请手动刷新。')}
+let appUpdateVersion=null,appUpdateTimer=null,appUpdateChecking=false,lastAppUpdateCheck=0;
+function canApplyAppUpdate(){
+  return document.visibilityState==='visible'&&navigator.onLine!==false&&
+    $('#chatPage')?.classList.contains('active')&&!state.focusedHistory&&!state.loading&&
+    !send.disabled&&!state.pendingInteraction&&!pendingThinkingItem()&&input.value.length===0&&
+    !document.querySelector('dialog[open],.sheet.open')&&
+    !document.activeElement?.matches('input,textarea,select,[contenteditable="true"]')&&
+    ![...bubblePacers.values()].some(controller=>!controller.snapshot().done)&&
+    timeline.scrollHeight-timeline.scrollTop-timeline.clientHeight<=100;
+}
+function applyAppUpdate({manual=false}={}){
+  if(!appUpdateVersion||!canApplyAppUpdate()){
+    if(manual)showToast('先完成当前输入或回复，再更新；内容会留在这里。');return false;
+  }
+  // A failed/offline navigation must not create an automatic reload loop.
+  const key='havre-last-app-update';
+  if(!manual&&storageGet(key,browserSessionStorage())===appUpdateVersion)return false;
+  if(!storageSet(key,appUpdateVersion,browserSessionStorage())&&!manual)return false;
+  location.reload();return true;
+}
+function offerAppUpdate(version){
+  if(!version||version===APP_VERSION)return;
+  appUpdateVersion=version;const banner=$('#appUpdateBanner');if(banner)banner.hidden=false;
+  clearTimeout(appUpdateTimer);appUpdateTimer=setTimeout(()=>applyAppUpdate(),2000);
+}
+async function handleControllerChange(){
+  const controller=navigator.serviceWorker?.controller;if(!controller)return;
+  const channel=new MessageChannel();
+  const version=await new Promise(resolve=>{
+    const timer=setTimeout(()=>{channel.port1.close();resolve(null)},2000);
+    channel.port1.onmessage=event=>{clearTimeout(timer);channel.port1.close();resolve(event.data?.type==='HAVRE_APP_VERSION'?event.data.version:null)};
+    try{controller.postMessage({type:'HAVRE_APP_VERSION'},[channel.port2])}catch{clearTimeout(timer);channel.port1.close();resolve(null)}
+  });
+  offerAppUpdate(version);
+}
+async function checkAppUpdate({force=false}={}){
+  if(!('serviceWorker'in navigator)||document.visibilityState!=='visible'||navigator.onLine===false||appUpdateChecking)return;
+  if(!force&&Date.now()-lastAppUpdateCheck<60000)return;
+  appUpdateChecking=true;lastAppUpdateCheck=Date.now();
+  try{const registration=await navigator.serviceWorker.getRegistration();if(registration)await registration.update();await handleControllerChange()}
+  catch{/* Offline update checks leave the installed shell available. */}
+  finally{appUpdateChecking=false}
+}
 async function initializeTimeline(load=loadTimeline,resolve=resolveDeliveryHash){
   const loaded=await load();await resolve({refresh:false});if(loaded!==null)await resumePendingInteraction();
 }
@@ -361,15 +464,16 @@ function shouldRefreshVisibleTimeline({visibility=globalThis.document?.visibilit
 async function refreshVisibleTimeline(load=loadTimeline,conditions={}){if(!shouldRefreshVisibleTimeline(conditions))return false;const loaded=await load({refreshAfterCurrent:true,silent:true});if(loaded!==null)await resumePendingInteraction({retryAbsent:false,quiet:true});return loaded!==null}
 if(globalThis.__HAVRE_PWA_TEST_MODE__){
   globalThis.__HAVRE_PWA_TIMELINE_TEST__={beginOptimisticTurn,items:()=>state.items,setState:value=>Object.assign(state,value)};
-  globalThis.__HAVRE_PWA_TEST__={createBubblePacer,canPaceReply,sayMoreAvailable,sayMore,renderMessage,renderTimeline,cancelBubblePacing,updateBubblePacing,updateSayMore,memoryTiming,sourcePreview,withRequestDeadline,retryDraft,authorizationRequiredMessage,buildInteractionBody,configuredRoute,conversationBubbleParts,createPendingInteraction,handleControllerChange,handleOnlineReconnect,handleServiceWorkerMessage,initializeTimeline,intendedRouteLabel,interactionFailureLabel,isLoopbackHost,localRouteAvailable,loadTimeline,mergeRouteEvidence,pendingMatchesTimelineItem,pendingResolution,persistLocalOnly,persistPendingInteraction,privacyModeNotice,readLocalOnly,readPendingInteraction,refreshVisibleTimeline,removePendingInteraction,resizeInput,routeLabel,sameTimelineSnapshot,shouldRefreshVisibleTimeline,storageGet,storageRemove,storageSet,submitPendingInteraction,submitPendingWithReconciliation,thinkingLabel,timelineItemFingerprint,validPendingInteraction,viewportMetrics};
+  globalThis.__HAVRE_PWA_TEST__={APP_VERSION,canApplyAppUpdate,applyAppUpdate,offerAppUpdate,checkAppUpdate,state,isContinuationControl,pendingThinkingItem,continuationRetryAvailable,bubblePacers,createBubblePacer,canPaceReply,sayMoreAvailable,sayMore,renderMessage,renderTimeline,cancelBubblePacing,updateBubblePacing,updateSayMore,memoryTiming,sourcePreview,withRequestDeadline,retryDraft,authorizationRequiredMessage,buildInteractionBody,configuredRoute,conversationBubbleParts,createPendingInteraction,handleControllerChange,handleOnlineReconnect,handleServiceWorkerMessage,initializeTimeline,intendedRouteLabel,interactionFailureLabel,isLoopbackHost,localRouteAvailable,loadTimeline,mergeRouteEvidence,pendingMatchesTimelineItem,pendingResolution,persistLocalOnly,persistPendingInteraction,privacyModeNotice,readLocalOnly,readPendingInteraction,refreshVisibleTimeline,removePendingInteraction,resizeInput,routeLabel,sameTimelineSnapshot,shouldRefreshVisibleTimeline,storageGet,storageRemove,storageSet,submitPendingInteraction,submitPendingWithReconciliation,thinkingLabel,timelineItemFingerprint,validPendingInteraction,viewportMetrics};
   return;
 }
+$('#applyAppUpdate')?.addEventListener('click',()=>applyAppUpdate({manual:true}));
 $('#sayMoreButton').addEventListener('click',sayMore);
 document.addEventListener('visibilitychange',updateBubblePacing);
 $('#memorySearch').addEventListener('input',filterMemory);
 document.addEventListener('keydown',settingsKeyboard);
 
-$$('[data-page]').forEach(button=>button.addEventListener('click',()=>{closeSettings();setPage(button.dataset.page)}));$('#settingsButton').onclick=openSettings;$$('[data-close-sheet]').forEach(button=>button.onclick=closeSettings);$('#composer').addEventListener('submit',sendMessage);$('#privacyMode').onclick=()=>setLocalOnly(!state.localOnly,{announce:true});input.addEventListener('input',()=>{resizeInput();updateViewport();updateBubblePacing();updateSayMore()});input.addEventListener('focus',updateViewport);input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();$('#composer').requestSubmit()}});$('#returnLatest').onclick=()=>{history.replaceState(null,'','/chat');loadTimeline({refreshAfterCurrent:true})};$('#loadOlder').onclick=()=>loadTimeline({older:true});$('#historySentinel').addEventListener('mouseenter',()=>state.hasMore&&loadTimeline({older:true}));$('#saveFeedback').onclick=saveFeedback;$$('[data-rating]').forEach(button=>button.onclick=event=>{event.preventDefault();state.feedbackRating=button.dataset.rating;$('[data-rating]').forEach(choice=>choice.setAttribute('aria-pressed',String(choice===button)))});$('#addDevice').onclick=()=>$('#pairDialog').showModal();$('#createPairCode').onclick=createPair;$('#claimDevice').onclick=claimPair;$('#enablePush').onclick=enablePush;$('#saveReachOut').onclick=saveReachOut;$('#calendarToggle').onchange=toggleCalendar;$('#deviceList').onclick=event=>event.target.dataset.revokeDevice&&revokeDevice(event.target.dataset.revokeDevice);$('#strongInfo').onclick=()=>showToast(state.settings?.brain?.reason||'回复引擎状态暂不可用。');
+$$('[data-page]').forEach(button=>button.addEventListener('click',()=>{closeSettings();setPage(button.dataset.page)}));$('#settingsButton').onclick=openSettings;$$('[data-close-sheet]').forEach(button=>button.onclick=closeSettings);$('#composer').addEventListener('submit',sendMessage);$('#privacyMode').onclick=()=>setLocalOnly(!state.localOnly,{announce:true});input.addEventListener('input',()=>{state.retryContinuation=null;resizeInput();updateViewport();updateBubblePacing();updateSayMore()});input.addEventListener('focus',updateViewport);input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();$('#composer').requestSubmit()}});$('#returnLatest').onclick=()=>{history.replaceState(null,'','/chat');loadTimeline({refreshAfterCurrent:true})};$('#loadOlder').onclick=()=>loadTimeline({older:true});$('#historySentinel').addEventListener('mouseenter',()=>state.hasMore&&loadTimeline({older:true}));$('#saveFeedback').onclick=saveFeedback;$$('[data-rating]').forEach(button=>button.onclick=event=>{event.preventDefault();state.feedbackRating=button.dataset.rating;$('[data-rating]').forEach(choice=>choice.setAttribute('aria-pressed',String(choice===button)))});$('#addDevice').onclick=()=>$('#pairDialog').showModal();$('#createPairCode').onclick=createPair;$('#claimDevice').onclick=claimPair;$('#enablePush').onclick=enablePush;$('#saveReachOut').onclick=saveReachOut;$('#calendarToggle').onchange=toggleCalendar;$('#deviceList').onclick=event=>event.target.dataset.revokeDevice&&revokeDevice(event.target.dataset.revokeDevice);$('#strongInfo').onclick=()=>showToast(state.settings?.brain?.reason||'回复引擎状态暂不可用。');
 window.addEventListener('online',()=>handleOnlineReconnect());window.addEventListener('offline',()=>$('#networkBanner').hidden=false);window.addEventListener('hashchange',()=>{if(['#diary','#memory'].includes(location.hash))setPage(location.hash.slice(1));else if(location.hash.startsWith('#delivery-'))resolveDeliveryHash();else highlightFromHash()});window.visualViewport?.addEventListener('resize',updateViewport);window.visualViewport?.addEventListener('scroll',updateViewport);window.addEventListener('resize',updateViewport);window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();state.installPrompt=event;$('#installPwa').hidden=false});$('#installPwa').onclick=async()=>{if(state.installPrompt){state.installPrompt.prompt();await state.installPrompt.userChoice;state.installPrompt=null;$('#installPwa').hidden=true}};
-updatePrivacyUI();updateViewport();if('serviceWorker'in navigator){navigator.serviceWorker.addEventListener('message',handleServiceWorkerMessage);let alreadyControlled=Boolean(navigator.serviceWorker.controller);navigator.serviceWorker.addEventListener('controllerchange',()=>{if(alreadyControlled)handleControllerChange();alreadyControlled=true});navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'}).then(registration=>registration.update()).catch(()=>{})}const initial=['#diary','#memory'].includes(location.hash)?location.hash.slice(1):'chat';setPage(initial);loadSettings();initializeTimeline();setInterval(()=>refreshVisibleTimeline(),4000);document.addEventListener('visibilitychange',()=>refreshVisibleTimeline());
+updatePrivacyUI();updateViewport();if('serviceWorker'in navigator){navigator.serviceWorker.addEventListener('message',handleServiceWorkerMessage);navigator.serviceWorker.addEventListener('controllerchange',()=>handleControllerChange());navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'}).then(()=>checkAppUpdate({force:true})).catch(()=>{})}const initial=['#diary','#memory'].includes(location.hash)?location.hash.slice(1):'chat';setPage(initial);loadSettings();initializeTimeline();setInterval(()=>refreshVisibleTimeline(),4000);document.addEventListener('visibilitychange',()=>{refreshVisibleTimeline();checkAppUpdate()});window.addEventListener('online',()=>checkAppUpdate({force:true}));setInterval(()=>{checkAppUpdate();if(appUpdateVersion)applyAppUpdate()},60000);
 })();

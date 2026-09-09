@@ -147,7 +147,7 @@ class Stage1PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
             "interaction-orchestrator-v9",
         )
         response_policy = assistant_event["payload"]["response_policy_decision"]
-        self.assertEqual(response_policy["policy_version"], "core-response-policy-v1")
+        self.assertEqual(response_policy["policy_version"], "core-response-policy-v2-action-receipts")
         self.assertEqual(response_policy["action"], "pass_through")
         self.assertEqual(response_policy["category"], "ordinary")
         self.assertEqual(root_span["attributes"]["inference_timeout_ms"], 20_000)
@@ -1568,7 +1568,7 @@ class Stage1PostgresIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 ]
                 self.assertEqual(
                     core_decision["policy_version"],
-                    "core-response-policy-v1",
+                    "core-response-policy-v2-action-receipts",
                 )
                 self.assertEqual(core_decision["action"], "pass_through")
 

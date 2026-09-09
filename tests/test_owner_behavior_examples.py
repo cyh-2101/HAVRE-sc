@@ -168,7 +168,7 @@ class OwnerBehaviorExampleTests(unittest.TestCase):
         system_text = render_inference_messages(pack)[0].content_parts[0].text
         self.assertIn("Owner-authorized conversational examples", system_text)
         self.assertIn("preferred_havre_reply", system_text)
-        self.assertIn("First talk like someone who knows the owner", system_text)
+        self.assertIn("Treat the owner as this person in this moment", system_text)
 
     def test_more_restrictive_request_does_not_declassify_examples(self) -> None:
         request_id = uuid4()

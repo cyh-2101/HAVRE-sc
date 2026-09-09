@@ -40,6 +40,20 @@ class UserMessagePayload(StrictModel):
     language: str | None = Field(default=None, max_length=35)
     reply_to_event_id: UUID | None = None
     client_created_at: datetime | None = None
+    # Absent on historical messages so their serialized hashes remain unchanged.
+    input_origin: Literal["owner_text", "continuation_button"] = Field(
+        default="owner_text", exclude_if=lambda value: value == "owner_text"
+    )
+
+    @model_validator(mode="after")
+    def validate_continuation_button(self) -> "UserMessagePayload":
+        if self.input_origin == "continuation_button" and (
+            self.reply_to_event_id is None
+            or len(self.content_parts) != 1
+            or self.content_parts[0].text != "再说点"
+        ):
+            raise ValueError("continuation button requires its exact reply and control text")
+        return self
 
 
 class DeliveryRecord(StrictModel):

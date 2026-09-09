@@ -19,7 +19,7 @@ import anyio
 from fastapi import FastAPI, Header, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from companion import __version__
 from companion.application.lifecycle import INTERACTION_DEADLINE_SECONDS, settle_cancelled_task
@@ -105,6 +105,16 @@ class InteractionBody(BaseModel):
     session_id: UUID | None = None
     language: str | None = Field(default=None, max_length=35)
     client_created_at: datetime | None = None
+    reply_to_event_id: UUID | None = None
+    input_origin: Literal["owner_text", "continuation_button"] = "owner_text"
+
+    @model_validator(mode="after")
+    def validate_continuation_button(self) -> "InteractionBody":
+        if self.input_origin == "continuation_button" and (
+            self.message != "再说点" or self.reply_to_event_id is None or self.session_id is None
+        ):
+            raise ValueError("continuation button requires an exact reply and session")
+        return self
 
 
 CONTEXT_LIMIT_SAFE_MESSAGE = (
@@ -1120,6 +1130,8 @@ def create_app(settings: Settings) -> FastAPI:
                     channel="api",
                     language=body.language,
                     client_created_at=body.client_created_at,
+                    reply_to_event_id=body.reply_to_event_id,
+                    input_origin=body.input_origin,
                     idempotency_key=idempotency_key,
                     traceparent=traceparent,
                 )
@@ -1178,6 +1190,8 @@ def create_app(settings: Settings) -> FastAPI:
                         channel="web",
                         language=body.language,
                         client_created_at=body.client_created_at,
+                    reply_to_event_id=body.reply_to_event_id,
+                    input_origin=body.input_origin,
                         idempotency_key=idempotency_key,
                         traceparent=traceparent,
                     )

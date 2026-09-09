@@ -15,6 +15,11 @@ from pathlib import Path
 import sys
 import unittest
 
+import psycopg
+from psycopg import sql
+
+from companion.persistence import apply_migrations
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -41,6 +46,13 @@ EXCLUDED_TESTS = {
         "requires the excluded private owner-alignment set",
 }
 
+# Unlike the artifact-bound tests above, the source for these tests itself
+# contains private text and cannot be included in the public snapshot.
+OMITTED_PRIVATE_TESTS = {
+    "tests.test_chat_repair.ActionClaimTests.test_failed_action_cannot_become_a_promise":
+        "exact reproduced assistant transcript; test source omitted for privacy",
+}
+
 
 def _iter_cases(suite: unittest.TestSuite):
     for item in suite:
@@ -57,7 +69,7 @@ def build_public_suite() -> tuple[unittest.TestSuite, list[str]]:
         top_level_dir=str(ROOT),
     )
     selected = unittest.TestSuite()
-    excluded: list[str] = []
+    excluded: list[str] = list(OMITTED_PRIVATE_TESTS)
     for case in _iter_cases(discovered):
         test_id = case.id()
         module = test_id.rsplit(".", 2)[0]
@@ -69,6 +81,21 @@ def build_public_suite() -> tuple[unittest.TestSuite, list[str]]:
             continue
         selected.addTest(case)
     return selected, excluded
+
+
+def prepare_test_database(database_url: str) -> None:
+    """Install the canonical schema and roles before any role-bound test runs."""
+    apply_migrations(database_url, ROOT / "db" / "migrations")
+    with psycopg.connect(database_url, autocommit=True) as connection:
+        database_name = connection.execute("SELECT current_database()").fetchone()[0]
+        roles_sql = (ROOT / "deploy" / "bootstrap_roles.sql").read_text(
+            encoding="utf-8"
+        ).replace(":DBNAME", sql.Identifier(database_name).as_string(connection))
+        roles_sql = "\n".join(
+            line for line in roles_sql.splitlines()
+            if not line.lstrip().startswith("\\set ")
+        )
+        connection.execute(roles_sql)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -87,6 +114,7 @@ def main(argv: list[str] | None = None) -> int:
     parsed = urlparse(os.environ["HAVRE_TEST_DATABASE_URL"])
     if parsed.hostname not in {"localhost", "127.0.0.1", "::1"} or not parsed.path.lstrip("/").startswith("havre_showcase_"):
         parser.error("use a dedicated loopback havre_showcase_* database")
+    prepare_test_database(os.environ["HAVRE_TEST_DATABASE_URL"])
     suite, excluded = build_public_suite()
     print(f"Public verification selected {suite.countTestCases()} tests.")
     print(f"Excluded {len(excluded)} private-artifact-bound tests; see docs/PUBLIC_TESTING.md.")

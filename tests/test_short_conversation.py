@@ -91,10 +91,10 @@ class ShortConversationTests(unittest.TestCase):
         self.assertNotIn("one short turn is complete",render_response_plan(loaded))
 
     def test_current_guidance_has_its_own_authority_and_no_training(self):
-        self.assertEqual(OWNER_EXPERIENCE_VERSION,"owner-experience-first-v3-short-turns")
+        self.assertEqual(OWNER_EXPERIENCE_VERSION,"owner-experience-first-v4-grounded-conversation")
         self.assertNotIn("Do not squeeze an essay",V2_GUIDANCE)
         self.assertIn("Do not squeeze an essay",OWNER_EXPERIENCE_GUIDANCE)
         policy=owner_experience_policy()
         self.assertFalse(policy.training_eligible)
         self.assertFalse(policy.memory_eligible)
-        self.assertIn("2026-09-06",policy.authorization_ref)
+        self.assertIn("2026-09-08",policy.authorization_ref)

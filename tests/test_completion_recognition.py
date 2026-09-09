@@ -13,6 +13,14 @@ class CompletionRecognitionTests(unittest.TestCase):
             with self.subTest(message=message):
                 self.assertTrue(completion_intent(message))
 
+    def test_report_with_deadline_and_compact_spelling(self):
+        message="昨天我把ece385 lab1report写完了"
+        self.assertTrue(completion_intent(message))
+        self.assertTrue(match_task(message,course_name="ECE 385",task_name="ECE 385 Lab 1 Report（9/8 11:59 PM）")[1])
+        self.assertEqual(match_task("ece385 lab2report写完了",course_name="ECE 385",task_name="ECE 385 Lab 1 Report（9/8 11:59 PM）"),(0,False))
+        for text in ("她把ece385 lab1report写完了","我还没写完lab1","lab1快写完了","我说明天写完lab1","我说过‘写完了’吗"):
+            self.assertFalse(completion_intent(text),text)
+
     def test_not_owner_completion(self):
         for message in (
             "I haven't completed Lab 1", "Lab 1 is not done",

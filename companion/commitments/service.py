@@ -440,9 +440,8 @@ class CommitmentBroker:
         if not scored:
             # A prior prompt containing a Goal is not evidence that a later 'done'
             # refers to it. Nor should finishing lunch invite task administration.
-            if message.casefold().strip(" 。.!！") not in {
-                "done", "finished", "completed", "搞完了", "做完了", "完成了",
-            } or not rows:
+            normalized = re.sub(r"^不是(?:啊|呀)?[，,\s]+", "", message.casefold().strip(" 。.!！"))
+            if not re.fullmatch(r"(?:(?:我)?(?:都|已经)?(?:搞完|做完|写完|完成)了|done|finished|completed)",normalized) or not rows:
                 return CommitmentCompletionResolution(status="none")
             return CommitmentCompletionResolution(
                 status="ambiguous",

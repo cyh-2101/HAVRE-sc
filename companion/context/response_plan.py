@@ -170,7 +170,7 @@ _CURRENT_TIME = re.compile(
 
 
 # Speaking budgets only: these do not change retrieval or action authorization.
-_SAY_MORE = re.compile(r"\s*(?:再说点|再说一点|多说一点|keep talking|say more)[。.!！?？\s]*", re.I)
+_SAY_MORE = re.compile(r"\s*(?:再说点|再说一点|多说点|多说一点|keep talking|say more)[。.!！?？\s]*", re.I)
 _DETAIL_REQUEST = re.compile(
     r"详细|完整(?:地)?(?:分析|解释|说明|讲|回答)|展开(?:讲|说|解释|分析)|一步一步|"
     r"step.by.step|in detail|full explanation", re.I,

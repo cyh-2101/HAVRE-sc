@@ -159,3 +159,46 @@ not accept any unrelated pending ADR scope or change canonical Identity.
   relational continuation retain their controls and permissions.
 
 Verification and operational limits: [short-turn review](../SHORT_TURNS_REVIEW_2026-09-06.md).
+
+## Owner-authorized continuation and requested-read repair (2026-09-08)
+
+A visible “再说点/多说点” now carries the exact preceding completed assistant Event
+ID and its owner source into the existing interaction contract. Same owner,
+session, source policy, revocation and budget checks apply; retries retain the
+binding. While the reply has undisplayed paragraphs, the control is explicitly
+“看完这条” and expands that saved Event without inference. This refines the
+2026-09-06 button description above; four-second presentation remains unchanged.
+Experience v4 reduces over-interpretation and repeated elaboration while retaining
+complete requested work. It is not a canonical Identity amendment.
+
+Owner-requested record reads now supply bounded, source-qualified Diary summaries,
+current Goal status and revisable User Model evidence. Existing commitment
+field authorization is reused; no SQL tool, broader privacy grant or arbitrary
+model database access is added. Ordinary selectors and compiler policy remain.
+See [repair evidence and limits](../CHAT_REPAIR_REVIEW_2026-09-08.md).
+
+
+## Owner-authorized invisible continuation control (2026-09-08)
+
+The owner's latest instruction supersedes the earlier **visible user message**
+requirement for the button. Typed messages retain their normal display. Button
+requests use an optional typed `input_origin=continuation_button` on the existing
+interaction/Event path; completed control Events are not conversation bubbles,
+while failed requests retain an explicit retry. Exact reply/session/privacy and
+idempotency bindings remain required. The tap is labelled as a control in Context,
+excluded from diary utterances and new realtime understanding, and does not seed
+another automatic two-beat continuation. Additive migrations 0074/0075 guard these
+new payloads and understanding admission; historical hashes and Events remain.
+
+Only a three-dot indicator is displayed while generating. Newly delivered bubbles
+animate on entry; history and unchanged polls do not. Four-second paragraph pacing,
+complete requested work and reduced-motion behavior remain intact. A requested
+continuation aims for one or two useful message-sized contributions, without
+re-asking an unanswered question or replaying an action. There is no hard text cap.
+
+The v5 prompt candidate and CLI base-instruction probe did not show consistent
+conversational gains and were not activated. Existing v4/planner v6-v7/provider
+configuration remain; the latest rejection supersedes the previously endorsed
+four manual drafts as target-quality references. This is an experience correction,
+not a canonical Identity or global Context-policy amendment. See
+[natural chat repair evidence](../NATURAL_CHAT_REPAIR_2026-09-08.md).

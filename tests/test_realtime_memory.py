@@ -74,6 +74,20 @@ class RealtimeMemoryTests(diary_tests.DiaryIntelligencePostgresTests):
             for table in ('realtime_memory_jobs','memory_heads','daily_diary_intelligence_runs'):
                 self.assertEqual(c.execute(f'select count(*) n from havre.{table} where owner_id=%s',(self.owner,)).fetchone()['n'],0)
 
+    async def test_button_tap_is_not_a_new_memory_or_diary_source(self):
+        source=await self.say()
+        tap=await self.cloud.interact(InteractionCommand(message='再说点',channel='web',
+            session_id=source.session_id,reply_to_event_id=source.assistant_event_id,
+            input_origin='continuation_button',idempotency_key=str(uuid.uuid4())))
+        with self.repository.pool.connection() as c:
+            self.assertEqual(c.execute('select count(*) n from havre.realtime_memory_jobs where owner_id=%s',(self.owner,)).fetchone()['n'],1)
+            with self.assertRaisesRegex(ValueError,'eligible GPT source'):
+                self.diary._source_row(c,tap.user_event_id)
+        with self.assertRaisesRegex(psycopg.Error,'exact eligible completed GPT pair'):
+            with self.repository.pool.connection() as c,c.transaction():
+                c.execute('insert into havre.realtime_memory_jobs(owner_id,source_user_event_id,source_assistant_event_id,source_request_id) values(%s,%s,%s,%s)',
+                    (self.owner,tap.user_event_id,tap.assistant_event_id,tap.request_id))
+
     async def test_private_pair_cannot_queue_even_with_direct_sql(self):
         local=InteractionService(owner_id=self.owner,identity=self.identity,repository=self.repository,
             context_builder=ContextBuilder(max_input_tokens=8192,reserved_output_tokens=256),

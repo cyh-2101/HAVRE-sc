@@ -15,20 +15,20 @@ def task_tokens(value: str) -> set[str]:
 
 
 def completion_intent(message: str) -> bool:
-    text = message.casefold().strip()
+    text = re.sub(r"^不是(?:啊|呀)?[，,\s]+", "", message.casefold().strip())
     if re.search(
         r"[?？]|(?:完成|做完|搞完|弄完|提交).{0,6}(?:吗|么|没|吧)(?:[。！!]?\s*)$|(?:还?没|没有|未|不|别).{0,12}(?:完|交|做|考)|"
         r"\b(?:not|never|haven't|hasn't|didn't|isn't|isnt|havent|didnt)\b|"
         r"(?:如果|假如|等我|打算|准备|明天|后天|下周|待会|一会|希望|想要)|"
         r"\b(?:if|will|tomorrow|plan to|going to|need to|want to)\b|"
-        r"(?:他|她|室友|朋友|同学)[^。！？\n]*(?:做完|完成|搞完|弄完|提交|考完|交完|交了)|"
+        r"(?:他|她|室友|朋友|同学)[^。！？\n]*(?:做完|写完|完成|搞完|弄完|提交|考完|交完|交了)|"
         r"\b(?:he|she|they|roommate|friend)\b|"
-        r"(?:一半|部分|快完成|快做完|快搞完|差点)|\b(?:almost|partly|half)\b|"
-        r"[\"“‘].{0,80}(?:完成|做完|搞完|done|completed)", text
+        r"(?:一半|部分|快完成|快做完|快写完|快搞完|差点)|\b(?:almost|partly|half)\b|"
+        r"[\"“‘].{0,80}(?:完成|做完|写完|搞完|done|completed)", text
     ):
         return False
     return bool(re.search(
-        r"(?:搞完|做完|完成|弄完|交掉|提交|考完|交完)(?:了|啦|咯)|"
+        r"(?:搞完|做完|写完|完成|弄完|交掉|提交|考完|交完)(?:了|啦|咯)|"
         r"(?:我(?:已经)?)(?:做完|完成|提交|考完)|"
         r"\b(?:done|finished|completed|submitted)\b", text
     ))
@@ -42,7 +42,11 @@ def match_task(message: str, *, course_name: str, task_name: str) -> tuple[int, 
     """
     # Imported schedules append a parenthesized due date. The slash there is not
     # an additional task component (e.g. Quiz 1（9/4）).
-    task_name = re.sub(r"\s*[（(]\s*\d{1,4}[/-]\d{1,2}(?:[/-]\d{1,2})?\s*[)）]\s*$", "", task_name)
+    task_name = re.sub(
+        r"\s*[（(]\s*\d{1,4}[/-]\d{1,2}(?:[/-]\d{1,2})?"
+        r"(?:\s+\d{1,2}:\d{2}(?:\s*[ap]m)?)?\s*[)）]\s*$",
+        "", task_name, flags=re.I,
+    )
     query = task_tokens(message)
     candidate = task_tokens(f"{course_name} {task_name}")
     query_numbers = {t for t in query if t[0].isdigit()}

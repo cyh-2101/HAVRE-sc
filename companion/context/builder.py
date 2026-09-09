@@ -58,7 +58,7 @@ def estimate_tokens(text: str) -> int:
 
 
 class ContextBuilder:
-    version = "context-builder-v17"
+    version = "context-builder-v18"
 
     def __init__(
         self,
@@ -136,6 +136,9 @@ class ContextBuilder:
             )
         identity_text = identity.system_text()
         user_text = "\n".join(part.text for part in user_event.payload.content_parts)
+        if user_event.payload.input_origin == "continuation_button":
+            from companion.context.continuation import CONTINUATION_INPUT_TEXT
+            user_text = CONTINUATION_INPUT_TEXT
         public_identity_policy = DataPolicy.owner_default(
             PrivacyClass.PUBLIC, memory_eligible=False
         )
@@ -307,6 +310,10 @@ class ContextBuilder:
             query_text=user_text,
         )
         sections = compiled.sections
+        if user_event.payload.reply_to_event_id is not None:
+            parent_ref = f"event/{user_event.payload.reply_to_event_id}"
+            if not any(section.section_type == "conversation_assistant_message" and parent_ref in section.source_refs for section in sections):
+                raise ContextBudgetExceeded("the exact continuation reply does not fit the selected context")
         excluded = [*history_exclusions, *compiled.exclusions]
         estimated_total = compiled.estimated_tokens
         non_identity_policies = [

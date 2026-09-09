@@ -79,7 +79,9 @@ class FeedbackDailyChatWebAssetsTests(unittest.TestCase):
         script = (PROJECT_ROOT / "apps" / "web" / "havre-app.js").read_text(
             encoding="utf-8"
         )
-        self.assertIn("我在看，等我一下…", script)
+        self.assertIn("typing-dots", script)
+        self.assertIn("thinking:true", script)
+        self.assertNotIn("我在看，等我一下…", script)
         self.assertIn("timeline.scrollTop=timeline.scrollHeight", script)
         self.assertIn("window.visualViewport?.addEventListener('resize'", script)
 

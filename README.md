@@ -9,7 +9,7 @@ ML-systems question:
 > system of record?
 
 The project is a research system, not a production-ready general assistant.
-This showcase is refreshed through September 7, 2026. Publication does not
+This showcase is refreshed through September 8, 2026. Publication does not
 authorize new training, model promotion, or broader sensing. See
 [the current implementation and evidence](docs/CURRENT_IMPLEMENTATION.md).
 
@@ -17,6 +17,18 @@ This repository is the sanitized, squashed public mirror of the private
 research archive. Owner data, OA material, model weights, runtime state, local
 paths, and the private Git history are not included. See
 [PUBLICATION.md](PUBLICATION.md) for the exact publication boundary.
+
+## Development approach
+
+This is an AI-assisted personal project. Most implementation code and automated
+tests were produced with AI coding agents. The human contributor defines product
+requirements, uses the application, reports concrete failures and makes acceptance
+decisions. Repository capabilities and automated test results are not claims of
+independent coding or mastery of every subsystem.
+
+The [September 8 update](docs/CHAT_INTERACTION_UPDATE_2026-09-08.md) adds grounded
+record reads, source-bound continuation controls, receipt-checked actions and
+PWA update/motion repairs.
 
 ## What is implemented
 
@@ -52,7 +64,7 @@ flowchart LR
     RETRIEVAL --> CONTEXT
     USERMODEL[Evidence-bound User Model] --> CONTEXT
     CONTEXT --> ROUTER[Provider-neutral Router]
-    ROUTER --> MODEL[Deterministic or self-hosted Model]
+    ROUTER --> MODEL[Eligible cloud or local Model]
     MODEL --> POLICY[Core Response Policy]
     POLICY --> EVENTS
     EVENTS --> UI

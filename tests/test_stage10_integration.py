@@ -46,7 +46,7 @@ from services.api.settings import Settings
 
 DATABASE_URL = os.getenv("HAVRE_TEST_DATABASE_URL")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-MIGRATION_HEAD = "0071_current_state_delivery_freshness_lock.sql"
+MIGRATION_HEAD = "0075_continuation_is_not_memory_evidence.sql"
 HASH_A = "sha256:" + "a" * 64
 
 

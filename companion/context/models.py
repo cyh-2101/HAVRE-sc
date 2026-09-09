@@ -85,9 +85,9 @@ class ContextPack(StrictModel):
         "context-builder-v14",
         "context-builder-v15",
         "context-builder-v16",
-        "context-builder-v17",
+        "context-builder-v17", "context-builder-v18",
     ] = (
-        "context-builder-v17"
+        "context-builder-v18"
     )
     constitution_version_id: str
     identity_version_id: str

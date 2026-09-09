@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Callable, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from companion.context import (
     CONTEXT_PRESENTATION_VERSION,
@@ -38,7 +38,7 @@ from companion.hashing import content_hash
 from companion.ids import uuid7
 from companion.application.lifecycle import settle_cancelled_task
 from companion.persistence.postgres import PostgresRepository
-from companion.policy import CoreResponsePolicy, DataPolicy, PrivacyClass
+from companion.policy import CoreResponsePolicy, DataPolicy, PrivacyClass, combine_policies
 from companion.policy.models import PRIVACY_RESTRICTION_ORDER
 from companion.tracing import TraceContext
 from mlsys.contracts import (
@@ -126,8 +126,18 @@ class InteractionCommand(BaseModel):
     channel: Literal["api", "cli", "web"] = "api"
     language: str | None = Field(default=None, max_length=35)
     client_created_at: datetime | None = None
+    reply_to_event_id: UUID | None = None
+    input_origin: Literal["owner_text", "continuation_button"] = "owner_text"
     idempotency_key: str = Field(min_length=1, max_length=200)
     traceparent: str | None = None
+
+    @model_validator(mode="after")
+    def validate_continuation_button(self) -> "InteractionCommand":
+        if self.input_origin == "continuation_button" and (
+            self.message != "再说点" or self.reply_to_event_id is None or self.session_id is None
+        ):
+            raise ValueError("continuation button requires an exact reply and session")
+        return self
 
 
 class InteractionResult(BaseModel):
@@ -359,6 +369,16 @@ class InteractionService:
                 memory_eligible=command.memory_eligible,
             )
         )
+        continuation_parent = None
+        if manual is None:
+            from companion.context.continuation import continuation_parent_for
+            continuation_parent = await asyncio.to_thread(
+                continuation_parent_for, self.repository, owner_id=self.owner_id,
+                session_id=session_id, message=command.message,
+                reply_to_event_id=command.reply_to_event_id,
+            )
+            if continuation_parent is not None:
+                policy = combine_policies((policy, continuation_parent.data_policy))
         user_event = EventEnvelope(
             event_type=EventType.USER_MESSAGE,
             owner_id=self.owner_id,
@@ -371,6 +391,8 @@ class InteractionService:
                 channel=command.channel,
                 language=command.language,
                 client_created_at=command.client_created_at,
+                reply_to_event_id=(continuation_parent.event_id if continuation_parent else command.reply_to_event_id),
+                input_origin=command.input_origin,
             ),
         )
         created = False
@@ -463,6 +485,12 @@ class InteractionService:
                                 maximum_privacy_class=policy.privacy_class,
                                 as_of=user_event.recorded_at,
                             )
+                            from companion.context.lookup import requested_personal_context
+                            lookup_context = await asyncio.to_thread(
+                                requested_personal_context, self.repository, current_event=user_event,
+                                query=command.message, timezone_name=self.context_builder.owner_timezone or "America/Chicago",
+                            )
+                            personal_context = (*personal_context, *lookup_context)
                             commitment_context = ()
                             if self.commitment_broker is not None:
                                 commitment_context = await asyncio.to_thread(
@@ -550,6 +578,14 @@ class InteractionService:
                                     explicit=self.response_planner.refers_to_prior_context(command.message),
                                     timezone_name=self.context_builder.owner_timezone or "America/Chicago",
                                 )
+                    if continuation_parent is not None:
+                        from companion.context.continuation import continuation_context
+                        continuation_history, continuation_instruction = await asyncio.to_thread(
+                            continuation_context, self.repository, parent=continuation_parent, current=user_event,
+                        )
+                        by_id = {item.event_id: item for item in (*conversation_history, *continuation_history)}
+                        conversation_history = tuple(sorted(by_id.values(), key=lambda item: (item.recorded_at, str(item.event_id))))
+                        personal_context = (*personal_context, continuation_instruction)
                     planning_message = command.message
                     planning_source_refs = (f"event/{user_event.event_id}",)
                     if manual is not None:
@@ -809,6 +845,10 @@ class InteractionService:
                                 f"{inference_request.constraints.timeout_ms} ms timeout"
                             ) from error
 
+                    from companion.product.chat_goals import committed_action_effects
+                    action_effects = await asyncio.to_thread(
+                        committed_action_effects,self.repository,owner_id=self.owner_id,event_id=user_event.event_id,
+                    ) if chat_goal_context is not None else ()
                     with trace.span(
                         "policy.response",
                         parent_span_id=root_span_id,
@@ -826,9 +866,10 @@ class InteractionService:
                                 part.text for part in inference_response.output_parts
                             ),
                             history_evidence=self._history_evidence(context_pack),
-                            # Daily chat has no tool/effect receipts. A future
-                            # tool runtime must pass explicit capabilities.
-                            available_effects=(),
+                            available_effects=(
+                                *action_effects,
+                                *(("goal_completed",) if completion_resolution is not None and completion_resolution.status=="completed" else ()),
+                            ),
                         )
                     delivered_parts = tuple(
                         TextContentPart(text=value)
@@ -1439,6 +1480,10 @@ class InteractionService:
                 else None
             ),
         }
+        if command.reply_to_event_id is not None:
+            material["reply_to_event_id"] = str(command.reply_to_event_id)
+        if command.input_origin != "owner_text":
+            material["input_origin"] = command.input_origin
         if manual_strong_context is not None:
             material["manual_strong_disclosure_id"] = str(
                 manual_strong_context.disclosure_id

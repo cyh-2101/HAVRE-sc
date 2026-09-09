@@ -1,7 +1,7 @@
 # Project State
 
-- Last updated: **2026-09-06 UTC**
-- Current gate: **The owner approved short default conversational turns and an optional “再说点” button after finding both Context A/B arms too verbose. Owner experience v3, planner v6/v7 and PWA v17 are implemented and loaded on the owner-local API/worker. Final verification: 860 primary + 62 pinned-Torch tests, zero failures/errors/skips; provenance []; 13/13 budget/raw-retention cases and all 16 targeted source sets preserved. The preceding authorized targeted-recall patch is included. Production Context architecture, compiler, thresholds, model settings and reminder permissions are unchanged. No training, model promotion, evaluation cloud generation, commit or push. Real conversational likeness and physical-iPhone experience remain owner-use evidence; the earlier 18-call cloud proposal remains pending. See SHORT_TURNS_REVIEW_2026-09-06.**
+- Public snapshot updated: **2026-09-08**
+- Current public gate: **Source refresh for the owner-authorized chat/context/PWA repairs. Migration head 0075 and PWA v21; see [current implementation](CURRENT_IMPLEMENTATION.md) and [public verification](PUBLIC_TESTING.md). The historical stage entries below describe private development checkpoints, not services supplied by this public repository. No new training or model promotion.**
 - Stage 1: **Approved and complete**
 - Proactive Interaction architecture amendment: **ADR-0024 accepted; governed automatic Reach Out and the narrow generic LOCAL_ONLY Push envelope are owner-enabled while the owner PC/backend is online**
 - Stage 2: **Approved and complete**
@@ -23,7 +23,7 @@
 - Ambient Life Context / experience-to-memory architecture amendment: **Accepted; only synthetic/manual Stage 6 contracts active**
 - Daily conversation / episode / personalization-feedback amendment: **ADR-0021 accepted and implemented for owner-local use; no training or promotion authorization**
 - Core-governed response delivery: **ADR-0022 accepted on 2026-08-25 at the verified hash-bound pre-delivery architecture boundary**
-- Showcase checkpoint: **Public-safe synthetic demo and evidence documentation authorized on 2026-08-26; publication remains blocked by the separate public-release audit**
+- Showcase checkpoint: **The independently rooted public mirror is authorized for this source refresh. Its exact publication evidence is recorded in [PUBLIC_RELEASE_AUDIT.md](PUBLIC_RELEASE_AUDIT.md).**
 
 ## Approved baseline
 

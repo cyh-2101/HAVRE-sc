@@ -170,7 +170,7 @@ class DailyCompanionPwaAssetsTests(unittest.TestCase):
         self.assertIn("delivery_locator", worker)
         self.assertNotIn("event_id", worker)
         self.assertIn("shellEntry(url)", worker)
-        self.assertIn("havre-static-20260906-short-turns-v17", worker)
+        self.assertIn("havre-static-20260908-fluid-bubbles-v21", worker)
         self.assertIn("PUSH_SHELL_VERSION='havre-shell-v5'", worker)
         self.assertNotIn("'/metrics'", worker)
         self.assertIn('rel="manifest"', html)
@@ -1762,7 +1762,11 @@ class DailyCompanionProductTests(unittest.IsolatedAsyncioTestCase):
                  "0068_complete_reply_continuation_adapter.sql",
                  "0069_personal_context_event_search.sql",
                  "0070_personal_context_short_search_terms.sql",
-                 "0071_current_state_delivery_freshness_lock.sql"],
+                 "0071_current_state_delivery_freshness_lock.sql",
+                 "0072_chat_goal_conversation_sources.sql",
+                 "0073_action_receipt_response_policy.sql",
+                 "0074_continuation_button_origin.sql",
+                 "0075_continuation_is_not_memory_evidence.sql"],
             )
             self.assertEqual(
                 lineage_applied,
@@ -1784,7 +1788,11 @@ class DailyCompanionProductTests(unittest.IsolatedAsyncioTestCase):
                  "0068_complete_reply_continuation_adapter.sql",
                  "0069_personal_context_event_search.sql",
                  "0070_personal_context_short_search_terms.sql",
-                 "0071_current_state_delivery_freshness_lock.sql"],
+                 "0071_current_state_delivery_freshness_lock.sql",
+                 "0072_chat_goal_conversation_sources.sql",
+                 "0073_action_receipt_response_policy.sql",
+                 "0074_continuation_button_origin.sql",
+                 "0075_continuation_is_not_memory_evidence.sql"],
             )
             with psycopg.connect(target_url,row_factory=dict_row) as connection:
                 legacy_attempt = connection.execute(

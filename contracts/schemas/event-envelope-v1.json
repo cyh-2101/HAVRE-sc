@@ -1219,8 +1219,11 @@
           "type": "string"
         },
         "policy_version": {
-          "const": "core-response-policy-v1",
           "default": "core-response-policy-v1",
+          "enum": [
+            "core-response-policy-v1",
+            "core-response-policy-v2-action-receipts"
+          ],
           "title": "Policy Version",
           "type": "string"
         },
@@ -1766,6 +1769,15 @@
           "minItems": 1,
           "title": "Content Parts",
           "type": "array"
+        },
+        "input_origin": {
+          "default": "owner_text",
+          "enum": [
+            "owner_text",
+            "continuation_button"
+          ],
+          "title": "Input Origin",
+          "type": "string"
         },
         "language": {
           "anyOf": [

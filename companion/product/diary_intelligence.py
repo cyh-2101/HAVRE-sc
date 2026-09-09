@@ -301,6 +301,7 @@ class DiaryIntelligenceService:
                      ON route.owner_id=event.owner_id AND route.request_id=event.request_id
                    WHERE event.owner_id=%s
                      AND event.event_type IN ('USER_MESSAGE','ASSISTANT_MESSAGE')
+                     AND COALESCE(event.payload->>'input_origin','owner_text') <> 'continuation_button'
                      AND request.request_kind='interaction' AND request.status='completed'
                      AND ((event.recorded_at AT TIME ZONE %s)-interval '5 hours')::date=%s
                    ORDER BY event.recorded_at,event.event_id""",
@@ -338,6 +339,7 @@ class DiaryIntelligenceService:
                     AND route.request_id=event.request_id
                    WHERE event.owner_id=%s
                      AND event.event_type IN ('USER_MESSAGE','ASSISTANT_MESSAGE')
+                     AND COALESCE(event.payload->>'input_origin','owner_text') <> 'continuation_button'
                      AND request.request_kind='interaction'
                      AND request.status='completed'
                      AND route.selected_provider_id=%s
@@ -903,6 +905,7 @@ class DiaryIntelligenceService:
             (self.owner_id, source_event_id),
         ).fetchone()
         if (row is None or row["selected_provider_id"] != CODEX_CLI_PROVIDER_ID
+                or row["payload"].get("input_origin") == "continuation_button"
                 or row["execution_environment"] != "cloud"
                 or row["privacy_class"] not in {"PUBLIC", "NORMAL"}
                 or not row["cloud_eligible"] or not row["memory_eligible"]):

@@ -43,6 +43,15 @@
       "title": "Idempotency Key",
       "type": "string"
     },
+    "input_origin": {
+      "default": "owner_text",
+      "enum": [
+        "owner_text",
+        "continuation_button"
+      ],
+      "title": "Input Origin",
+      "type": "string"
+    },
     "language": {
       "anyOf": [
         {
@@ -70,6 +79,19 @@
     "privacy_class": {
       "$ref": "#/$defs/PrivacyClass",
       "default": "NORMAL"
+    },
+    "reply_to_event_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reply To Event Id"
     },
     "session_id": {
       "anyOf": [

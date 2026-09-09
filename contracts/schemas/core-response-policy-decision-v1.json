@@ -60,8 +60,11 @@
       "type": "string"
     },
     "policy_version": {
-      "const": "core-response-policy-v1",
       "default": "core-response-policy-v1",
+      "enum": [
+        "core-response-policy-v1",
+        "core-response-policy-v2-action-receipts"
+      ],
       "title": "Policy Version",
       "type": "string"
     },

@@ -196,7 +196,7 @@ class EventAndContextTests(unittest.TestCase):
         )
         self.assertCountEqual(
             [s.section_id for s in pack.sections],
-            ["identity", "owner-experience-first-v3-short-turns", "current-user-input"],
+            ["identity", "owner-experience-first-v4-grounded-conversation", "current-user-input"],
         )
         current_input = next(
             section for section in pack.sections

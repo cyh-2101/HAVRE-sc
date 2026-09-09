@@ -1,4 +1,4 @@
-# Current implementation and evidence — 2026-09-07
+# Current implementation and evidence — 2026-09-08
 
 This is a sanitized source snapshot of an owner-controlled research system.
 The private archive remains authoritative for exact operating records and private
@@ -15,7 +15,7 @@ indexes support retrieval. The Web/PWA supplies chat, source previews, reviewed
 understanding, diary and reminder controls. The separate Swift client is an
 implementation checkpoint with native device acceptance still open.
 
-The current data schema has 71 additive migrations. Historical migration bytes
+The current data schema has 75 additive migrations. Historical migration bytes
 are retained. Owner-qualified foreign keys, immutable revisions, hash-bound
 requests and direct database guards preserve source relationships. A correction
 qualifies earlier history; it does not silently overwrite the source event.
@@ -39,6 +39,14 @@ qualifies earlier history; it does not silently overwrite the source event.
 Source: [architecture](ARCHITECTURE.md), [conversation intelligence](CONVERSATION_INTELLIGENCE_ARCHITECTURE.md),
 [database design](DATABASE_DESIGN.md), and [ADR-0039](adr/0039-personal-context-engine-and-evidence-compiler.md).
 
+## September 8 update
+
+The [interaction update](CHAT_INTERACTION_UPDATE_2026-09-08.md) adds bounded
+requested record reads, multi-turn Goal sources, receipt-based action claims,
+exact-parent continuation controls and PWA version/animation repair. The existing
+context architecture and model configuration remain. All generated source is
+part of an AI-assisted project; system evidence is not personal mastery evidence.
+
 ## Changes since the August showcase
 
 - Lifetime raw-history lookup, exact excerpts, source-qualified ambiguity and
@@ -59,10 +67,11 @@ Source: [architecture](ARCHITECTURE.md), [conversation intelligence](CONVERSATIO
 
 ## Verified and unproven
 
-The private source checkpoint was rechecked for this handoff: 860 primary and
-62 pinned-Torch tests passed, with no failures, errors or skips. Public clone
-verification is a separate matrix recorded in [PUBLIC_TESTING.md](PUBLIC_TESTING.md).
-Private/local-artifact exclusions are not passing public tests.
+Public clone verification is separately recorded in
+[PUBLIC_TESTING.md](PUBLIC_TESTING.md). Private/local-artifact exclusions are not
+passing public tests. The preceding private backend repair recorded 877 primary
+and 62 separate-environment tests, zero failures/errors/skips; later static UI
+changes have their own browser evidence. These are different source snapshots.
 
 Historical regression evidence includes 13/13 constructed input-budget cases
 retaining raw experience and 16 constructed targeted-recall source sets. These

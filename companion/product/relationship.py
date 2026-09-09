@@ -153,6 +153,10 @@ class ConversationContinuationService:
             or len(assistant_message.strip()) < 2
         ):
             return None
+        # A manual continuation is one requested response, not a new trigger for
+        # another pair of automatic follow-ups.
+        if getattr(user_event.payload, "input_origin", None) == "continuation_button":
+            return None
         run_id = uuid7()
         with self.repository.pool.connection() as connection, connection.transaction():
             row = connection.execute(

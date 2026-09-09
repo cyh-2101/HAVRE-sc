@@ -366,7 +366,7 @@ class RelevantMemoryPresentationTests(unittest.TestCase):
         types = [section.section_type for section in constrained.sections]
         self.assertIn("episodic_memory", types)
         self.assertNotIn("conversation_user_message", types)
-        self.assertEqual(constrained.builder_version, "context-builder-v17")
+        self.assertEqual(constrained.builder_version, "context-builder-v18")
         self.assertLessEqual(
             constrained.estimated_total_tokens,
             constrained.token_budget.max_input_tokens
